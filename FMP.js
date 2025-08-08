@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         FlatMMOPlus
 // @namespace    com.dounford.flatmmo
-// @version      0.0.5
+// @version      0.0.6
 // @description  FlatMMO plugin framework
 // @author       Anwinity ported by Dounford
 // @match        *://flatmmo.com/play.php*
@@ -28,7 +28,7 @@
         }
     };
 
-	const VERSION = "0.0.4"
+	const VERSION = "0.0.6"
 
 	if (window.FlatMMOPlus) {
 		//already loaded

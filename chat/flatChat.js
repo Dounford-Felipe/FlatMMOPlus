@@ -32,6 +32,56 @@
 	const IPSigils = new Set([
 		'images/ui/basket_egg_sigil.png', 'images/ui/basket_sigil.png', 'images/ui/bat_sigil.png', 'images/ui/bell_sigil.png', 'images/ui/blue_party_hat_sigil.png', 'images/ui/broken_bell_sigil.png', 'images/ui/bronze_event_2_sigil.png', 'images/ui/bronze_event_sigil.png', 'images/ui/bunny_sigil.png', 'images/ui/candy_cane_sigil.png', 'images/ui/carrot_sigil.png', 'images/ui/cat_sigil.png', 'images/ui/chocolate_sigil.png', 'images/ui/dh1_max_sigil.png', 'images/ui/easter_egg_sigil.png', 'images/ui/event_2_sigil.png', 'images/ui/event_sigil.png', 'images/ui/fake_bell_sigil.png', 'images/ui/fancy_bell_sigil.png', 'images/ui/ghost_sigil.png', 'images/ui/gift_sigil.png', 'images/ui/gold_event_2_sigil.png', 'images/ui/gold_event_sigil.png', 'images/ui/green_party_hat_sigil.png', 'images/ui/hatching_chicken_sigil.png', 'images/ui/mad_bunny_sigil.png', 'images/ui/mummy_head_sigil.png', 'images/ui/mummy_sigil.png', 'images/ui/pink_party_hat_sigil.png', 'images/ui/pumpkin_sigil.png', 'images/ui/red_party_hat_sigil.png', 'images/ui/reindeer_sigil.png', 'images/ui/santa_hat_sigil.png', 'images/ui/silver_event_2_sigil.png', 'images/ui/silver_event_sigil.png', 'images/ui/skull_sigil.png', 'images/ui/snowflake_sigil.png', 'images/ui/snowman_sigil.png', 'images/ui/spider_sigil.png', 'images/ui/tree_sigil.png', 'images/ui/white_party_hat_sigil.png', 'images/ui/yellow_party_hat_sigil.png', 'images/ui/zombie_sigil.png'
 	])
+	const defaultThemes = {
+		dark: {
+			bgColor: "#323437",
+			pickerLocal: "#C0C0C0",
+			pickerGlobal: "#C0C0C0",
+			pickerRoom: "#C0C0C0",
+			pickerPrivate: "#C0C0C0",
+			inputName: "#FA8072",
+			inputColor: "#252729",
+			inputText: "#C0C0C0",
+			messagesColor: "#e1e1e1",
+			serverMessages: "#6495ED",
+			lvlMilestoneMessages: "#FF1493",
+			errorMessages: "#FF0000",
+			restMessages: "#00FF00",
+			lvlUpMessages: "#00ad00",
+			areaChangeMessages: "#00FFFF",
+			privateMessages: "#FFA500",
+			ownPrivateMessages: "#e88f4f",
+			pingMessages: "#5F9EA0",
+			contextBackground: "#323437",
+			contextSection: "#252729",
+			contextText: "#C0C0C0",
+			linkColor: "#00FFFF",
+		},
+		light: {
+			bgColor: "#ffffff",
+			pickerLocal: "#000000",
+			pickerGlobal: "#000000",
+			pickerRoom: "#000000",
+			pickerPrivate: "#000000",
+			inputName: "#FA8072",
+			inputColor: "#D3D3D3",
+			inputText: "#000000",
+			messagesColor: "#000000",
+			serverMessages: "#6495ED",
+			lvlMilestoneMessages: "#FF1493",
+			errorMessages: "#FF0000",
+			restMessages: "#00FF00",
+			lvlUpMessages: "#008000",
+			areaChangeMessages: "#00FFFF",
+			privateMessages: "#FFA500",
+			ownPrivateMessages: "#e88f4f",
+			pingMessages: "#5F9EA0",
+			contextBackground: "#323437",
+			contextSection: "#252729",
+			contextText: "#C0C0C0",
+			linkColor: "#00FFFF",
+		}
+	}
  
 	class flatChatPlugin extends FlatMMOPlusPlugin {
 		constructor() {
@@ -90,8 +140,8 @@
 						label: "Theme",
 						type: "select",
 						options: [
-							{value: "dark", label: "Dark"},
 							{value: "light", label: "Light"},
+							{value: "dark", label: "Dark"},
 						],
 						default: "dark"
 					},
@@ -157,30 +207,6 @@
 			this.lastWarning = Date.now() - 60000;
 
 			this.themes = {
-				light: {
-					bgColor: "#ffffff",
-					pickerLocal: "#000000",
-					pickerGlobal: "#000000",
-					pickerRoom: "#000000",
-					pickerPrivate: "#000000",
-					inputName: "#FA8072",
-					inputColor: "#D3D3D3",
-					inputText: "#000000",
-					messagesColor: "#000000",
-					serverMessages: "#6495ED",
-					lvlMilestoneMessages: "#FF1493",
-					errorMessages: "#FF0000",
-					restMessages: "#00FF00",
-					lvlUpMessages: "#008000",
-					areaChangeMessages: "#00FFFF",
-					privateMessages: "#FFA500",
-					ownPrivateMessages: "#e88f4f",
-					pingMessages: "#5F9EA0",
-					contextBackground: "#323437",
-					contextSection: "#252729",
-					contextText: "#C0C0C0",
-					linkColor: "#00FFFF",
-				},
 				dark: {
 					bgColor: "#323437",
 					pickerLocal: "#C0C0C0",
@@ -196,6 +222,30 @@
 					errorMessages: "#FF0000",
 					restMessages: "#00FF00",
 					lvlUpMessages: "#00ad00",
+					areaChangeMessages: "#00FFFF",
+					privateMessages: "#FFA500",
+					ownPrivateMessages: "#e88f4f",
+					pingMessages: "#5F9EA0",
+					contextBackground: "#323437",
+					contextSection: "#252729",
+					contextText: "#C0C0C0",
+					linkColor: "#00FFFF",
+				},
+				light: {
+					bgColor: "#ffffff",
+					pickerLocal: "#000000",
+					pickerGlobal: "#000000",
+					pickerRoom: "#000000",
+					pickerPrivate: "#000000",
+					inputName: "#FA8072",
+					inputColor: "#D3D3D3",
+					inputText: "#000000",
+					messagesColor: "#000000",
+					serverMessages: "#6495ED",
+					lvlMilestoneMessages: "#FF1493",
+					errorMessages: "#FF0000",
+					restMessages: "#00FF00",
+					lvlUpMessages: "#008000",
 					areaChangeMessages: "#00FFFF",
 					privateMessages: "#FFA500",
 					ownPrivateMessages: "#e88f4f",
@@ -296,6 +346,10 @@
 				border: solid black 2px;
 				border-radius: 5px;
 				text-align: justify;
+				outline: none;
+			}
+			.flatChat * {
+    			outline: none;
 			}
 			.flatChat-mainArea {
 				display: flex;
@@ -329,12 +383,12 @@
 
 				/*Current room btn*/
 				[data-channel="channel_local"] {
-					color: var(--fc-pickerLocal);
+					color: var(--fc-pickerLocal) !important;
 				}
 				
 				/*yell chat btn*/
 				[data-channel="channel_global"] {
-					color: var(--fc-pickerGlobal);
+					color: var(--fc-pickerGlobal) !important;
 				}
 
 				/*custom room btn*/
@@ -505,7 +559,11 @@
 			if(localStorage.getItem("flatChat-themes")) {
 				this.themes = JSON.parse(localStorage.getItem("flatChat-themes"));
 			}
-			this.themes.forEach(theme=> this.addTheme(theme));
+			for (let theme in this.themes) {
+				this.addTheme(theme)
+				this.opts.config[6].options = this.opts.config[6].options.filter(t => t.value !== theme)
+				this.opts.config[6].options.push({value: theme, label: this.toTitleCase(theme)})
+			}
 		}
 
 		addUI() {
@@ -556,7 +614,15 @@
 				</ul>
 				<div id="flatChat-copyUsername">USERNAME COPIED</div>`
 			chatDiv.id = "flatChat";
-			chatDiv.classList = "flatChat flatChat-dark"
+			chatDiv.tabIndex = 0;
+			let currentTheme = this.config.theme
+			if(this.themes[currentTheme]) {
+				chatDiv.classList = "flatChat flatChat-" + this.config.theme;
+			} else {
+				this.config.theme = "dark";
+				chatDiv.classList = "flatChat flatChat-dark";
+				this.saveConfig();
+			}
 
 			document.querySelector("body center").insertAdjacentElement("beforeend",chatDiv);
 
@@ -641,23 +707,22 @@
 			});
 
 			document.addEventListener("keydown", (e) => {
+				if (e.key === "Tab" && e.target.closest('#flatChat')) {
+					e.preventDefault();
+					if(document.querySelector(`#flatChat-channelPicker [data-channel=${this.currentChannel}]`).nextElementSibling) {
+						const channel = document.querySelector(`#flatChat-channelPicker [data-channel=${this.currentChannel}]`).nextElementSibling.dataset.channel
+						let [isPrivate, name] = channel.split("_")
+						this.switchChannel(name, isPrivate === "private")
+						return;
+					} else {
+						this.switchChannel("local", false)
+						return;
+					}
+				}
 				if(document.activeElement === document.getElementById("flatChat-input")) {
 					if(e.key === "Enter") {
 						if(has_modal_open()) return;
 						this.sendMessage();
-					}
-
-					if(e.key === "Tab") {
-						e.preventDefault();
-						if(document.querySelector(`#flatChat-channelPicker [data-channel=${this.currentChannel}]`).nextElementSibling) {
-							const channel = document.querySelector(`#flatChat-channelPicker [data-channel=${this.currentChannel}]`).nextElementSibling.dataset.channel
-							let [private, name] = channel.split("_")
-							this.switchChannel(name, private === "private")
-							return;
-						} else {
-							this.switchChannel("local", false)
-							return;
-						}
 					}
 
 					const input = document.getElementById("flatChat-input");
@@ -672,7 +737,7 @@
 						input.selectionStart = input.value.length
 					}
 				}
-			})
+			}, true)
 		}
 
 		addTheme(theme) {
@@ -687,15 +752,13 @@
 				document.head.appendChild(themeSyle);
 			}
 			themeSyle.innerHTML = `.flatChat-${theme} {`
-			for (option in this.themes[theme]) {
+			for (let option in this.themes[theme]) {
 				themeSyle.innerHTML += `\n\t--fc-${option}: ${this.themes[theme][option]};`
 			}
 			themeSyle.innerHTML += "\n}"
 		}
 
 		addThemeEditor() {
-			
-			id = "flatChat-ThemeEditor"
 			FlatMMOPlus.addPanel("flatChat-ThemeEditor", "Theme Editor", ()=>{
 				let content = `
 				<style>
@@ -793,12 +856,12 @@
 
 				<input type="text" id="fc-themeName-editor" default="Theme Name">
 				<button type="button" onclick="FlatMMOPlus.plugins.flatChat.saveTheme()">Save</button>
+				<button type="button" onclick="FlatMMOPlus.plugins.flatChat.deleteTheme()">Delete Theme</button>
 				
 				<input type="text" id="fc-import-editor" default="Import/Export">
 				<button type="button" onclick="FlatMMOPlus.plugins.flatChat.importTheme()">Import</button>
 				<button type="button" onclick="FlatMMOPlus.plugins.flatChat.exportTheme()">Export</button>
 				
-				<button type="button" onclick="FlatMMOPlus.plugins.flatChat.deleteTheme()">Export</button>
 				`
 				return content;
 			}) 
@@ -807,38 +870,100 @@
 
 		changeThemeEditor() {
 			const theme = document.getElementById("flatChat-ThemeEditor-theme").value;
-			document.getElementById("fc-themeName-editor").value = theme;
-			for (option in this.themes[theme]) {
+			document.getElementById("fc-themeName-editor").value = document.querySelector(`#flatChat-ThemeEditor-theme option[value=${theme}]`).innerText;
+			for (let option in this.themes[theme]) {
 				document.getElementById("fc-" + option + "-editor").value = this.themes[theme][option]
 			}
 		}
 
 		saveTheme() {
 			const theme = document.getElementById("fc-themeName-editor").value;
-			this.themes[theme] = {};
-			for (option in this.themes.dark) {
-				this.themes[theme][option] = document.getElementById("fc-" + option + "-editor").value
+			const themeName = this.toCamelCase(theme);
+
+			//Make sure it doesn't duplicate
+			if(this.themes[themeName]) {
+				this.opts.config[6].options = this.opts.config[6].options.filter(t => t.value !== themeName)
+				document.querySelector(`#flatChat-ThemeEditor-theme option[value=${themeName}]`).remove();
+			} else {
+				this.themes[themeName] = {};
 			}
+
+			for (let option in this.themes.dark) {
+				this.themes[themeName][option] = document.getElementById("fc-" + option + "-editor").value
+			}
+
 			
-			FlatMMOPlus.plugins.flatChat.opts.config[6].options.push({value:"", label: ""})
+			this.opts.config[6].options.push({value: themeName, label: theme})
 
-
+			document.getElementById("flatChat-ThemeEditor-theme").innerHTML += `<option value="${themeName}">${theme}</option>`
+			document.getElementById("flatChat-ThemeEditor-theme").value = themeName;
 			
-			this.addTheme(theme);
-		}
-
-		importTheme() {
-
-		}
-
-		exportTheme() {
-
+			//Change to new theme
+			this.config.theme =  themeName;
+			const flatChat = document.getElementById("flatChat");
+			flatChat.classList = "flatChat flatChat-" + this.config.theme;
+			this.saveConfig();
+			
+			localStorage.setItem("flatChat-themes", JSON.stringify(this.themes));
+			
+			this.addTheme(themeName);
 		}
 
 		deleteTheme() {
 			const theme = document.getElementById("flatChat-ThemeEditor-theme").value;
-			//Default themes can't be removed
-			if(theme === "light" || theme === "dark") {return};
+			console.log(theme)
+
+			//Return if it doesn't exist
+			if(!this.themes[theme]) {return};
+
+			//Default themes can't be removed, they will be go back to default instead
+			if(theme === "light" || theme === "dark")  {
+				this.themes[theme] = structuredClone(defaultThemes[theme]);
+				this.changeThemeEditor();
+				this.saveTheme();
+				return;
+			};
+
+			//remove from themes
+			delete this.themes[theme];
+
+			//remove from fm+ config
+			this.opts.config[6].options = this.opts.config[6].options.filter(t => t.value !== theme);
+
+			//Remove the option on theme editor
+			document.querySelector(`#flatChat-ThemeEditor-theme option[value=${theme}]`).remove();
+
+			//save themes on localstorage
+			localStorage.setItem("flatChat-themes", JSON.stringify(this.themes));
+			
+			//If there is a theme style (it should exist) remove it
+			if (document.getElementById("fc-themeStyle-" + theme)) {
+				document.getElementById("fc-themeStyle-" + theme).remove();
+			}
+
+			this.config.theme =  "dark";
+			const flatChat = document.getElementById("flatChat");
+			flatChat.classList = "flatChat flatChat-dark";
+		}
+
+		importTheme() {
+			const themeString = document.getElementById("fc-import-editor").value;
+			try {
+				const themeObj = JSON.parse(themeString);
+				document.getElementById("fc-themeName-editor").value = themeObj.name;
+				for (let option in themeObj.theme) {
+					document.getElementById("fc-" + option + "-editor").value = themeObj.theme[option]
+				}
+				this.saveTheme()
+			} catch (error) {
+				console.error("What you are trying to import is not a valid theme");
+			}
+		}
+
+		exportTheme() {
+			const theme = document.getElementById("fc-themeName-editor").value;
+			const themeString = JSON.stringify({name: theme, theme: this.themes[theme]});
+			document.getElementById("fc-import-editor").value = themeString;
 		}
 
 		defineCommands() {
@@ -1507,6 +1632,29 @@
 			const min = date.getMinutes() < 10 ? "0" + date.getMinutes() : date.getMinutes();
 			const dataStr = '[' + hour + ':' + min + ']'
 			return dataStr;
+		}
+
+		toCamelCase(str) {
+			if (!str || typeof str !== 'string') {
+				return '';
+			}
+
+			const words = str.split(/[\s_-]+/);
+
+			const camelCaseWords = words.map((word, index) => {
+				if (index === 0) {
+					return word.toLowerCase();
+				} else {
+					return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+				}
+			});
+
+			return camelCaseWords.join('');
+		}
+
+		toTitleCase(str) {
+			const result = str.replace(/([A-Z])/g, " $1");
+			return result.charAt(0).toUpperCase() + result.slice(1)
 		}
 	}
  
