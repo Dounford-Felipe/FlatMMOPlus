@@ -204,17 +204,7 @@
 				self.onPanelChanged(panelBefore, panelAfter);
             }
 
-            const original_paint = window.paint;
-
-            window.paint = function() {
-                original_paint();
-
-                try {
-                    self.onPaint();
-                } catch (error) {
-                    console.warn("Error on FlatMMO+ onPaint", error.message)
-                }
-            };
+            
 
             // create plugin menu item and panel
 			const settingsBody = document.querySelector(".settings-ui tbody")
@@ -268,7 +258,7 @@
                             if(CONFIG_TYPES_LABEL.includes(cfg.type)) {
                                 content += `<h5 style="grid-column: span 2; margin-bottom: 0; font-weight: 600">${cfg.label}</h5>`;
                             } else if (CONFIG_TYPES_PANEL.includes(cfg.type)) {
-                                content += `<div onclick="FlatMMOPlus.setPanel('${cfg.panel}')">
+                                content += `<div onclick="FlatMMOPlus.setPanel('${cfg.panel}')" style="cursor: pointer;">
                                     <h2 style="text-align: center;">${cfg.label}</h2>
                                 </div>`
                             } else if(CONFIG_TYPES_BOOLEAN.includes(cfg.type)) {
@@ -712,6 +702,18 @@
 
             //Chat auto scroll is always true for now
             chat_div_element.scrollTop = chat_div_element.scrollHeight;
+
+            const original_paint = window.paint;
+
+            window.paint = function() {
+                original_paint();
+
+                try {
+                    window.FlatMMOPlus.onPaint();
+                } catch (error) {
+                    console.warn("Error on FlatMMO+ onPaint", error.message)
+                }
+            };
         }
 
 		onChat(data) {

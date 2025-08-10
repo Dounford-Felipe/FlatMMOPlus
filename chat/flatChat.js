@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         FlatChat+
 // @namespace    com.dounford.flatmmo.flatChat
-// @version      0.0.5
+// @version      0.2.0
 // @description  Better chat for FlatMMO
 // @author       Dounford
 // @license      MIT
@@ -170,12 +170,6 @@
 						default: ""
 					},
 					{
-						id: "noCustomSocket",
-						label: "Block connection with custom socket (private messages will not work)",
-						type: "boolean",
-						default: false
-					},
-					{
 					    id: "themeEditor",
 					    label: "THEME EDITOR",
 					    panel: "flatChat-ThemeEditor",
@@ -183,7 +177,6 @@
 					}
 				]
 			});
-			this.socket;
 			this.settings = {
 				ignoredPlayers: new Set(),
 				ignoredWords: new Set(),
@@ -272,12 +265,6 @@
 			this.showWarning("Welcome to flatmmo.com", "orange");
 			this.showWarning(document.querySelectorAll("#chat span")[1].innerHTML, "white");
 			this.showWarning(`<span><strong style="color:cyan">FYI: </strong> Use the /help command to see information on available chat commands.</span>`, "white");
-			//Just in case someone doesn't want to use it for privacy ¯\_(ツ)_/¯
-			//It may break something in the chat
-			if(this.getConfig("noCustomSocket")) { 
-				return;
-			}
-			this.initCustomSocket();
 		}
  
 		onChat(data) {
@@ -289,6 +276,22 @@
 
 			if (data.username === "" && data.color === "white") {
 				data.color = "server"
+			};
+
+			if (data.color === "pink" && data.message.startsWith("[PM")) {
+				let match = data.message.match(/\[PM (?:to|from) (.*?)\](.*)/);
+				if(match) {
+					if(data.message.startsWith("[PM to")) {
+						data.color = "ownPrivate";
+					} else {
+						data.color = "private";
+					}
+					data.username = match[1].trim().replaceAll(" ", "_");
+    				data.message = match[2].trim();
+					data.channel = this.channels["private_" + data.username] ? "private_" + data.username : "channel_global";
+				} else {
+					console.warn("There was something wrong with this pm:", data.message)
+				}
 			};
 
 			if(FlatMMOPlus.loggedIn) {
@@ -510,6 +513,7 @@
 				input {
 					flex: auto;
 					border: 0;
+					padding-top: 0;
 					background-color: transparent;
 					color: var(--fc-inputText);
 					&:focus {
@@ -631,8 +635,12 @@
 			document.querySelector("#flatChat-channelPicker").onclick = (e) => {
 				const channelName = e.target.closest("[data-channel]");
 				if (channelName) {
-					const [type, channel] = channelName.dataset.channel.split("_");
-					this.switchChannel(channel, type === "private")
+					const match = channelName.dataset.channel.match(/(.*?)_(.*)/);
+					if (match) {
+						const type = match[1];
+						const channel = match[2];
+						this.switchChannel(channel, type === "private")
+					}
 				}
 			}
 
@@ -711,8 +719,12 @@
 					e.preventDefault();
 					if(document.querySelector(`#flatChat-channelPicker [data-channel=${this.currentChannel}]`).nextElementSibling) {
 						const channel = document.querySelector(`#flatChat-channelPicker [data-channel=${this.currentChannel}]`).nextElementSibling.dataset.channel
-						let [isPrivate, name] = channel.split("_")
-						this.switchChannel(name, isPrivate === "private")
+						const match = channel.match(/(.*?)_(.*)/);
+						if (match) {
+							const type = match[1];
+							const channel = match[2];
+							this.switchChannel(channel, type === "private")
+						}
 						return;
 					} else {
 						this.switchChannel("local", false)
@@ -777,7 +789,7 @@
 						}
 
 						select {
-							grid-column: 1 / -1;
+							grid-column: 1 / span 2;
 							text-align: center;
 							font-size: large;
 						}
@@ -854,14 +866,15 @@
 				<label for="fc-linkColor-editor">Hyperlink Text Color</label>
 				<input type="color" id="fc-linkColor-editor">
 
-				<input type="text" id="fc-themeName-editor" default="Theme Name">
-				<button type="button" onclick="FlatMMOPlus.plugins.flatChat.saveTheme()">Save</button>
-				<button type="button" onclick="FlatMMOPlus.plugins.flatChat.deleteTheme()">Delete Theme</button>
-				
-				<input type="text" id="fc-import-editor" default="Import/Export">
-				<button type="button" onclick="FlatMMOPlus.plugins.flatChat.importTheme()">Import</button>
-				<button type="button" onclick="FlatMMOPlus.plugins.flatChat.exportTheme()">Export</button>
-				
+				<div style="display: grid;grid-template-columns: auto auto;grid-column: 1 / span 2;">
+					<input type="text" id="fc-themeName-editor" placeholder="Theme Name" style="grid-column: 1 / span 2;">
+					<button type="button" onclick="FlatMMOPlus.plugins.flatChat.saveTheme()">Save</button>
+					<button type="button" onclick="FlatMMOPlus.plugins.flatChat.deleteTheme()">Delete Theme</button>
+					
+					<input type="text" id="fc-import-editor" placeholder="Import/Export" style="grid-column: 1 / span 2;">
+					<button type="button" onclick="FlatMMOPlus.plugins.flatChat.importTheme()">Import</button>
+					<button type="button" onclick="FlatMMOPlus.plugins.flatChat.exportTheme()">Export</button>
+				</div>
 				`
 				return content;
 			}) 
@@ -878,6 +891,7 @@
 
 		saveTheme() {
 			const theme = document.getElementById("fc-themeName-editor").value;
+			if(!theme) {return};
 			const themeName = this.toCamelCase(theme);
 
 			//Make sure it doesn't duplicate
@@ -950,7 +964,8 @@
 			const themeString = document.getElementById("fc-import-editor").value;
 			try {
 				const themeObj = JSON.parse(themeString);
-				document.getElementById("fc-themeName-editor").value = themeObj.name;
+				if(!themeObj.name) {return};
+				document.getElementById("fc-themeName-editor").value = this.toTitleCase(themeObj.name);
 				for (let option in themeObj.theme) {
 					document.getElementById("fc-" + option + "-editor").value = themeObj.theme[option]
 				}
@@ -961,8 +976,8 @@
 		}
 
 		exportTheme() {
-			const theme = document.getElementById("fc-themeName-editor").value;
-			const themeString = JSON.stringify({name: theme, theme: this.themes[theme]});
+			const theme = document.getElementById("flatChat-ThemeEditor-theme").value;
+			const themeString = JSON.stringify({name: theme, "theme": this.themes[theme]});
 			document.getElementById("fc-import-editor").value = themeString;
 		}
 
@@ -974,29 +989,11 @@
 					this.showWarning(Object.keys(players).join(", "), "white");
 				} else if (this.currentChannel.startsWith("private_")) {
 					this.showWarning(`${this.currentChannel.slice(8)} & ${Globals.local_username}`, "white");
-				} else {
-					if(this.getConfig("noCustomSocket")) {return};
-					const message = {
-						type: "WHO",
-						data: {
-							channel: this.currentChannel
-						}
-					}
-					this.socket.send(JSON.stringify(message));
 				}
 			}, `Show all players in room or global.`);
 
-			window.FlatMMOPlus.registerCustomChatCommand("unread", (command, data='') => {
-				if(this.getConfig("noCustomSocket")) {return};
-				this.socket.send(JSON.stringify({
-					type: "SHOW_OFFLINE",
-					data: {}
-				}));
-			}, `Shows all private messages received when you were offline.`);
-			
 			//Pm will only open a tab if a message is not specified
 			window.FlatMMOPlus.registerCustomChatCommand("pm", (command, data='') => {
-				if(this.getConfig("noCustomSocket")) {return};
 				if (data === "") {
 					this.showWarning("You need to specify the username", "red");
 					return;
@@ -1008,22 +1005,17 @@
 				} else {
 					const receiver = data.substring(0, space);
 					const message = data.substring(space + 1);
-					const socketMessage = {
-						type: "PRIVATE",
-						data: {
-							receiver,
-							message
-						}
+					if (this.channels["private_" + receiver]) {
+						this.switchChannel(receiver, true);
+					} else {
+						this.switchChannel("global", false);
 					}
-					this.socket.send(JSON.stringify(socketMessage));
-					this.switchChannel("local", false);
-					this.showOwnMessage(message, "channel_local","ownPrivate");
+					Globals.websocket.send(`CHAT=/pm ${receiver} ${message}`);
 				}
 			}, `Send a private message to someone.`);
 
 			//pm* will always open a new tab
 			window.FlatMMOPlus.registerCustomChatCommand("pm*", (command, data='') => {
-				if(this.getConfig("noCustomSocket")) {return};
 				if (data === "") {
 					this.showWarning("You need to specify the username", "red");
 					return;
@@ -1037,15 +1029,7 @@
 					const message = data.substring(space + 1);
 					this.newChannel(receiver, true);
 					this.switchChannel(receiver, true);
-					const socketMessage = {
-						type: "PRIVATE",
-						data: {
-							receiver,
-							message
-						}
-					}
-					this.socket.send(JSON.stringify(socketMessage));
-					this.showOwnMessage(message, "private_" + receiver, "ownPrivate");
+					Globals.websocket.send(`CHAT=/pm ${receiver} ${message}`);
 				}
 			}, `Opens a private channel in a new tab.<br><b>Usage:</b>/pm* [username] <message (optional)>`);
 
@@ -1113,40 +1097,8 @@
 
 		}
 
-		initCustomSocket() {
-			this.socket = new WebSocket("wss://pm.dounford.tech");
-			this.socket.onopen = () => {
-				const connectMessage = {
-					type: "CONNECT",
-					data: {
-						username: Globals.local_username
-					}
-				}
-				this.socket.send(JSON.stringify(connectMessage));
-			}
-			this.socket.onmessage = (event) => {
-				let message;
-				try {
-					message = JSON.parse(event.data);
-					if (!("type" in message) || !("data" in message)) {
-						return;
-					}
-				} catch (error) {
-					console.error("The last message was not a valid JSON", error.message);
-					return;
-				}
-
-				this.handleMessage(message.type, message.data);
-			}
-			this.socket.onclose = (event) => {
-				console.log("WebSocket connection closed. Code: " + event.code + ", Reason: " + event.reason);
-				setTimeout(async function() {
-					await FlatMMOPlus.plugins.flatChat.initCustomSocket();
-				}, 20000);
-			};
-		}
-
 		newChannel(channel, isPrivate) {
+			console.log(channel, isPrivate)
 			const channelName = (isPrivate ? "private_" : "channel_") + channel;
 			if(this.channels[channelName]) {return};
 			this.channels[channelName] = {
@@ -1159,7 +1111,7 @@
 				lastSender: "",
 			}
 			document.getElementById("flatChat-channelPicker").insertAdjacentHTML("beforeend",`<button data-channel="${channelName}" class="flatChat-channelPicker-${isPrivate ? "private" : "room"}">
-				<span id="unreadMessages-${channelName}" style="display: none;"></span><span id="activeChat-${channelName}" style="display:none">></span><span>${isPrivate ? "@" : "#"}${channel}</span>
+				<span id="unreadMessages-${channelName}" style="display: none;"></span><span id="activeChat-${channelName}" style="display:none">></span><span>${isPrivate ? "@" : "#"}${channel.replace("_"," ")}</span>
 			</button>`)
 			document.getElementById("flatChat-channels").insertAdjacentHTML("beforeend",`<div data-channel="${channelName}" style="display:none"></div>`);
 			if(isPrivate) {
@@ -1191,8 +1143,12 @@
 		loadChannels() {
 			const channels = JSON.parse(localStorage.getItem("flatChat-channels") || '["channel_local","channel_global"]');
 			channels.forEach(channel => {
-				const [type, name] = channel.split("_");
-				this.newChannel(name, type === "private");
+				const match = channel.match(/(.*?)_(.*)/);
+				if (match) {
+					const type = match[1];
+					const name = match[2];
+					this.newChannel(name, type === "private");
+				}
 			})
 		}
 
@@ -1406,9 +1362,9 @@
 
 			if (data.username) {
 				const senderStrong = document.createElement("strong");
-				senderStrong.innerText = data.username + ":";
+				senderStrong.innerText = data.username.replaceAll("_", " ") + ":";
 				senderStrong.className = "flatChat-player";
-				senderStrong.setAttribute("data-sender", data.username);
+				senderStrong.setAttribute("data-sender", data.username.replaceAll(" ", "_"));
 				messageContainer.appendChild(senderStrong);
 
 				if(this.settings.watchedPlayers.has(data.username)) {
@@ -1524,104 +1480,7 @@
 				Globals.websocket.send('CHAT=/yell ' + message);
 			} else if (this.currentChannel.startsWith("private_")) {
 				const username = this.currentChannel.slice(8);
-				const socketMessage = {
-					type: "PRIVATE",
-					data: {
-						receiver: username,
-						message
-					}
-				}
-				this.socket.send(JSON.stringify(socketMessage));
-				this.showOwnMessage(message, this.currentChannel, "ownPrivate");
-			} else {
-				const channel = this.currentChannel.slice(8);
-				const socketMessage = {
-					type: "CHAT",
-					data: {
-						channel,
-						message
-					}
-				}
-				this.socket.send(JSON.stringify(socketMessage));
-				this.showOwnMessage(message, this.currentChannel);
-			}
-		}
-
-		//Messages from custom websocket
-		handleMessage(type, data) {
-			switch(type) {
-				case "PRIVATE": {
-					// {
-					//     type: "PRIVATE",
-					//     data: {
-					//         username: "dounbot",
-					//         message: "ping pong"
-					//     }
-					// }
-					const messageData = {
-						username: data.username,
-						tag: "none",
-						sigil: "none",
-						color: "private",
-						message: data.message,
-					}
-					//If the private tab is open sent there, if not send in the local channel
-					messageData.channel = this.channels["private_" + data.username] ? "private_" + data.username : "channel_local";
-					this.showMessage(messageData);
-				} break;
-				case "RECEIVER_OFFLINE": {
-					// {
-					//     type: "RECEIVER_OFFLINE",
-					//     data: {
-					//         username: "dounbot",
-					//     }
-					// }
-					const now = Date.now();
-					//This message will not show again before 5 minutes have passed
-					if(this.offlineUsers[data.username] && this.offlineUsers[data.username] > now - 300000) {return};
-					const messageData = {
-						username: "",
-						tag: "none",
-						sigil: "none",
-						color: "private",
-						message: `${data.username} is currently offline, if their inbox isn't full they will receive it when they log in again`
-					}
-					//If the private tab is open sent there, if not send in the local channel
-					messageData.channel = this.channels["private_" + data.username] ? "private_" + data.username : "channel_local";
-					this.showMessage(messageData);
-					this.offlineUsers[data.username] = now;
-				} break;
-				case "OFFLINE_MESSAGE": {
-					// {
-					//     type: "OFFLINE_MESSAGE",
-					//     data: {
-					//         timestamp: 1754047996955,
-					//         username: "dounbot",
-					//         message: "oi tudo bem?"
-					//     }
-					// }
-					const messageData = {
-						username: data.username,
-						tag: "none",
-						sigil: "none",
-						color: "private",
-						message: data.message,
-						offlineMessage: parseInt(data.timestamp)
-					}
-					//If the private tab is open sent there, if not send in the local channel
-					messageData.channel = this.channels["private_" + data.username] ? "private_" + data.username : "channel_local";
-					this.showMessage(messageData);
-
-				} break;
-				case "WARNING": {
-					// {
-					//     type: "WARNING",
-					//     data: {
-					//         message: "You can't log in more than once"
-					//     }
-					// }
-					this.showWarning(data.message, "red");
-				} break;
+				Globals.websocket.send(`CHAT=/pm ${username} ${message}`);
 			}
 		}
 
