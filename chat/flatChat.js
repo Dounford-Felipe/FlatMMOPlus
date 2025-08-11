@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         FlatChat+
 // @namespace    com.dounford.flatmmo.flatChat
-// @version      0.2.0
+// @version      0.2.2
 // @description  Better chat for FlatMMO
 // @author       Dounford
 // @license      MIT
@@ -35,6 +35,8 @@
 	const defaultThemes = {
 		dark: {
 			bgColor: "#323437",
+			oddMessageBg: "#323437",
+			evenMessageBg: "#323437",
 			pickerLocal: "#C0C0C0",
 			pickerGlobal: "#C0C0C0",
 			pickerRoom: "#C0C0C0",
@@ -59,6 +61,8 @@
 		},
 		light: {
 			bgColor: "#ffffff",
+			oddMessageBg: "#ffffff",
+			evenMessageBg: "#ffffff",
 			pickerLocal: "#000000",
 			pickerGlobal: "#000000",
 			pickerRoom: "#000000",
@@ -194,14 +198,13 @@
 			this.chatHistory = [];
 			this.historyPosition = -1;
 
-			//This is for when the user is offline and you sent a pm, instead of telling you that they are offline every message it tells you once each 5 minutes
-			this.offlineUsers = {}
-
 			this.lastWarning = Date.now() - 60000;
 
 			this.themes = {
 				dark: {
 					bgColor: "#323437",
+					oddMessageBg: "#323437",
+					evenMessageBg: "#323437",
 					pickerLocal: "#C0C0C0",
 					pickerGlobal: "#C0C0C0",
 					pickerRoom: "#C0C0C0",
@@ -226,6 +229,8 @@
 				},
 				light: {
 					bgColor: "#ffffff",
+					oddMessageBg: "#ffffff",
+					evenMessageBg: "#ffffff",
 					pickerLocal: "#000000",
 					pickerGlobal: "#000000",
 					pickerRoom: "#000000",
@@ -348,7 +353,7 @@
 				background: var(--fc-bgColor);
 				border: solid black 2px;
 				border-radius: 5px;
-				text-align: justify;
+				text-align: left;
 				outline: none;
 			}
 			.flatChat * {
@@ -422,6 +427,14 @@
 					div {
 						overflow-wrap: anywhere;
 						color: var(--fc-messagesColor);
+					}
+
+					div:nth-child(even) {
+						background-color: var(--fc-evenMessageBg, var(--fc-bgColor));
+					}
+
+					div:nth-child(odd) {
+						background-color: var(--fc-oddMessageBg, var(--fc-bgColor));
 					}
 
 					img {
@@ -564,6 +577,10 @@
 				this.themes = JSON.parse(localStorage.getItem("flatChat-themes"));
 			}
 			for (let theme in this.themes) {
+				if (!this.themes[theme].oddMessageBg) {
+					this.themes[theme].oddMessageBg = this.themes[theme].bgColor;
+					this.themes[theme].evenMessageBg = this.themes[theme].bgColor;
+				}
 				this.addTheme(theme)
 				this.opts.config[6].options = this.opts.config[6].options.filter(t => t.value !== theme)
 				this.opts.config[6].options.push({value: theme, label: this.toTitleCase(theme)})
@@ -802,6 +819,12 @@
 				content += `</select>
 				<label for="fc-bgColor-editor">Chat Background</label>
 				<input type="color" id="fc-bgColor-editor">
+
+				<label for="fc-oddMessageBg-editor">Odd Messages Background</label>
+				<input type="color" id="fc-oddMessageBg-editor">
+
+				<label for="fc-evenMessageBg-editor">Even Messages Background</label>
+				<input type="color" id="fc-evenMessageBg-editor">
 
 				<label for="fc-pickerLocal-editor">Picker Local Channel</label>
 				<input type="color" id="fc-pickerLocal-editor">
@@ -1327,13 +1350,7 @@
 				}
 			}
 
-			//Some of the private messages sent when someone is offline are received (max 10 per player)
-			if (data.offlineMessage) {
-				const timeStrong = document.createElement("strong");
-				timeStrong.innerHTML = this.getDateStr(data.offlineMessage);
-				messageContainer.appendChild(timeStrong);
-			//only show current time if the setting is true, false by default
-			} else if (this.config.showTime) {
+			if (this.config.showTime) {
 				const timeStrong = document.createElement("strong");
 				timeStrong.innerHTML = this.getDateStr();
 				messageContainer.appendChild(timeStrong);
