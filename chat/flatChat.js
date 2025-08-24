@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         FlatChat+
 // @namespace    com.dounford.flatmmo.flatChat
-// @version      0.2.2
+// @version      0.2.3
 // @description  Better chat for FlatMMO
 // @author       Dounford
 // @license      MIT
@@ -84,6 +84,32 @@
 			contextSection: "#252729",
 			contextText: "#C0C0C0",
 			linkColor: "#00FFFF",
+		},
+		catppuccinMochaByMae: {
+			"bgColor": "#201c2c",
+			"pickerLocal": "#54576c",
+			"pickerGlobal": "#54576c",
+			"pickerRoom": "#54576c",
+			"pickerPrivate": "#54576c",
+			"inputName": "#53566a",
+			"inputColor": "#181825",
+			"inputText": "#c0c0c0",
+			"messagesColor": "#b4befe",
+			"serverMessages": "#89b4fa",
+			"lvlMilestoneMessages": "#cba6f7",
+			"errorMessages": "#f38ba8",
+			"restMessages": "#99d5a4",
+			"lvlUpMessages": "#99d5a4",
+			"areaChangeMessages": "#89dceb",
+			"privateMessages": "#f9e2af",
+			"ownPrivateMessages": "#f9c8aa",
+			"pingMessages": "#74c7ec",
+			"contextBackground": "#323437",
+			"contextSection": "#252729",
+			"contextText": "#c0c0c0",
+			"linkColor": "#ceb4ee",
+			"oddMessageBg": "#201c2c",
+			"evenMessageBg": "#201c2c"
 		}
 	}
  
@@ -97,6 +123,12 @@
 					description: GM_info.script.description
 				},
 				config: [
+					// {
+					// 	id: "sideChat",
+					// 	label: "Chat on the right side",
+					// 	type: "boolean",
+					// 	default: false
+					// },
 					{
 						id: "ignorePings",
 						label: "Ignore all chat pings",
@@ -252,6 +284,32 @@
 					contextSection: "#252729",
 					contextText: "#C0C0C0",
 					linkColor: "#00FFFF",
+				},
+				catppuccinMochaByMae: {
+					"bgColor": "#201c2c",
+					"pickerLocal": "#54576c",
+					"pickerGlobal": "#54576c",
+					"pickerRoom": "#54576c",
+					"pickerPrivate": "#54576c",
+					"inputName": "#53566a",
+					"inputColor": "#181825",
+					"inputText": "#c0c0c0",
+					"messagesColor": "#b4befe",
+					"serverMessages": "#89b4fa",
+					"lvlMilestoneMessages": "#cba6f7",
+					"errorMessages": "#f38ba8",
+					"restMessages": "#99d5a4",
+					"lvlUpMessages": "#99d5a4",
+					"areaChangeMessages": "#89dceb",
+					"privateMessages": "#f9e2af",
+					"ownPrivateMessages": "#f9c8aa",
+					"pingMessages": "#74c7ec",
+					"contextBackground": "#323437",
+					"contextSection": "#252729",
+					"contextText": "#c0c0c0",
+					"linkColor": "#ceb4ee",
+					"oddMessageBg": "#201c2c",
+					"evenMessageBg": "#201c2c"
 				}
 			}
 		}
@@ -260,6 +318,7 @@
 			this.removeOriginalChat();
 			this.addStyle();
 			this.addUI();
+			// this.changeChatPosition(this.config["sideChat"]);
 			this.loadChannels();
 			this.switchChannel("local", false);
 			this.messagesWaiting.forEach((message)=>this.showMessage(message));
@@ -270,6 +329,11 @@
 			this.showWarning("Welcome to flatmmo.com", "orange");
 			this.showWarning(document.querySelectorAll("#chat span")[1].innerHTML, "white");
 			this.showWarning(`<span><strong style="color:cyan">FYI: </strong> Use the /help command to see information on available chat commands.</span>`, "white");
+
+			this.watchIgnorePlayersWords("ignoredPlayers", this.config["ignoredPlayers"], true);
+			this.watchIgnorePlayersWords("ignoredWords", this.config["ignoredWords"], true);
+			this.watchIgnorePlayersWords("watchedPlayers", this.config["watchedPlayers"], true);
+			this.watchIgnorePlayersWords("watchedWords", this.config["watchedWords"], true);
 		}
  
 		onChat(data) {
@@ -768,6 +832,17 @@
 				}
 			}, true)
 		}
+
+		// changeChatPosition(sideChat) {
+		// 	const flatChat =  document.getElementById("flatChat");
+		// 	if(sideChat) {
+		// 		flatChat.classList.add("flatChatSide");
+		// 		document.querySelector("#game tr").appendChild(flatChat);
+		// 	} else {
+		// 		flatChat.classList.remove("flatChatSide");
+		// 		document.querySelector("body center").insertAdjacentElement("beforeend",flatChat);
+		// 	}
+		// }
 
 		addTheme(theme) {
 			if(!this.themes[theme]) {return};
