@@ -163,6 +163,12 @@
 						default: false
 					},
 					{
+						id: "hideUnwanted",
+						label: "Mark unwanted words as spoiler instead of ignoring the message",
+						type: "boolean",
+						default: true
+					},
+					{
 						id: "fontSize",
 						label: "Message font size",
 						type: "number",
@@ -214,10 +220,10 @@
 				]
 			});
 			this.settings = {
-				ignoredPlayers: new Set(),
-				ignoredWords: new Set(),
-				watchedPlayers: new Set(),
-				watchedWords: new Set(),
+				ignoredPlayers: [],
+				ignoredWords: [],
+				watchedPlayers: [],
+				watchedWords: [],
 			}
 
 			this.channels = {};
@@ -491,6 +497,10 @@
 					div {
 						overflow-wrap: anywhere;
 						color: var(--fc-messagesColor);
+
+						span {
+							margin-left: 5px;
+						}
 					}
 
 					div:nth-child(even) {
@@ -542,6 +552,10 @@
 			}
 			.fc-pingMessages {
 				background-color: var(--fc-pingMessages) !important;
+			}
+			.flatChatHidden {
+    			background-color: black;
+				color: transparent;
 			}
 			/*player name*/
 			.flatChat-player {
@@ -646,8 +660,8 @@
 					this.themes[theme].evenMessageBg = this.themes[theme].bgColor;
 				}
 				this.addTheme(theme)
-				this.opts.config[6].options = this.opts.config[6].options.filter(t => t.value !== theme)
-				this.opts.config[6].options.push({value: theme, label: this.toTitleCase(theme)})
+				this.opts.config[7].options = this.opts.config[7].options.filter(t => t.value !== theme)
+				this.opts.config[7].options.push({value: theme, label: this.toTitleCase(theme)})
 			}
 		}
 
@@ -888,7 +902,7 @@
 					}
 				</style>
 				<select id="flatChat-ThemeEditor-theme" onchange="FlatMMOPlus.plugins.flatChat.changeThemeEditor()">`
-				FlatMMOPlus.plugins.flatChat.opts.config[6].options.forEach(theme=>{
+				FlatMMOPlus.plugins.flatChat.opts.config[7].options.forEach(theme=>{
 					content += `<option value="${theme.value}">${theme.label}</option>`
 				})
 				content += `</select>
@@ -994,7 +1008,7 @@
 
 			//Make sure it doesn't duplicate
 			if(this.themes[themeName]) {
-				this.opts.config[6].options = this.opts.config[6].options.filter(t => t.value !== themeName)
+				this.opts.config[7].options = this.opts.config[7].options.filter(t => t.value !== themeName)
 				document.querySelector(`#flatChat-ThemeEditor-theme option[value=${themeName}]`).remove();
 			} else {
 				this.themes[themeName] = {};
@@ -1005,7 +1019,7 @@
 			}
 
 			
-			this.opts.config[6].options.push({value: themeName, label: theme})
+			this.opts.config[7].options.push({value: themeName, label: theme})
 
 			document.getElementById("flatChat-ThemeEditor-theme").innerHTML += `<option value="${themeName}">${theme}</option>`
 			document.getElementById("flatChat-ThemeEditor-theme").value = themeName;
@@ -1040,7 +1054,7 @@
 			delete this.themes[theme];
 
 			//remove from fm+ config
-			this.opts.config[6].options = this.opts.config[6].options.filter(t => t.value !== theme);
+			this.opts.config[7].options = this.opts.config[7].options.filter(t => t.value !== theme);
 
 			//Remove the option on theme editor
 			document.querySelector(`#flatChat-ThemeEditor-theme option[value=${theme}]`).remove();
@@ -1330,7 +1344,7 @@
 			.flatMap((word)=>word.split(" ")) //split by spaces
 			.map(word=>word.replaceAll("_"," ")) //replace underscore to space
 			.filter(word=>word); //remove empty
-			this.settings[type] = new Set([...words]);//This is the variable I use to check
+			this.settings[type] = words; //This is the variable I use to check
 			this.config[type] = words.join(",").replaceAll(" ", "_");//Config is saved as string
 			this.saveConfig();
 		}
@@ -1390,12 +1404,8 @@
 				return;
 			}
 
-			//If the message contains any ignored word it will ignore the message
-			if(this.settings.ignoredWords.some(word => message.includes(word))) {
-				return;
-			}
 			//If the message sender is blocked the message will be ignored
-			if(this.settings.ignoredPlayers.has(data.username)) {
+			if(this.settings.ignoredPlayers.includes(data.username)) {
 				return;
 			}
 
@@ -1459,7 +1469,7 @@
 				senderStrong.setAttribute("data-sender", data.username.replaceAll(" ", "_"));
 				messageContainer.appendChild(senderStrong);
 
-				if(this.settings.watchedPlayers.has(data.username)) {
+				if(this.settings.watchedPlayers.includes(data.username) && !data.channel.startsWith("private_")) {
 					messageContainer.className = "fc-pingMessages";
 				}
 			} else if(this.getConfig("lessEnergyWarning") && message.startsWith("You are too tired to gain xp")) {//TBD
@@ -1475,7 +1485,7 @@
 			if (html) {
 				messageSpan.innerHTML = message;
 			} else {
-				messageSpan.innerText = " " + message;
+				messageSpan.innerText = message;
 			}
 
 			messageSpan.innerHTML = anchorme({
@@ -1487,6 +1497,19 @@
 					}
 				},
 			});
+
+			//If the message contains any ignored word it will ignore the message or mark as spoiler
+			if(this.settings.ignoredWords.some(word => message.includes(word))) {
+				if(this.config["hideUnwanted"]) {
+					messageSpan.style.cursor = "pointer";
+					messageSpan.classList.add("flatChatHidden");
+					messageSpan.onclick = ()=>{
+						messageSpan.classList.toggle("flatChatHidden")
+					}
+				} else {
+					return;
+				}
+			}
 			messageContainer.appendChild(messageSpan);
 
 			const messageArea = document.querySelector(`#flatChat-channels [data-channel=${data.channel}]`);
