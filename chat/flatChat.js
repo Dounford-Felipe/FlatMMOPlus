@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         FlatChat+
 // @namespace    com.dounford.flatmmo.flatChat
-// @version      0.2.3
+// @version      1.0.0
 // @description  Better chat for FlatMMO
 // @author       Dounford
 // @license      MIT
@@ -10,7 +10,7 @@
 // @require      https://update.greasyfork.org/scripts/544062/FlatMMOPlus.js
 // @require      https://cdnjs.cloudflare.com/ajax/libs/anchorme/2.1.2/anchorme.min.js
 // ==/UserScript==
- 
+
 (function() {
 	'use strict';
 
@@ -112,7 +112,7 @@
 			"evenMessageBg": "#201c2c"
 		}
 	}
- 
+
 	class flatChatPlugin extends FlatMMOPlusPlugin {
 		constructor() {
 			super("flatChat", {
@@ -123,12 +123,21 @@
 					description: GM_info.script.description
 				},
 				config: [
-					// {
-					// 	id: "sideChat",
-					// 	label: "Chat on the right side",
-					// 	type: "boolean",
-					// 	default: false
-					// },
+					{
+						id: "sideChat",
+						label: "Chat on the right side",
+						type: "boolean",
+						default: false
+					},
+					{
+						id: "sideChatWidth",
+						label: "Side Chat Width (px)",
+						type: "number",
+						min: 720,
+						max: 1500,
+						step: 10,
+						default: 1000,
+					},
 					{
 						id: "ignorePings",
 						label: "Ignore all chat pings",
@@ -212,10 +221,10 @@
 						default: ""
 					},
 					{
-					    id: "themeEditor",
-					    label: "THEME EDITOR",
-					    panel: "flatChat-ThemeEditor",
-					    type: "panel"
+						id: "themeEditor",
+						label: "THEME EDITOR",
+						panel: "flatChat-ThemeEditor",
+						type: "panel"
 					}
 				]
 			});
@@ -231,7 +240,7 @@
 
 			//This is for messages received before the chat loads
 			this.messagesWaiting = [];
-			
+
 			//This is for the up and down arrows feature
 			this.chatHistory = [];
 			this.historyPosition = -1;
@@ -319,12 +328,12 @@
 				}
 			}
 		}
- 
+
 		onLogin() {
 			this.removeOriginalChat();
 			this.addStyle();
 			this.addUI();
-			// this.changeChatPosition(this.config["sideChat"]);
+			this.changeChatPosition(this.config["sideChat"]);
 			this.loadChannels();
 			this.switchChannel("local", false);
 			this.messagesWaiting.forEach((message)=>this.showMessage(message));
@@ -341,7 +350,7 @@
 			this.watchIgnorePlayersWords("watchedPlayers", this.config["watchedPlayers"], true);
 			this.watchIgnorePlayersWords("watchedWords", this.config["watchedWords"], true);
 		}
- 
+
 		onChat(data) {
 			if (data.yell) {
 				data.channel = "channel_global";
@@ -362,7 +371,7 @@
 						data.color = "private";
 					}
 					data.username = match[1].trim().replaceAll(" ", "_");
-    				data.message = match[2].trim();
+					data.message = match[2].trim();
 					data.channel = this.channels["private_" + data.username] ? "private_" + data.username : "channel_global";
 				} else {
 					console.warn("There was something wrong with this pm:", data.message)
@@ -388,6 +397,15 @@
 					case "theme": {
 						const flatChat = document.getElementById("flatChat");
 						flatChat.classList = "flatChat flatChat-" + this.config.theme;
+					} break;
+					case "sideChat": {
+						this.changeChatPosition(this.config["sideChat"]);
+					} break;
+					case "sideChatWidth": {
+						const flatChat = document.getElementById("flatChat");
+						if (flatChat.classList.contains("flatChatSide")) {
+							flatChat.style.setProperty("--side-chat-width", this.config.sideChatWidth + "px");
+						}
 					} break;
 					case "ignoredPlayers":
 					case "ignoredWords":
@@ -427,12 +445,53 @@
 				outline: none;
 			}
 			.flatChat * {
-    			outline: none;
+				outline: none;
 			}
 			.flatChat-mainArea {
 				display: flex;
 				height: 300px
 			}
+
+			/* Side chat positioning */
+			.flatChatSide {
+				width: var(--side-chat-width, 300px);
+				height: 100%;
+				position: relative;
+			}
+
+			.flatChatSide .flatChat-mainArea {
+				height: calc(100% - 50px);
+			}
+
+			#flatChat-resizer {
+				position: absolute;
+				right: 0;
+				top: 0;
+				width: 5px;
+				height: 100%;
+				background: rgba(0, 0, 0, 0.3);
+				cursor: ew-resize;
+				transition: background 0.2s;
+			}
+
+			#flatChat-resizer:hover {
+				background: rgba(0, 0, 0, 0.5);
+			}
+
+			#flatChat-resizer.dragging {
+				background: rgba(0, 0, 0, 0.7);
+			}
+
+			/* Adjust game table for side chat */
+			#game-container-td {
+				vertical-align: top;
+			}
+
+			#chat-container-td {
+				vertical-align: top;
+				padding-left: 5px;
+			}
+
 			/*channel list*/
 			#flatChat-channelPicker {
 				width: 10%;
@@ -463,7 +522,7 @@
 				[data-channel="channel_local"] {
 					color: var(--fc-pickerLocal) !important;
 				}
-				
+
 				/*yell chat btn*/
 				[data-channel="channel_global"] {
 					color: var(--fc-pickerGlobal) !important;
@@ -480,7 +539,7 @@
 				}
 			}
 			#flatChat-channelPicker[closed] {
-				width: 0;
+				width: 0 !important;
 				display: none;
 			}
 
@@ -554,7 +613,7 @@
 				background-color: var(--fc-pingMessages) !important;
 			}
 			.flatChatHidden {
-    			background-color: black;
+				background-color: black;
 				color: transparent;
 			}
 			/*player name*/
@@ -578,7 +637,7 @@
 					&:hover{
 						background-color: rgba(0,0,0,0.1);
 					}
-					
+
 					img {
 						width: 40px;
 						vertical-align: middle;
@@ -646,9 +705,46 @@
 				padding: 3px;
 				border-radius: 5px;
 				visibility: hidden;
-				font-size: clamp(12px, 1.2vw, 24px); 
+				font-size: clamp(12px, 1.2vw, 24px);
 				top:0;
-			}`
+			}
+
+			#ui-panel-flatmmoplus-content {
+				input[type=checkbox] {
+					-webkit-appearance: none;
+					appearance: none;
+					position: relative;
+					width: 20px;
+					height: 10px;
+					border-radius: 15px;
+					background-color: #ccc;
+					outline: none;
+					cursor: pointer;
+					transition: background-color 0.3s;
+					top: 0.5rem
+				}
+
+				input[type=checkbox]::before {
+					content: '';
+					position: absolute;
+					top: 1px;
+					left: 1px;
+					width: 8px;
+					height: 8px;
+					background-color: #fff;
+					border-radius: 50%;
+					transition: transform 0.3s;
+				}
+
+				input[type=checkbox]:checked {
+					background-color: #4CAF50;
+				}
+
+				input[type=checkbox]:checked::before {
+					transform: translateX(10px);
+				}
+			}
+			`
 			document.head.append(style);
 
 			if(localStorage.getItem("flatChat-themes")) {
@@ -660,8 +756,8 @@
 					this.themes[theme].evenMessageBg = this.themes[theme].bgColor;
 				}
 				this.addTheme(theme)
-				this.opts.config[7].options = this.opts.config[7].options.filter(t => t.value !== theme)
-				this.opts.config[7].options.push({value: theme, label: this.toTitleCase(theme)})
+				this.opts.config[9].options = this.opts.config[9].options.filter(t => t.value !== theme)
+				this.opts.config[9].options.push({value: theme, label: this.toTitleCase(theme)})
 			}
 		}
 
@@ -847,16 +943,120 @@
 			}, true)
 		}
 
-		// changeChatPosition(sideChat) {
-		// 	const flatChat =  document.getElementById("flatChat");
-		// 	if(sideChat) {
-		// 		flatChat.classList.add("flatChatSide");
-		// 		document.querySelector("#game tr").appendChild(flatChat);
-		// 	} else {
-		// 		flatChat.classList.remove("flatChatSide");
-		// 		document.querySelector("body center").insertAdjacentElement("beforeend",flatChat);
-		// 	}
-		// }
+		changeChatPosition(sideChat) {
+			const flatChat = document.getElementById("flatChat");
+			const gameElement = document.getElementById("game");
+
+			if (sideChat) {
+				// Create container structure if it doesn't exist
+				if (!document.getElementById("game-chat-container")) {
+					const container = document.createElement("table");
+					container.id = "game-chat-container";
+					container.style.display = "inline-table";
+					container.innerHTML = `
+				<tr>
+					<td id="game-container-td"></td>
+					<td id="chat-container-td"></td>
+				</tr>
+			`;
+
+					// Replace game with container
+					gameElement.parentNode.replaceChild(container, gameElement);
+					document.getElementById("game-container-td").appendChild(gameElement);
+				}
+
+				// Add side chat class and move to side
+				flatChat.classList.add("flatChatSide");
+				document.getElementById("chat-container-td").appendChild(flatChat);
+
+				// Set initial width
+				const width = this.config.sideChatWidth || 600;  /* Changed from 300 */
+				flatChat.style.setProperty("--side-chat-width", width + "px");
+
+				// Match canvas height
+				const gameCanvas = document.querySelector("#game canvas");
+				if (gameCanvas) {
+					flatChat.style.height = gameCanvas.offsetHeight + "px";
+				}
+
+				// Add resizer if it doesn't exist
+				if (!document.getElementById("flatChat-resizer")) {
+					const resizer = document.createElement("div");
+					resizer.id = "flatChat-resizer";
+					flatChat.insertBefore(resizer, flatChat.firstChild);
+					this.addResizeHandler(resizer);
+				}
+			} else {
+				// Remove side chat positioning
+				flatChat.classList.remove("flatChatSide");
+
+				// Remove resizer
+				const resizer = document.getElementById("flatChat-resizer");
+				if (resizer) {
+					resizer.remove();
+				}
+
+				// Move chat back to original position
+				const container = document.getElementById("game-chat-container");
+				if (container) {
+					const gameElement = document.getElementById("game");
+					container.parentNode.replaceChild(gameElement, container);
+				}
+				flatChat.style.height = ""
+				document.querySelector("body center").appendChild(flatChat);
+			}
+		}
+
+		addResizeHandler(resizer) {
+			let isResizing = false;
+			let startX = 0;
+			let startWidth = 0;
+
+			const startResize = (e) => {
+				isResizing = true;
+				startX = e.pageX;
+				const flatChat = document.getElementById("flatChat");
+				startWidth = flatChat.offsetWidth;
+
+				resizer.classList.add("dragging");
+				document.body.style.cursor = "ew-resize";
+
+				// Prevent text selection while dragging
+				e.preventDefault();
+			};
+
+			const doResize = (e) => {
+				if (!isResizing) return;
+
+				const flatChat = document.getElementById("flatChat");
+				const width = startWidth + (e.pageX - startX);  /* Changed from - to + */
+
+				// Constrain width between min and max
+				const constrainedWidth = Math.min(Math.max(width, 720), 1500);
+
+				flatChat.style.setProperty("--side-chat-width", constrainedWidth + "px");
+
+				window.scrollTo(window.innerWidth,window.screenY)
+
+				// Save the width to config
+				this.config.sideChatWidth = constrainedWidth;
+			};
+
+			const stopResize = () => {
+				if (!isResizing) return;
+
+				isResizing = false;
+				resizer.classList.remove("dragging");
+				document.body.style.cursor = "";
+
+				// Save config after resize
+				this.saveConfig();
+			};
+
+			resizer.addEventListener("mousedown", startResize);
+			document.addEventListener("mousemove", doResize);
+			document.addEventListener("mouseup", stopResize);
+		}
 
 		addTheme(theme) {
 			if(!this.themes[theme]) {return};
@@ -902,7 +1102,7 @@
 					}
 				</style>
 				<select id="flatChat-ThemeEditor-theme" onchange="FlatMMOPlus.plugins.flatChat.changeThemeEditor()">`
-				FlatMMOPlus.plugins.flatChat.opts.config[7].options.forEach(theme=>{
+				FlatMMOPlus.plugins.flatChat.opts.config[9].options.forEach(theme=>{
 					content += `<option value="${theme.value}">${theme.label}</option>`
 				})
 				content += `</select>
@@ -917,64 +1117,64 @@
 
 				<label for="fc-pickerLocal-editor">Picker Local Channel</label>
 				<input type="color" id="fc-pickerLocal-editor">
-				
+
 				<label for="fc-pickerGlobal-editor">Picker Global Channel</label>
 				<input type="color" id="fc-pickerGlobal-editor">
-				
+
 				<label for="fc-pickerRoom-editor">Picker Room Channel (not available)</label>
 				<input type="color" id="fc-pickerRoom-editor">
-				
+
 				<label for="fc-pickerPrivate-editor">Picker Private Channel</label>
 				<input type="color" id="fc-pickerPrivate-editor">
-				
+
 				<label for="fc-inputName-editor">Username on Chat Bar</label>
 				<input type="color" id="fc-inputName-editor">
-				
+
 				<label for="fc-inputColor-editor">Background of Chat Bar</label>
 				<input type="color" id="fc-inputColor-editor">
-				
+
 				<label for="fc-inputText-editor">Chat Bar Text Color</label>
 				<input type="color" id="fc-inputText-editor">
-				
+
 				<label for="fc-messagesColor-editor">Regular Message Color</label>
 				<input type="color" id="fc-messagesColor-editor">
-				
+
 				<label for="fc-serverMessages-editor">Server Messages</label>
 				<input type="color" id="fc-serverMessages-editor">
-				
+
 				<label for="fc-lvlMilestoneMessages-editor">Lvl Up Milestone (each 10 lvls)</label>
 				<input type="color" id="fc-lvlMilestoneMessages-editor">
-				
+
 				<label for="fc-errorMessages-editor">Error/Warning Messages</label>
 				<input type="color" id="fc-errorMessages-editor">
-				
+
 				<label for="fc-restMessages-editor">Rest Messages</label>
 				<input type="color" id="fc-restMessages-editor">
-				
+
 				<label for="fc-lvlUpMessages-editor">Lvl Up Messages</label>
 				<input type="color" id="fc-lvlUpMessages-editor">
-				
+
 				<label for="fc-areaChangeMessages-editor">Entering/Leaving Town</label>
 				<input type="color" id="fc-areaChangeMessages-editor">
-				
+
 				<label for="fc-privateMessages-editor">Private Messages Received</label>
 				<input type="color" id="fc-privateMessages-editor">
-				
+
 				<label for="fc-ownPrivateMessages-editor">Private Messages Sent</label>
 				<input type="color" id="fc-ownPrivateMessages-editor">
-				
+
 				<label for="fc-pingMessages-editor">Ping/Watched Messages</label>
 				<input type="color" id="fc-pingMessages-editor">
-				
+
 				<label for="fc-contextBackground-editor">Context Menu Background Color</label>
 				<input type="color" id="fc-contextBackground-editor">
-				
+
 				<label for="fc-contextSection-editor">Context Menu Section Background (MODERATION)</label>
 				<input type="color" id="fc-contextSection-editor">
-				
+
 				<label for="fc-contextText-editor">Context Menu Text Color</label>
 				<input type="color" id="fc-contextText-editor">
-				
+
 				<label for="fc-linkColor-editor">Hyperlink Text Color</label>
 				<input type="color" id="fc-linkColor-editor">
 
@@ -982,15 +1182,15 @@
 					<input type="text" id="fc-themeName-editor" placeholder="Theme Name" style="grid-column: 1 / span 2;">
 					<button type="button" onclick="FlatMMOPlus.plugins.flatChat.saveTheme()">Save</button>
 					<button type="button" onclick="FlatMMOPlus.plugins.flatChat.deleteTheme()">Delete Theme</button>
-					
+
 					<input type="text" id="fc-import-editor" placeholder="Import/Export" style="grid-column: 1 / span 2;">
 					<button type="button" onclick="FlatMMOPlus.plugins.flatChat.importTheme()">Import</button>
 					<button type="button" onclick="FlatMMOPlus.plugins.flatChat.exportTheme()">Export</button>
 				</div>
 				`
 				return content;
-			}) 
-			
+			})
+
 		}
 
 		changeThemeEditor() {
@@ -1008,7 +1208,7 @@
 
 			//Make sure it doesn't duplicate
 			if(this.themes[themeName]) {
-				this.opts.config[7].options = this.opts.config[7].options.filter(t => t.value !== themeName)
+				this.opts.config[9].options = this.opts.config[9].options.filter(t => t.value !== themeName)
 				document.querySelector(`#flatChat-ThemeEditor-theme option[value=${themeName}]`).remove();
 			} else {
 				this.themes[themeName] = {};
@@ -1018,20 +1218,20 @@
 				this.themes[themeName][option] = document.getElementById("fc-" + option + "-editor").value
 			}
 
-			
-			this.opts.config[7].options.push({value: themeName, label: theme})
+
+			this.opts.config[9].options.push({value: themeName, label: theme})
 
 			document.getElementById("flatChat-ThemeEditor-theme").innerHTML += `<option value="${themeName}">${theme}</option>`
 			document.getElementById("flatChat-ThemeEditor-theme").value = themeName;
-			
+
 			//Change to new theme
 			this.config.theme =  themeName;
 			const flatChat = document.getElementById("flatChat");
 			flatChat.classList = "flatChat flatChat-" + this.config.theme;
 			this.saveConfig();
-			
+
 			localStorage.setItem("flatChat-themes", JSON.stringify(this.themes));
-			
+
 			this.addTheme(themeName);
 		}
 
@@ -1054,14 +1254,14 @@
 			delete this.themes[theme];
 
 			//remove from fm+ config
-			this.opts.config[7].options = this.opts.config[7].options.filter(t => t.value !== theme);
+			this.opts.config[9].options = this.opts.config[9].options.filter(t => t.value !== theme);
 
 			//Remove the option on theme editor
 			document.querySelector(`#flatChat-ThemeEditor-theme option[value=${theme}]`).remove();
 
 			//save themes on localstorage
 			localStorage.setItem("flatChat-themes", JSON.stringify(this.themes));
-			
+
 			//If there is a theme style (it should exist) remove it
 			if (document.getElementById("fc-themeStyle-" + theme)) {
 				document.getElementById("fc-themeStyle-" + theme).remove();
@@ -1457,7 +1657,7 @@
 
 			if (data.tag && data.tag !== "none") {
 				let tag = document.createElement("span");
-			
+
 				tag.innerText = data.tag === "investor-plus" ? "INVESTOR" : data.tag.toUpperCase();
 				tag.classList.add("chat-tag-" + data.tag);
 			}
@@ -1631,7 +1831,7 @@
 			return result.charAt(0).toUpperCase() + result.slice(1)
 		}
 	}
- 
+
 	const plugin = new flatChatPlugin();
 	FlatMMOPlus.registerPlugin(plugin);
 
