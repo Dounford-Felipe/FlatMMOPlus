@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         FlatChat+
 // @namespace    com.dounford.flatmmo.flatChat
-// @version      1.0.0
+// @version      1.1.1
 // @description  Better chat for FlatMMO
 // @author       Dounford
 // @license      MIT
@@ -247,6 +247,8 @@
 
 			this.lastWarning = Date.now() - 60000;
 
+			this.lastPM = "";
+
 			this.themes = {
 				dark: {
 					bgColor: "#323437",
@@ -349,6 +351,24 @@
 			this.watchIgnorePlayersWords("ignoredWords", this.config["ignoredWords"], true);
 			this.watchIgnorePlayersWords("watchedPlayers", this.config["watchedPlayers"], true);
 			this.watchIgnorePlayersWords("watchedWords", this.config["watchedWords"], true);
+
+			if(FlatMMOPlus.version <= "0.0.6") {
+				this.onMessageReceived = function(data) {
+					if (data.startsWith("YELL")) {
+						const split = data.substring("YELL=".length).split("~");
+
+						const chatData = {
+							username: split[0].split("yelled:")[0].trim(),
+							tag: split[1],
+							sigil: split[2],
+							color: split[3],
+							message: split[4],
+							yell: true
+						}
+						this.onChat(chatData);
+                	}
+				}
+			}
 		}
 
 		onChat(data) {
@@ -373,6 +393,7 @@
 					data.username = match[1].trim().replaceAll(" ", "_");
 					data.message = match[2].trim();
 					data.channel = this.channels["private_" + data.username] ? "private_" + data.username : "channel_global";
+					this.lastPM = data.username;
 				} else {
 					console.warn("There was something wrong with this pm:", data.message)
 				}
@@ -1325,6 +1346,25 @@
 					Globals.websocket.send(`CHAT=/pm ${receiver} ${message}`);
 				}
 			}, `Send a private message to someone.`);
+
+			window.FlatMMOPlus.registerCustomChatCommand("r", (command, data='') => {
+				if (this.lastPM === "") {
+					return
+				}
+				if (data === "") {
+					this.newChannel(this.lastPM, true);
+					this.switchChannel(this.lastPM, true);
+					return;
+				}
+				const receiver = this.lastPM;
+				const message = data;
+				if (this.channels["private_" + receiver]) {
+					this.switchChannel(receiver, true);
+				} else {
+					this.switchChannel("global", false);
+				}
+				Globals.websocket.send(`CHAT=/pm ${receiver} ${message}`);
+			}, `Auto respond the last pm.`);
 
 			//pm* will always open a new tab
 			window.FlatMMOPlus.registerCustomChatCommand("pm*", (command, data='') => {

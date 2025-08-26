@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         FlatMMOPlus
 // @namespace    com.dounford.flatmmo
-// @version      0.0.6
+// @version      0.0.7
 // @description  FlatMMO plugin framework
 // @author       Anwinity ported by Dounford
 // @match        *://flatmmo.com/play.php*
@@ -28,7 +28,7 @@
         }
     };
 
-	const VERSION = "0.0.6"
+	const VERSION = "0.0.7"
 
 	if (window.FlatMMOPlus) {
 		//already loaded
@@ -225,6 +225,40 @@
                             width: -moz-available;
                             width: stretch;
                             resize: none;
+                        }
+
+                        input[type=checkbox] {
+                            -webkit-appearance: none;
+                            appearance: none;
+                            position: relative;
+                            width: 20px;
+                            height: 10px;
+                            border-radius: 15px;
+                            background-color: #ccc;
+                            outline: none;
+                            cursor: pointer;
+                            transition: background-color 0.3s;
+                            top: 0.5rem
+                        }
+
+                        input[type=checkbox]::before {
+                            content: '';
+                            position: absolute;
+                            top: 1px;
+                            left: 1px;
+                            width: 8px;
+                            height: 8px;
+                            background-color: #fff;
+                            border-radius: 50%;
+                            transition: transform 0.3s;
+                        }
+
+                        input[type=checkbox]:checked {
+                            background-color: #4CAF50;
+                        }
+
+                        input[type=checkbox]:checked::before {
+                            transform: translateX(10px);
                         }
                     }
                 </style>`;
@@ -648,6 +682,18 @@
                 if(data.startsWith("LOGGED_IN")) {
                     this.onLogin();
 
+                } else if (data.startsWith("YELL")) {
+                    const split = data.substring("YELL=".length).split("~");
+
+					const chatData = {
+						username: split[0].split("yelled:")[0].trim(),
+						tag: split[1],
+						sigil: split[2],
+						color: split[3],
+						message: split[4],
+						yell: true
+					}
+					this.onChat(chatData);
                 } else if (data.startsWith("CHAT_LOCAL_MESSAGE=")) {
 					const split = data.substring("CHAT_LOCAL_MESSAGE=".length).split("~");
 					let [sender, message] = split[1].split(" yelled: ");
