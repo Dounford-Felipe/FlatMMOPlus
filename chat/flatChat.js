@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         FlatChat+
 // @namespace    com.dounford.flatmmo.flatChat
-// @version      1.1.3
+// @version      1.1.4
 // @description  Better chat for FlatMMO
 // @author       Dounford
 // @license      MIT
@@ -1036,6 +1036,7 @@
 			} else {
 				// Remove side chat positioning
 				flatChat.classList.remove("flatChatSide");
+				flatChat.classList.remove("flatChat-small");
 
 				// Remove resizer
 				const resizer = document.getElementById("flatChat-resizer");
