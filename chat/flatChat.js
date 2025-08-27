@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         FlatChat+
 // @namespace    com.dounford.flatmmo.flatChat
-// @version      1.1.1
+// @version      1.1.3
 // @description  Better chat for FlatMMO
 // @author       Dounford
 // @license      MIT
@@ -426,6 +426,11 @@
 						const flatChat = document.getElementById("flatChat");
 						if (flatChat.classList.contains("flatChatSide")) {
 							flatChat.style.setProperty("--side-chat-width", this.config.sideChatWidth + "px");
+							if(this.config.sideChatWidth < 720) {
+								flatChat.classList.add("flatChat-small")
+							} else {
+								flatChat.classList.remove("flatChat-small")
+							}
 						}
 					} break;
 					case "ignoredPlayers":
@@ -484,6 +489,14 @@
 				height: calc(100% - 50px);
 			}
 
+			.flatChatSide #flatChat-channelPicker {
+				width: 150px;
+			}
+
+			.flatChatSide #flatChat-channels {
+				height: calc(100% - 8px);
+			}
+
 			#flatChat-resizer {
 				position: absolute;
 				right: 0;
@@ -501,6 +514,14 @@
 
 			#flatChat-resizer.dragging {
 				background: rgba(0, 0, 0, 0.7);
+			}
+
+			.flatChat-small .flatChat-buttons {
+				flex: auto !important;
+			}
+			
+			.flatChat-small .flatChat-mainArea {
+				height: calc(100% - 100px) !important;
 			}
 
 			/* Adjust game table for side chat */
@@ -993,6 +1014,11 @@
 				// Set initial width
 				const width = this.config.sideChatWidth || 600;  /* Changed from 300 */
 				flatChat.style.setProperty("--side-chat-width", width + "px");
+				if(width < 720) {
+					flatChat.classList.add("flatChat-small")
+				} else {
+					flatChat.classList.remove("flatChat-small")
+				}
 
 				// Match canvas height
 				const gameCanvas = document.querySelector("#game canvas");
@@ -1061,6 +1087,14 @@
 
 				// Save the width to config
 				this.config.sideChatWidth = constrainedWidth;
+
+				if(constrainedWidth < 720) {
+					flatChat.classList.add("flatChat-small")
+				} else {
+					flatChat.classList.remove("flatChat-small")
+				}
+
+				this.saveConfig();
 			};
 
 			const stopResize = () => {
