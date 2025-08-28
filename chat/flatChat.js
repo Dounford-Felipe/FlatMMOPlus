@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         FlatChat+
 // @namespace    com.dounford.flatmmo.flatChat
-// @version      1.1.4
+// @version      1.1.6
 // @description  Better chat for FlatMMO
 // @author       Dounford
 // @license      MIT
@@ -615,6 +615,7 @@
 					img {
 						width: var(--fc-size);
 						vertical-align: bottom;
+						margin-right: 5px;
 					}
 
 					a {
@@ -1687,7 +1688,7 @@
 			let messageContainer = document.createElement('div');
 
 			//Ping if any watched word is present or if the message contains the username
-			if (!this.getConfig("ignorePings") && (message.includes("@" + Globals.local_username) || this.settings.watchedWords.some(word => message.includes(word)))) {
+			if (!this.getConfig("ignorePings") && (message.includes("@" + Globals.local_username) || this.settings.watchedWords.some(word => message.includes(word))) && data.username !== "") {
 				messageContainer.className = "fc-pingMessages";
 				ding.play();
 			}
