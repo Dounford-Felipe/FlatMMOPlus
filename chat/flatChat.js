@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         FlatChat+
 // @namespace    com.dounford.flatmmo.flatChat
-// @version      1.1.6
+// @version      1.2.1
 // @description  Better chat for FlatMMO
 // @author       Dounford
 // @license      MIT
@@ -197,6 +197,12 @@
 						default: "dark"
 					},
 					{
+						id: "alwaysOnFocus",
+						label: "Keep chat on focus all the time",
+						type: "boolean",
+						default: false
+					},
+					{
 						id: "ignoredPlayers",
 						label: "Players ignored by you (use , to separate)",
 						type: "string",
@@ -352,21 +358,17 @@
 			this.watchIgnorePlayersWords("watchedPlayers", this.config["watchedPlayers"], true);
 			this.watchIgnorePlayersWords("watchedWords", this.config["watchedWords"], true);
 
-			if(FlatMMOPlus.version <= "0.0.6") {
-				this.onMessageReceived = function(data) {
-					if (data.startsWith("YELL")) {
-						const split = data.substring("YELL=".length).split("~");
-
-						const chatData = {
-							username: split[0].split("yelled:")[0].trim(),
-							tag: split[1],
-							sigil: split[2],
-							color: split[3],
-							message: split[4],
-							yell: true
+			if(FlatMMOPlus.version <= "0.0.7") {
+				FlatMMOPlus.onChat = function(data) {
+					if(FlatMMOPlus.debug) {
+						console.log(`FM+ onChat`, data);
+					}
+					data.username = data.username.split("yelled")[0].trim()
+					FlatMMOPlus.forEachPlugin((plugin) => {
+						if(typeof plugin.onChat === "function") {
+							plugin.onChat(data);
 						}
-						this.onChat(chatData);
-                	}
+					});
 				}
 			}
 		}
@@ -722,7 +724,7 @@
 			/*Context menu*/
 			#flatChat-contextMenu {
 				visibility: hidden;
-				position: absolute;
+				position: fixed;
 				list-style: none;
 				padding: 0;
 				background-color: var(--fc-contextBackground);
@@ -742,7 +744,7 @@
 			}
 
 			#flatChat-copyUsername {
-				position: absolute;
+				position: fixed;
 				background-color: var(--fc-inputColor);
 				color: var(--fc-inputText);
 				padding: 3px;
@@ -919,7 +921,7 @@
 					const menuWidth = menuRect.width;
 					const menuHeight = menuRect.height;
 
-					const mouseX = e.pageX;
+					const mouseX = e.clientX;
 					const mouseY = e.pageY;
 
 					if (mouseY + menuHeight > window.innerHeight) {
@@ -927,9 +929,9 @@
 					} else {
 						contextMenu.style.top = mouseY + "px";
 					}
-
+					
 					if (mouseX + menuWidth > window.innerWidth) {
-						contextMenu.style.left = (mouseX - menuWidth) + "px";
+						contextMenu.style.left = (window.innerWidth - menuWidth) + "px";
 					} else {
 						contextMenu.style.left = mouseX + "px";
 					}
@@ -984,6 +986,14 @@
 					}
 				}
 			}, true)
+
+			document.getElementById("flatChat-input").addEventListener("blur", function(){
+				if(FlatMMOPlus.plugins.flatChat.config["alwaysOnFocus"]){
+					this.focus({
+						preventScroll: true
+					})
+				}
+			})
 		}
 
 		changeChatPosition(sideChat) {

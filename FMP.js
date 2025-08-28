@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         FlatMMOPlus
 // @namespace    com.dounford.flatmmo
-// @version      0.0.7
+// @version      0.0.8
 // @description  FlatMMO plugin framework
 // @author       Anwinity ported by Dounford
 // @match        *://flatmmo.com/play.php*
@@ -686,7 +686,7 @@
                     const split = data.substring("YELL=".length).split("~");
 
 					const chatData = {
-						username: split[0].split("yelled:")[0].trim(),
+						username: split[0].split("yelled")[0].trim(),
 						tag: split[1],
 						sigil: split[2],
 						color: split[3],
