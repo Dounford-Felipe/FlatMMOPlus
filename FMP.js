@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         FlatMMOPlus
 // @namespace    com.dounford.flatmmo
-// @version      0.0.8
+// @version      1.0.0
 // @description  FlatMMO plugin framework
 // @author       Anwinity ported by Dounford
 // @match        *://flatmmo.com/play.php*
@@ -28,7 +28,7 @@
         }
     };
 
-	const VERSION = "0.0.7"
+	const VERSION = "1.0.0"
 
 	if (window.FlatMMOPlus) {
 		//already loaded
@@ -390,6 +390,52 @@
                 return content;
             });
 
+            class AnimationSheetPlus {
+                constructor(filename, frames, path, speed, images) {
+                    this.filename = filename;
+                    this.running = false;
+                    this.frame_at = 0;
+                    this.FRAMES = frames;
+                    this.SPEED = speed;
+                    this.speed_at = 0;
+                    this.animation_tick_at = animation_tick;
+                    this.images = []
+                    for(var i = 1; i <= this.FRAMES; i++) {
+                        let image = new Image();
+                        if(images) {
+                            image.src = images[i - 1]
+                        } else {
+                            image.src =  path + filename + i + ".png";
+                        }
+                        this.images.push(image);
+                    }
+                }
+
+                get_frame() {
+                    if(this.FRAMES > 0) {
+                        if(this.SPEED == this.speed_at) {
+                            //swtich frames
+                            if(this.animation_tick_at != animation_tick) {
+                                this.frame_at++;
+                                this.animation_tick_at = animation_tick;
+                            }
+                            
+                            if(this.FRAMES == this.frame_at) {
+                                this.frame_at = 0;
+                            }
+                            this.speed_at = 0;
+                        } else {
+                            this.speed_at++;
+                        }
+                        return this.images[this.frame_at];
+                    } else {
+                        return this.images[0];
+                    } 
+                }
+            }
+
+            window.AnimationSheetPlus = AnimationSheetPlus;
+            
 			logFancy(`(v${self.version}) initialized.`);
 		}
 	}
@@ -411,6 +457,8 @@
 			this.customDialogOptions = {};
 			this.currentPanel = "inventory";
 			this.loggedIn = false;
+            this.isFighting = false;
+            this.currentAction = "stand";
 
 			if(localStorage.getItem(LOCAL_STORAGE_KEY_DEBUG) == "1") {
                 this.debug = true;
@@ -627,6 +675,11 @@
             this.loadPluginConfigs(plugin.id);
             let versionString = plugin.opts&&plugin.opts.about&&plugin.opts.about.version ? ` (v${plugin.opts.about.version})` : "";
             logFancy(`registered plugin "${plugin.id}"${versionString}`);
+
+            //Calls onlogin when the plugin is loaded with delay
+            if(this.loggedIn) {
+                plugin.onLogin();
+            }
         }
 
 		forEachPlugin(f) {
@@ -714,9 +767,9 @@
 
 				} else if (data.startsWith("CHAT=")) {
                     const split = data.substring("CHAT=".length).split("~");
-
+                    
 					const chatData = {
-						username: split[0],
+                        username: split[0],
 						tag: split[1],
 						sigil: split[2],
 						color: split[3],
@@ -724,7 +777,20 @@
 						yell: false
 					}
 					this.onChat(chatData);
-				}
+				} else if (data.startsWith("REFRESH_PLAYER_HP_BAR=")) {
+                    const split = data.substring("REFRESH_PLAYER_HP_BAR=".length).split("~");
+                    if(split[0] === Globals.local_username) {
+                        if(this.isFighting && split[3] === "false") {
+                            this.onFightEnded();
+                        } else if (!this.isFighting && split[3] === "true") {
+                            this.onFightStarted();
+                        }
+                    }
+                } else if (data.startsWith(`SET_PLAYER_ANIMATION=${Globals.local_username}`)) {
+                    const split = data.substring("SET_PLAYER_ANIMATION=".length).split("~");
+                    this.currentAction = split[1];
+                    this.onActionChanged();
+                }
 			}
         }
 
@@ -760,6 +826,28 @@
                     console.warn("Error on FlatMMO+ onPaint", error.message)
                 }
             };
+
+            const originalLayer1 = window.paint_layer_1;
+            window.paint_layer_1 = function() {
+                originalLayer1();
+
+                try {
+                    window.FlatMMOPlus.onPaintObjects();
+                } catch (error) {
+                    console.warn("Error on FlatMMO+ paint_layer_1", error.message)
+                }
+            };
+
+            const originalGroundItems = window.paint_ground_items;
+            window.paint_ground_items = function() {
+                originalGroundItems();
+
+                try {
+                    window.FlatMMOPlus.onPaintNpcs();
+                } catch (error) {
+                    console.warn("Error on FlatMMO+ paint_ground_items", error.message)
+                }
+            };
         }
 
 		onChat(data) {
@@ -773,6 +861,7 @@
             });
         }
 
+        //After vanilla paint
 		onPaint() {
 			if(this.debug) {
                 console.log("FM+ onPaint");
@@ -780,6 +869,30 @@
             this.forEachPlugin((plugin) => {
                 if(typeof plugin.onPaint === "function") {
                     plugin.onPaint();
+                }
+            });
+        }
+
+        //Between paint_layer_1 and paint_map_objects_lower_shadows
+		onPaintObjects() {
+			if(this.debug) {
+                console.log("FM+ onPaintObjects");
+            }
+            this.forEachPlugin((plugin) => {
+                if(typeof plugin.onPaintObjects === "function") {
+                    plugin.onPaintObjects();
+                }
+            });
+        }
+
+        //Between paint_ground_items and paint_npcs
+		onPaintNpcs() {
+			if(this.debug) {
+                console.log("FM+ onPaintNpcs");
+            }
+            this.forEachPlugin((plugin) => {
+                if(typeof plugin.onPaintNpcs === "function") {
+                    plugin.onPaintNpcs();
                 }
             });
         }
@@ -816,6 +929,41 @@
             this.forEachPlugin((plugin) => {
                 if(typeof plugin.onInventoryChanged === "function") {
                     plugin.onInventoryChanged(inventoryBefore, inventoryAfter);
+                }
+            });
+        }
+
+        onFightStarted() {
+            if(this.debug) {
+                console.log(`FMMO+ onFightStarted`);
+            }
+            this.isFighting = true;
+            this.forEachPlugin((plugin) => {
+                if(typeof plugin.onFightStarted === "function") {
+                    plugin.onFightStarted();
+                }
+            });
+        }
+        
+        onFightEnded() {
+            if(this.debug) {
+                console.log(`FMMO+ onFightEnded`);
+            }
+            this.isFighting = false;
+            this.forEachPlugin((plugin) => {
+                if(typeof plugin.onFightEnded === "function") {
+                    plugin.onFightEnded();
+                }
+            });
+        }
+
+        onActionChanged() {
+            if(this.debug) {
+                console.log(`FMMO+ onActionChanged`);
+            }
+            this.forEachPlugin((plugin) => {
+                if(typeof plugin.onActionChanged === "function") {
+                    plugin.onActionChanged();
                 }
             });
         }

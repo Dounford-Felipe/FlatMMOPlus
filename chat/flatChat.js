@@ -335,6 +335,9 @@
 					"evenMessageBg": "#201c2c"
 				}
 			}
+
+			//It will fetch a new version if the loaded is lower than this one here
+			this.fmpRequired = "1.0.0";
 		}
 
 		onLogin() {
