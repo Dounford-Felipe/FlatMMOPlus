@@ -1,16 +1,16 @@
 // ==UserScript==
 // @name         FlatMMOPlus
 // @namespace    com.dounford.flatmmo
-// @version      1.0.0
+// @version      1.0.1
 // @description  FlatMMO plugin framework
-// @author       Anwinity ported by Dounford
+// @author       Dounford adapted from Anwinity IPP
 // @match        *://flatmmo.com/play.php*
 // @grant        none
 // ==/UserScript==
 
 (function() {
 	'use strict';
-	const VERSION = "1.0.0"
+	const VERSION = "1.0.1"
 
     Set.prototype.some = function(predicate) {
         for (const item of this) {
@@ -239,6 +239,7 @@
 			this.currentPanel = currentPanel;
 			this.loggedIn = loggedIn;
             this.isFighting = isFighting;
+            this.in_combat_ticker = 0;
             this.currentAction = this.currentAction;
             this.original_onmessage = original_onmessage;
             this.original_switch_panels = original_switch_panels;
@@ -252,7 +253,6 @@
     FlatMMOPlus.prototype.fmpKeyPress = function(e){
         //flatChat handles messages in another way, but checks for custom commands inside it
         if ("flatChat" in window.FlatMMOPlus.plugins) {
-            console.log("has")
             return;
         }
         //If typing on panels it should not type on the chat
@@ -652,6 +652,20 @@
             }
         });
         this.loggedIn = true;
+
+        setTimeout(() => {
+            Object.defineProperty(players[Globals.local_username], 'in_combat_ticker', {
+                get: function() {
+                    return FlatMMOPlus.in_combat_ticker;
+                },
+                set: function(newValue) {
+                    FlatMMOPlus.in_combat_ticker = newValue;
+                    if(newValue === 0) {
+                        window.FlatMMOPlus.onFightEnded();
+                    }
+                }
+            });
+        }, 3000);
 
         //Chat auto scroll is always true for now
         chat_div_element.scrollTop = chat_div_element.scrollHeight;

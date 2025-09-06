@@ -35,7 +35,7 @@
                     },
                     {
                         id: "MyInteger",
-                        label: "Pick a Number",
+                        label: "Pick a Integer Number",
                         type: "integer",
                         min: 1,
                         max: 10,
@@ -44,13 +44,22 @@
                     },
                     {
                         id: "MyNumber",
-                        label: "Pick a Cooler Number",
+                        label: "Pick a Float Number",
                         type: "number",
                         min: 0,
                         max: 10,
                         step: 0.1,
                         default: 1.5
                     },
+                    {
+						id: "myRange",
+						label: "Choose a volume",
+						type: "range",
+						min: 0,
+						max: 100,
+						step: 1,
+						default: 100,
+					},
                     {
                         id: "MyString",
                         label: "Enter a Thing",
@@ -68,6 +77,17 @@
                             {value: "opt3", label: "Option 3"}
                         ],
                         default: "opt2"
+                    },
+                    {
+                        id: "myColor",
+                        label: "Pick a color",
+                        type: "color"
+                    },
+                    {
+                        id: "inventoryPanel",
+                        label: "Go to Inventory",
+                        type: "panel",
+                        panel: "inventory"
                     }
                 ]
             });
