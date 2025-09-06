@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         FlatChat+
 // @namespace    com.dounford.flatmmo.flatChat
-// @version      1.2.1
+// @version      1.3
 // @description  Better chat for FlatMMO
 // @author       Dounford
 // @license      MIT
@@ -227,6 +227,12 @@
 						default: ""
 					},
 					{
+						id: "scriptsToLoad",
+						label: "Scripts that should load on game load",
+						type: "string",
+						default: ""
+					},
+					{
 						id: "themeEditor",
 						label: "THEME EDITOR",
 						panel: "flatChat-ThemeEditor",
@@ -239,6 +245,7 @@
 				ignoredWords: [],
 				watchedPlayers: [],
 				watchedWords: [],
+				scriptsToLoad: new Set([]), //This is useless, but I wanted to use the block function
 			}
 
 			this.channels = {};
@@ -338,6 +345,55 @@
 
 			//It will fetch a new version if the loaded is lower than this one here
 			this.fmpRequired = "1.0.0";
+			this.loadedScripts = new Set();
+			this.loadedDependencies = new Set();
+
+			if(FlatMMOPlus.version < this.fmpRequired) {
+				this.loadScript("fmp");
+			}
+		}
+
+		async loadScript(id) {
+			try {
+				let script;
+				await fetch('http://localhost:3000/scripts/' + id).then(async (response) => {
+					script = await response.text()
+					script = JSON.parse(script);
+				})
+				if(this.loadedScripts.has(script.name)) {
+					this.showWarning(script.name + " is already loaded", "red");
+				}
+				for (let dependency in script.dependencies) {
+
+					//Don't load the same dependency more than once
+					if(this.loadedDependencies.has(dependency)) {
+						break;
+					}
+
+					this.createScript(script.dependencies[dependency]);
+					this.loadedDependencies.add(dependency);
+				}
+
+				this.createScript(script.code);
+				this.loadedScripts.add(script.name);
+
+				if(id !== "fmp") {
+					if(!this.settings.scriptsToLoad.has(id)) {
+						this.settings.scriptsToLoad.add(id)
+						this.config.scriptsToLoad = Array.from(this.settings.scriptsToLoad).join();
+						this.saveConfig()
+					}
+					this.showWarning(script.name + " loaded with success", "cyan");
+				}
+			} catch(err) {
+				this.showWarning(id + " was not loaded")
+			}
+		}
+
+		createScript(code) {
+			const script = document.createElement("script");
+			script.textContent = code;
+			document.head.appendChild(script);
 		}
 
 		onLogin() {
@@ -360,20 +416,11 @@
 			this.watchIgnorePlayersWords("ignoredWords", this.config["ignoredWords"], true);
 			this.watchIgnorePlayersWords("watchedPlayers", this.config["watchedPlayers"], true);
 			this.watchIgnorePlayersWords("watchedWords", this.config["watchedWords"], true);
+			this.settings.scriptsToLoad = new Set(this.config.scriptsToLoad.trim().split(",").map(item=>item.trim()));
 
-			if(FlatMMOPlus.version <= "0.0.7") {
-				FlatMMOPlus.onChat = function(data) {
-					if(FlatMMOPlus.debug) {
-						console.log(`FM+ onChat`, data);
-					}
-					data.username = data.username.split("yelled")[0].trim()
-					FlatMMOPlus.forEachPlugin((plugin) => {
-						if(typeof plugin.onChat === "function") {
-							plugin.onChat(data);
-						}
-					});
-				}
-			}
+			this.settings.scriptsToLoad.forEach(async script => {
+				await this.loadScript(script)
+			})
 		}
 
 		onChat(data) {
@@ -443,6 +490,9 @@
 					case "watchedPlayers":
 					case "watchedWords": {
 						this.watchIgnorePlayersWords(config, this.config[config], true);
+					} break;
+					case "scriptsToLoad": {
+						this.settings.scriptsToLoad = new Set(this.config.scriptsToLoad.trim().split(",").map(item=>item.trim()));
 					} break;
 				}
 			})
@@ -991,11 +1041,13 @@
 			}, true)
 
 			document.getElementById("flatChat-input").addEventListener("blur", function(){
-				if(FlatMMOPlus.plugins.flatChat.config["alwaysOnFocus"]){
-					this.focus({
-						preventScroll: true
-					})
-				}
+				setTimeout(function() {
+					if(FlatMMOPlus.plugins.flatChat.config["alwaysOnFocus"] && document.activeElement.tagName !== "INPUT"){
+						document.getElementById("flatChat-input").focus({
+							preventScroll: true
+						})
+					}
+				}, 1)
 			})
 		}
 
@@ -1495,6 +1547,30 @@
 				this.watchIgnorePlayersWords("watchedWords",data);
 				this.showWarning("Word added to watched list");
 			}, `Ping you every time this word is sent.<br><b>Usage:</b>/watchword [word] (use _ for words with space)`);
+
+			window.FlatMMOPlus.registerCustomChatCommand("ticks", (command, data='') => {
+				this.showWarning(`The current action takes ${progress_bar_target + 1} ticks (${(progress_bar_target + 1) / 2} seconds)`);
+			}, `Shows the time needed to complete the current action`);
+
+			window.FlatMMOPlus.registerCustomChatCommand("scripts", async (command, data='') => {
+				let scriptList;
+				await fetch('http://localhost:3000/scripts').then(async (response) => {
+					scriptList = await response.text()
+					scriptList = scriptList.slice(0,-1).split(";");
+				})
+
+				scriptList.forEach(item => this.showWarning(item, "cyan"));
+				this.showWarning("Use /load [name]", "cyan");
+			}, "");
+
+			window.FlatMMOPlus.registerCustomChatCommand("load", (command, data='') => {
+				if (data === "") {
+					this.showWarning("You need to specify the script you want to load", "red");
+					return;
+				}
+				
+				this.loadScript(data);
+			}, "");
 
 		}
 
