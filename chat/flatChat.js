@@ -1561,7 +1561,7 @@
 
 				scriptList.forEach(item => this.showWarning(item, "cyan"));
 				this.showWarning("Use /load [name]", "cyan");
-			}, "");
+			}, "List all scripts that can be loaded with /load [name]");
 
 			window.FlatMMOPlus.registerCustomChatCommand("load", (command, data='') => {
 				if (data === "") {
@@ -1570,7 +1570,18 @@
 				}
 				
 				this.loadScript(data);
-			}, "");
+			}, "Loads a script");
+
+			window.FlatMMOPlus.registerCustomChatCommand("unload", (command, data='') => {
+				if (data === "") {
+					this.showWarning("You need to specify the script you want to unload", "red");
+					return;
+				}
+				
+				this.settings.scriptsToLoad.delete(data);
+				this.config.scriptsToLoad = Array.from(this.settings.scriptsToLoad).join();
+				this.saveConfig();
+			}, "Remove a script from auto load (it doesn't unload, you need to refresh the page)");
 
 		}
 
