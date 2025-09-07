@@ -344,7 +344,7 @@
 			}
 
 			//It will fetch a new version if the loaded is lower than this one here
-			this.fmpRequired = "1.0.0";
+			this.fmpRequired = "1.0.1";
 			this.loadedScripts = new Set();
 			this.loadedDependencies = new Set();
 
@@ -355,14 +355,15 @@
 
 		async loadScript(id) {
 			try {
+				if(this.loadedScripts.has(id)) {
+					this.showWarning(id + " is already loaded", "red");
+					return
+				}
 				let script;
-				await fetch('http://localhost:3000/scripts/' + id).then(async (response) => {
+				await fetch('https://scripts.dounford.tech/scripts/' + id).then(async (response) => {
 					script = await response.text()
 					script = JSON.parse(script);
 				})
-				if(this.loadedScripts.has(script.name)) {
-					this.showWarning(script.name + " is already loaded", "red");
-				}
 				for (let dependency in script.dependencies) {
 
 					//Don't load the same dependency more than once
@@ -375,7 +376,7 @@
 				}
 
 				this.createScript(script.code);
-				this.loadedScripts.add(script.name);
+				this.loadedScripts.add(id);
 
 				if(id !== "fmp") {
 					if(!this.settings.scriptsToLoad.has(id)) {
@@ -1554,7 +1555,7 @@
 
 			window.FlatMMOPlus.registerCustomChatCommand("scripts", async (command, data='') => {
 				let scriptList;
-				await fetch('http://localhost:3000/scripts').then(async (response) => {
+				await fetch('https://scripts.dounford.tech/scripts').then(async (response) => {
 					scriptList = await response.text()
 					scriptList = scriptList.slice(0,-1).split(";");
 				})
@@ -1581,6 +1582,7 @@
 				this.settings.scriptsToLoad.delete(data);
 				this.config.scriptsToLoad = Array.from(this.settings.scriptsToLoad).join();
 				this.saveConfig();
+				this.showWarning(data + " will not auto load anymore");
 			}, "Remove a script from auto load (it doesn't unload, you need to refresh the page)");
 
 		}
