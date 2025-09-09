@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         FlatChat+
 // @namespace    com.dounford.flatmmo.flatChat
-// @version      1.3
+// @version      1.3.4
 // @description  Better chat for FlatMMO
 // @author       Dounford
 // @license      MIT
@@ -86,30 +86,56 @@
 			linkColor: "#00FFFF",
 		},
 		catppuccinMochaByMae: {
-			"bgColor": "#201c2c",
-			"pickerLocal": "#54576c",
-			"pickerGlobal": "#54576c",
-			"pickerRoom": "#54576c",
-			"pickerPrivate": "#54576c",
-			"inputName": "#53566a",
-			"inputColor": "#181825",
-			"inputText": "#c0c0c0",
-			"messagesColor": "#b4befe",
-			"serverMessages": "#89b4fa",
-			"lvlMilestoneMessages": "#cba6f7",
-			"errorMessages": "#f38ba8",
-			"restMessages": "#99d5a4",
-			"lvlUpMessages": "#99d5a4",
-			"areaChangeMessages": "#89dceb",
-			"privateMessages": "#f9e2af",
-			"ownPrivateMessages": "#f9c8aa",
-			"pingMessages": "#74c7ec",
-			"contextBackground": "#323437",
-			"contextSection": "#252729",
-			"contextText": "#c0c0c0",
-			"linkColor": "#ceb4ee",
-			"oddMessageBg": "#201c2c",
-			"evenMessageBg": "#201c2c"
+			"bgColor":"#201c2c",
+			"pickerLocal":"#54576c",
+			"pickerGlobal":"#54576c",
+			"pickerRoom":"#54576c",
+			"pickerPrivate":"#54576c",
+			"inputName":"#53566a",
+			"inputColor":"#181825",
+			"inputText":"#c0c0c0",
+			"messagesColor":"#c3bdff",
+			"serverMessages":"#89b4fa",
+			"lvlMilestoneMessages":"#cba6f7",
+			"errorMessages":"#f38ba8",
+			"restMessages":"#99d5a4",
+			"lvlUpMessages":"#99d5a4",
+			"areaChangeMessages":"#89dceb",
+			"privateMessages":"#f9e2af",
+			"ownPrivateMessages":"#f9c8aa",
+			"pingMessages":"#74c7ec",
+			"contextBackground":"#323437",
+			"contextSection":"#252729",
+			"contextText":"#b4befa",
+			"linkColor":"#ceb4ee",
+			"oddMessageBg":"#201c2c",
+			"evenMessageBg":"#201c2c"
+		},
+		catppuccinLatteByMae: {
+			"bgColor":"#eff1f5",
+			"pickerLocal":"#7c7f93",
+			"pickerGlobal":"#7c7f93",
+			"pickerRoom":"#54576c",
+			"pickerPrivate":"#54576c",
+			"inputName":"#53566a",
+			"inputColor":"#ccd0da",
+			"inputText":"#53566a",
+			"messagesColor":"#4c4f69",
+			"serverMessages":"#1e66f5",
+			"lvlMilestoneMessages":"#ea76cb",
+			"errorMessages":"#d20f39",
+			"restMessages":"#40a02b",
+			"lvlUpMessages":"#40a02b",
+			"areaChangeMessages":"#04a5e5",
+			"privateMessages":"#fe640b",
+			"ownPrivateMessages":"#df8e1d",
+			"pingMessages":"#74c7ec",
+			"contextBackground":"#323437",
+			"contextSection":"#252729",
+			"contextText":"#b4befa",
+			"linkColor":"#8839ef",
+			"oddMessageBg":"#eff1f5",
+			"evenMessageBg":"#eff1f5"
 		}
 	}
 
@@ -199,6 +225,12 @@
 					{
 						id: "alwaysOnFocus",
 						label: "Keep chat on focus all the time",
+						type: "boolean",
+						default: false
+					},
+					{
+						id: "alwaysTabsPM",
+						label: "Always create tabs for PMs",
 						type: "boolean",
 						default: false
 					},
@@ -316,30 +348,56 @@
 					linkColor: "#00FFFF",
 				},
 				catppuccinMochaByMae: {
-					"bgColor": "#201c2c",
-					"pickerLocal": "#54576c",
-					"pickerGlobal": "#54576c",
-					"pickerRoom": "#54576c",
-					"pickerPrivate": "#54576c",
-					"inputName": "#53566a",
-					"inputColor": "#181825",
-					"inputText": "#c0c0c0",
-					"messagesColor": "#b4befe",
-					"serverMessages": "#89b4fa",
-					"lvlMilestoneMessages": "#cba6f7",
-					"errorMessages": "#f38ba8",
-					"restMessages": "#99d5a4",
-					"lvlUpMessages": "#99d5a4",
-					"areaChangeMessages": "#89dceb",
-					"privateMessages": "#f9e2af",
-					"ownPrivateMessages": "#f9c8aa",
-					"pingMessages": "#74c7ec",
-					"contextBackground": "#323437",
-					"contextSection": "#252729",
-					"contextText": "#c0c0c0",
-					"linkColor": "#ceb4ee",
-					"oddMessageBg": "#201c2c",
-					"evenMessageBg": "#201c2c"
+					"bgColor":"#201c2c",
+					"pickerLocal":"#54576c",
+					"pickerGlobal":"#54576c",
+					"pickerRoom":"#54576c",
+					"pickerPrivate":"#54576c",
+					"inputName":"#53566a",
+					"inputColor":"#181825",
+					"inputText":"#c0c0c0",
+					"messagesColor":"#c3bdff",
+					"serverMessages":"#89b4fa",
+					"lvlMilestoneMessages":"#cba6f7",
+					"errorMessages":"#f38ba8",
+					"restMessages":"#99d5a4",
+					"lvlUpMessages":"#99d5a4",
+					"areaChangeMessages":"#89dceb",
+					"privateMessages":"#f9e2af",
+					"ownPrivateMessages":"#f9c8aa",
+					"pingMessages":"#74c7ec",
+					"contextBackground":"#323437",
+					"contextSection":"#252729",
+					"contextText":"#b4befa",
+					"linkColor":"#ceb4ee",
+					"oddMessageBg":"#201c2c",
+					"evenMessageBg":"#201c2c"
+				},
+				catppuccinLatteByMae: {
+					"bgColor":"#eff1f5",
+					"pickerLocal":"#7c7f93",
+					"pickerGlobal":"#7c7f93",
+					"pickerRoom":"#54576c",
+					"pickerPrivate":"#54576c",
+					"inputName":"#53566a",
+					"inputColor":"#ccd0da",
+					"inputText":"#53566a",
+					"messagesColor":"#4c4f69",
+					"serverMessages":"#1e66f5",
+					"lvlMilestoneMessages":"#ea76cb",
+					"errorMessages":"#d20f39",
+					"restMessages":"#40a02b",
+					"lvlUpMessages":"#40a02b",
+					"areaChangeMessages":"#04a5e5",
+					"privateMessages":"#fe640b",
+					"ownPrivateMessages":"#df8e1d",
+					"pingMessages":"#74c7ec",
+					"contextBackground":"#323437",
+					"contextSection":"#252729",
+					"contextText":"#b4befa",
+					"linkColor":"#8839ef",
+					"oddMessageBg":"#eff1f5",
+					"evenMessageBg":"#eff1f5"
 				}
 			}
 
@@ -381,7 +439,7 @@
 				if(id !== "fmp") {
 					if(!this.settings.scriptsToLoad.has(id)) {
 						this.settings.scriptsToLoad.add(id)
-						this.config.scriptsToLoad = Array.from(this.settings.scriptsToLoad).join();
+						this.config.scriptsToLoad = Array.from(this.settings.scriptsToLoad).join(", ");
 						this.saveConfig()
 					}
 					this.showWarning(script.name + " loaded with success", "cyan");
@@ -417,7 +475,7 @@
 			this.watchIgnorePlayersWords("ignoredWords", this.config["ignoredWords"], true);
 			this.watchIgnorePlayersWords("watchedPlayers", this.config["watchedPlayers"], true);
 			this.watchIgnorePlayersWords("watchedWords", this.config["watchedWords"], true);
-			this.settings.scriptsToLoad = new Set(this.config.scriptsToLoad.trim().split(",").map(item=>item.trim()));
+			this.settings.scriptsToLoad = new Set(this.config.scriptsToLoad.trim().split(",").map(item=>item.trim()).filter(item=>item));
 
 			this.settings.scriptsToLoad.forEach(async script => {
 				await this.loadScript(script)
@@ -445,6 +503,9 @@
 					}
 					data.username = match[1].trim().replaceAll(" ", "_");
 					data.message = match[2].trim();
+					if(this.config["alwaysTabsPM"]) {
+						this.newChannel(data.username, true)
+					}
 					data.channel = this.channels["private_" + data.username] ? "private_" + data.username : "channel_global";
 					this.lastPM = data.username;
 				} else {
@@ -493,7 +554,7 @@
 						this.watchIgnorePlayersWords(config, this.config[config], true);
 					} break;
 					case "scriptsToLoad": {
-						this.settings.scriptsToLoad = new Set(this.config.scriptsToLoad.trim().split(",").map(item=>item.trim()));
+						this.settings.scriptsToLoad = new Set(this.config.scriptsToLoad.trim().split(",").map(item=>item.trim()).filter(item=>item));
 					} break;
 				}
 			})
@@ -848,6 +909,11 @@
 
 			if(localStorage.getItem("flatChat-themes")) {
 				this.themes = JSON.parse(localStorage.getItem("flatChat-themes"));
+				for (let theme in defaultThemes) {
+					if (!this.themes.hasOwnProperty(theme)) {
+						this.themes[theme] = defaultThemes[theme];
+					}
+				}
 			}
 			for (let theme in this.themes) {
 				if (!this.themes[theme].oddMessageBg) {
@@ -1366,7 +1432,7 @@
 			if(!this.themes[theme]) {return};
 
 			//Default themes can't be removed, they will be go back to default instead
-			if(theme === "light" || theme === "dark")  {
+			if(theme in defaultThemes)  {
 				this.themes[theme] = structuredClone(defaultThemes[theme]);
 				this.changeThemeEditor();
 				this.saveTheme();
