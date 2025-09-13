@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         FlatChat+
 // @namespace    com.dounford.flatmmo.flatChat
-// @version      1.3.4
+// @version      1.3.5
 // @description  Better chat for FlatMMO
 // @author       Dounford
 // @license      MIT
@@ -503,7 +503,7 @@
 					}
 					data.username = match[1].trim().replaceAll(" ", "_");
 					data.message = match[2].trim();
-					if(this.config["alwaysTabsPM"]) {
+					if(this.config["alwaysTabsPM"] && !this.channels["private_" + data.username]) {
 						this.newChannel(data.username, true)
 					}
 					data.channel = this.channels["private_" + data.username] ? "private_" + data.username : "channel_global";
