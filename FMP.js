@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         FlatMMOPlus
 // @namespace    com.dounford.flatmmo
-// @version      1.0.4
+// @version      1.0.5
 // @description  FlatMMO plugin framework
 // @author       Dounford adapted from Anwinity IPP
 // @match        *://flatmmo.com/play.php*
@@ -10,7 +10,7 @@
 
 (function() {
 	'use strict';
-	const VERSION = "1.0.4";
+	const VERSION = "1.0.5";
 
     Set.prototype.some = function(predicate) {
         for (const item of this) {
@@ -764,13 +764,13 @@
             console.log("FM+ onPaint");
         }
 
-        this.paintNotifications();
-
         this.forEachPlugin((plugin) => {
             if(typeof plugin.onPaint === "function") {
                 plugin.onPaint();
             }
         });
+
+        this.paintNotifications();
     }
 
     //Between paint_layer_1 and paint_map_objects_lower_shadows

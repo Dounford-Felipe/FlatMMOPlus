@@ -230,7 +230,7 @@
 						type: "select",
 						options: [
 							{value: "bottom", label: "Bottom"},
-							{value: "Side", label: "Side"},
+							{value: "side", label: "Side"},
 							{value: "vanilla", label: "Vanilla"},
 						],
 						default: "bottom"
@@ -364,7 +364,7 @@
 			this.chatHistory = [];
 			this.historyPosition = -1;
 
-			this.lastWarning = Date.now() - 60000;
+			this.ignoreClick = false;
 
 			this.lastPM = "";
 
@@ -476,7 +476,7 @@
 			}
 
 			//It will fetch a new version if the loaded is lower than this one here
-			this.fmpRequired = "1.0.4";
+			this.fmpRequired = "1.0.5";
 			this.loadedScripts = new Set();
 			this.loadedDependencies = new Set();
 
@@ -545,10 +545,10 @@
 			this.showWarning(document.querySelectorAll("#chat span")[1].innerHTML, "white");
 			this.showWarning(`<span><strong style="color:cyan">FYI: </strong> Use the /help command to see information on available chat commands.</span>`, "white");
 
-			this.watchIgnorePlayersWords("ignoredPlayers", this.config["ignoredPlayers"], true);
-			this.watchIgnorePlayersWords("ignoredWords", this.config["ignoredWords"], true);
-			this.watchIgnorePlayersWords("watchedPlayers", this.config["watchedPlayers"], true);
-			this.watchIgnorePlayersWords("watchedWords", this.config["watchedWords"], true);
+			this.watchIgnorePlayersWords("ignoredPlayers", this.config["ignoredPlayers"], true, true);
+			this.watchIgnorePlayersWords("ignoredWords", this.config["ignoredWords"], true, true);
+			this.watchIgnorePlayersWords("watchedPlayers", this.config["watchedPlayers"], true, true);
+			this.watchIgnorePlayersWords("watchedWords", this.config["watchedWords"], true, true);
 			this.settings.scriptsToLoad = new Set(this.config.scriptsToLoad.trim().split(",").map(item=>item.trim()).filter(item=>item));
 
 			this.settings.scriptsToLoad.forEach(async script => {
@@ -654,7 +654,7 @@
 			style.innerHTML = `
 			/*Chat box*/
 			.flatChat {
-				max-width: 1880px;
+				width: 1880px;
 				background: var(--fc-bgColor);
 				border: solid black 2px;
 				border-radius: 5px;
@@ -666,7 +666,6 @@
 			}
 			.flatChat-mainArea {
 				display: flex;
-				height: 300px
 			}
 
 			/* Side chat positioning */
@@ -723,6 +722,15 @@
 			#chat-container-td {
 				vertical-align: top;
 				padding-left: 5px;
+			}
+
+			.vanillaChat {
+				position: absolute;
+				top: 650px;
+				width: 1336px;
+			}
+			.vanillaChat #flatChat-channels {
+				height: 200px;
 			}
 
 			/*channel list*/
@@ -785,6 +793,7 @@
 					height: 100%;
 					overflow-y: auto;
 					padding: 5px;
+					scrollbar-width: thin;
 
 					div {
 						overflow-wrap: anywhere;
@@ -1079,13 +1088,25 @@
 				picker.toggleAttribute("closed");
 			})
 
-			document.getElementById("flatChat-closeChat").addEventListener("click",()=>{this.closeChannel()})
-			document.getElementById("flatChat-autoScroll").addEventListener("click",()=>{this.toggleAutoScroll()})
-			document.getElementById("flatChat-scrollToBottom").addEventListener("click",()=>{this.scrollButtons("bottom")})
-			document.getElementById("flatChat-srollDown").addEventListener("click",()=>{this.scrollButtons("down")})
-			document.getElementById("flatChat-srollUp").addEventListener("click",()=>{this.scrollButtons("up")})
+			document.getElementById("flatChat-closeChat").addEventListener("click",()=>{
+				this.closeChannel()
+			})
+			document.getElementById("flatChat-autoScroll").addEventListener("click",()=>{
+				this.toggleAutoScroll();
+			})
+			document.getElementById("flatChat-scrollToBottom").addEventListener("click",()=>{
+				this.scrollButtons("bottom");
+			})
+			document.getElementById("flatChat-srollDown").addEventListener("click",()=>{
+				this.scrollButtons("down");
+			})
+			document.getElementById("flatChat-srollUp").addEventListener("click",()=>{
+				this.scrollButtons("up");
+			})
 
-			document.getElementById("flatChat-channels").onwheel = (event)=>{this.scrollChannel(event)}
+			document.getElementById("flatChat-channels").onwheel = (event)=>{
+				this.scrollChannel(event);
+			}
 
 			document.querySelector("#flatChat-channels").addEventListener("click", async (e) => {
 				const sender = e.target.closest("[data-sender]");
@@ -1137,7 +1158,7 @@
 			document.getElementById("flatChat-contextMenu").addEventListener("click", (e) => {this.contextMenu(e)})
 
 			//Context menu should close if you click outside
-			document.addEventListener("click", function (e) {
+			document.addEventListener("click", (e) => {
 				const contextMenu = document.getElementById("flatChat-contextMenu");
 				if (!contextMenu.contains(e.target)) {
 					contextMenu.style.visibility = "hidden";
@@ -1145,6 +1166,17 @@
 			});
 
 			document.addEventListener("keydown", (e) => {
+				if (e.key === "F9" && this.config["chatPosition"] === "vanilla") {
+					e.preventDefault();
+					this.ignoreClick = !this.ignoreClick;
+					if(this.ignoreClick) {
+						chatDiv.style.opacity = "0.2";
+						chatDiv.style.pointerEvents = "none";
+					} else {
+						chatDiv.style.opacity = "1";
+						chatDiv.style.pointerEvents = "unset";
+					}
+				}
 				if (e.key === "Tab" && e.target.closest('#flatChat')) {
 					e.preventDefault();
 					if(document.querySelector(`#flatChat-channelPicker [data-channel=${this.currentChannel}]`).nextElementSibling) {
@@ -1196,26 +1228,27 @@
 			const flatChat = document.getElementById("flatChat");
 			const gameElement = document.getElementById("game");
 
-			if (position === "bottom") {
-				// Remove side chat positioning
-				flatChat.classList.remove("flatChatSide");
-				flatChat.classList.remove("flatChat-small");
+			// Remove side chat positioning
+			flatChat.classList.remove("flatChatSide");
+			flatChat.classList.remove("flatChat-small");
+			flatChat.classList.remove("vanillaChat");
+			document.getElementById("game").style.userSelect = "none";
 
-				// Remove resizer
-				const resizer = document.getElementById("flatChat-resizer");
-				if (resizer) {
-					resizer.remove();
-				}
+			// Remove resizer
+			const resizer = document.getElementById("flatChat-resizer");
+			if (resizer) {
+				resizer.remove();
+			}
 
-				// Move chat back to original position
-				const container = document.getElementById("game-chat-container");
-				if (container) {
-					const gameElement = document.getElementById("game");
-					container.parentNode.replaceChild(gameElement, container);
-				}
-				flatChat.style.height = ""
-				document.querySelector("body center").appendChild(flatChat);
-			} else if (position === "side") {
+			// Move chat back to original position
+			const container = document.getElementById("game-chat-container");
+			if (container) {
+				const gameElement = document.getElementById("game");
+				container.parentNode.replaceChild(gameElement, container);
+			}
+			flatChat.style.height = ""
+			document.querySelector("body center").appendChild(flatChat);
+			if (position === "side") {
 				// Create container structure if it doesn't exist
 				if (!document.getElementById("game-chat-container")) {
 					const container = document.createElement("table");
@@ -1259,8 +1292,10 @@
 					flatChat.insertBefore(resizer, flatChat.firstChild);
 					this.addResizeHandler(resizer);
 				}
-			} else { //vanilla
-
+			} else if(position === "vanilla") {
+				document.getElementById("chat").insertAdjacentElement("afterend",flatChat);
+				flatChat.classList.add("vanillaChat");
+				document.getElementById("game").style.userSelect = "unset";
 			}
 		}
 
@@ -1855,7 +1890,7 @@
 			}
 		}
 
-		watchIgnorePlayersWords(type, words, replace) {
+		watchIgnorePlayersWords(type, words, replace, login = false) {
 			//type can be watchedWords, ignoredWords, watchedPlayers, ignoredPlayers
 			if(!replace) {
 				words += "," + this.config[type];
@@ -1867,7 +1902,9 @@
 			this.settings[type] = words; //This is the variable I use to check
 			this.config[type] = words.join(",").replaceAll(" ", "_");//Config is saved as string
 			this.saveConfig();
-			this.showWarning(words + " added to " + type + " list");
+			if(!login) {
+				this.showWarning(words + " added to " + type + " list");
+			}
 		}
 
 		contextMenu(e) {
