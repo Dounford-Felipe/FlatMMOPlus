@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         FlatChat+
 // @namespace    com.dounford.flatmmo.flatChat
-// @version      1.3.5
+// @version      1.4
 // @description  Better chat for FlatMMO
 // @author       Dounford
 // @license      MIT
@@ -139,6 +139,81 @@
 		}
 	}
 
+	const textToNotification = {
+		nessieTime: {
+			blocked: " seconds left.",
+			name: "nessieTime",
+			image: "https://flatmmo.com/images/npcs/lochness_monster_stand1.png",
+			title: "TIMER",
+			text: "0 seconds left",
+			ticks: 3600,
+			color: "white"
+		},
+		cannonFixed: {
+			blocked: "has fixed the cannon",
+			name: "cannonFix",
+			image: "https://flatmmo.com/images/objects/cannon1_lower.png",
+			title: "CANNON",
+			text: "FIXED",
+			ticks: 900,
+			color: "white"
+		},
+		cannonBroken: {
+			blocked: "The cannon broke",
+			name: "cannonFix",
+			image: "https://flatmmo.com/images/objects/broken_cannon1_lower.png",
+			title: "CANNON",
+			text: "BROKEN",
+			ticks: 900,
+			color: "white"
+		},
+		fireFish: {
+			blocked: "fires fish",
+			name: "fishFired",
+			image: "https://flatmmo.com/images/items/yellow_fish.png",
+			title: "FISH FIRED",
+			text: "0/0",
+			ticks: 900,
+			color: "white"
+		},
+		bondfirePoints: {
+			blocked: "1 bondfire",
+			name: "bondfirePoint",
+			image: "https://flatmmo.com/images/objects/bondfire1_lower.png",
+			title: "BONDFIRE",
+			text: "0 points",
+			ticks: 900,
+			color: "white"
+		},
+		prepareFire: {
+			blocked: "prepare to light",
+			name: "ignore",
+			image: "https://flatmmo.com/images/items/none.png",
+			title: "",
+			text: "",
+			ticks: 0,
+			color: "white"
+		},
+		lightFire: {
+			blocked: "successfully light",
+			name: "lightFire",
+			image: "https://flatmmo.com/images/objects/fire1_lower.png",
+			title: "FIRE",
+			text: "0 seconds",
+			ticks: 600,
+			color: "white"
+		},
+		lowEnergy: {
+			blocked: "too tired",
+			name: "lowEnergy",
+			image: "https://flatmmo.com/images/ui/sleep.png",
+			title: "TIRED",
+			text: "0 energy",
+			ticks: 600,
+			color: "white"
+		},
+	}
+
 	class flatChatPlugin extends FlatMMOPlusPlugin {
 		constructor() {
 			super("flatChat", {
@@ -150,10 +225,15 @@
 				},
 				config: [
 					{
-						id: "sideChat",
-						label: "Chat on the right side",
-						type: "boolean",
-						default: false
+						id: "chatPosition",
+						label: "Chat Position",
+						type: "select",
+						options: [
+							{value: "bottom", label: "Bottom"},
+							{value: "Side", label: "Side"},
+							{value: "vanilla", label: "Vanilla"},
+						],
+						default: "bottom"
 					},
 					{
 						id: "sideChatWidth",
@@ -178,12 +258,6 @@
 						max: 100,
 						step: 1,
 						default: 100,
-					},
-					{
-						id: "lessEnergyWarning",
-						label: "Reduce the amount of low energy warnings",
-						type: "boolean",
-						default: false
 					},
 					{
 						id: "showTime",
@@ -402,7 +476,7 @@
 			}
 
 			//It will fetch a new version if the loaded is lower than this one here
-			this.fmpRequired = "1.0.1";
+			this.fmpRequired = "1.0.4";
 			this.loadedScripts = new Set();
 			this.loadedDependencies = new Set();
 
@@ -459,7 +533,7 @@
 			this.removeOriginalChat();
 			this.addStyle();
 			this.addUI();
-			this.changeChatPosition(this.config["sideChat"]);
+			this.changeChatPosition(this.config.chatPosition);
 			this.loadChannels();
 			this.switchChannel("local", false);
 			this.messagesWaiting.forEach((message)=>this.showMessage(message));
@@ -533,8 +607,8 @@
 						const flatChat = document.getElementById("flatChat");
 						flatChat.classList = "flatChat flatChat-" + this.config.theme;
 					} break;
-					case "sideChat": {
-						this.changeChatPosition(this.config["sideChat"]);
+					case "chatPosition": {
+						this.changeChatPosition(this.config.chatPosition);
 					} break;
 					case "sideChatWidth": {
 						const flatChat = document.getElementById("flatChat");
@@ -921,8 +995,8 @@
 					this.themes[theme].evenMessageBg = this.themes[theme].bgColor;
 				}
 				this.addTheme(theme)
-				this.opts.config[9].options = this.opts.config[9].options.filter(t => t.value !== theme)
-				this.opts.config[9].options.push({value: theme, label: this.toTitleCase(theme)})
+				this.opts.config[8].options = this.opts.config[8].options.filter(t => t.value !== theme)
+				this.opts.config[8].options.push({value: theme, label: this.toTitleCase(theme)})
 			}
 		}
 
@@ -1118,22 +1192,41 @@
 			})
 		}
 
-		changeChatPosition(sideChat) {
+		changeChatPosition(position) {
 			const flatChat = document.getElementById("flatChat");
 			const gameElement = document.getElementById("game");
 
-			if (sideChat) {
+			if (position === "bottom") {
+				// Remove side chat positioning
+				flatChat.classList.remove("flatChatSide");
+				flatChat.classList.remove("flatChat-small");
+
+				// Remove resizer
+				const resizer = document.getElementById("flatChat-resizer");
+				if (resizer) {
+					resizer.remove();
+				}
+
+				// Move chat back to original position
+				const container = document.getElementById("game-chat-container");
+				if (container) {
+					const gameElement = document.getElementById("game");
+					container.parentNode.replaceChild(gameElement, container);
+				}
+				flatChat.style.height = ""
+				document.querySelector("body center").appendChild(flatChat);
+			} else if (position === "side") {
 				// Create container structure if it doesn't exist
 				if (!document.getElementById("game-chat-container")) {
 					const container = document.createElement("table");
 					container.id = "game-chat-container";
 					container.style.display = "inline-table";
 					container.innerHTML = `
-				<tr>
-					<td id="game-container-td"></td>
-					<td id="chat-container-td"></td>
-				</tr>
-			`;
+						<tr>
+							<td id="game-container-td"></td>
+							<td id="chat-container-td"></td>
+						</tr>
+					`;
 
 					// Replace game with container
 					gameElement.parentNode.replaceChild(container, gameElement);
@@ -1166,25 +1259,8 @@
 					flatChat.insertBefore(resizer, flatChat.firstChild);
 					this.addResizeHandler(resizer);
 				}
-			} else {
-				// Remove side chat positioning
-				flatChat.classList.remove("flatChatSide");
-				flatChat.classList.remove("flatChat-small");
+			} else { //vanilla
 
-				// Remove resizer
-				const resizer = document.getElementById("flatChat-resizer");
-				if (resizer) {
-					resizer.remove();
-				}
-
-				// Move chat back to original position
-				const container = document.getElementById("game-chat-container");
-				if (container) {
-					const gameElement = document.getElementById("game");
-					container.parentNode.replaceChild(gameElement, container);
-				}
-				flatChat.style.height = ""
-				document.querySelector("body center").appendChild(flatChat);
 			}
 		}
 
@@ -1291,7 +1367,7 @@
 					}
 				</style>
 				<select id="flatChat-ThemeEditor-theme" onchange="FlatMMOPlus.plugins.flatChat.changeThemeEditor()">`
-				FlatMMOPlus.plugins.flatChat.opts.config[9].options.forEach(theme=>{
+				FlatMMOPlus.plugins.flatChat.opts.config[8].options.forEach(theme=>{
 					content += `<option value="${theme.value}">${theme.label}</option>`
 				})
 				content += `</select>
@@ -1397,7 +1473,7 @@
 
 			//Make sure it doesn't duplicate
 			if(this.themes[themeName]) {
-				this.opts.config[9].options = this.opts.config[9].options.filter(t => t.value !== themeName)
+				this.opts.config[8].options = this.opts.config[8].options.filter(t => t.value !== themeName)
 				document.querySelector(`#flatChat-ThemeEditor-theme option[value=${themeName}]`).remove();
 			} else {
 				this.themes[themeName] = {};
@@ -1408,7 +1484,7 @@
 			}
 
 
-			this.opts.config[9].options.push({value: themeName, label: theme})
+			this.opts.config[8].options.push({value: themeName, label: theme})
 
 			document.getElementById("flatChat-ThemeEditor-theme").innerHTML += `<option value="${themeName}">${theme}</option>`
 			document.getElementById("flatChat-ThemeEditor-theme").value = themeName;
@@ -1443,7 +1519,7 @@
 			delete this.themes[theme];
 
 			//remove from fm+ config
-			this.opts.config[9].options = this.opts.config[9].options.filter(t => t.value !== theme);
+			this.opts.config[8].options = this.opts.config[8].options.filter(t => t.value !== theme);
 
 			//Remove the option on theme editor
 			document.querySelector(`#flatChat-ThemeEditor-theme option[value=${theme}]`).remove();
@@ -1791,6 +1867,7 @@
 			this.settings[type] = words; //This is the variable I use to check
 			this.config[type] = words.join(",").replaceAll(" ", "_");//Config is saved as string
 			this.saveConfig();
+			this.showWarning(words + " added to " + type + " list");
 		}
 
 		contextMenu(e) {
@@ -1904,6 +1981,7 @@
 
 				tag.innerText = data.tag === "investor-plus" ? "INVESTOR" : data.tag.toUpperCase();
 				tag.classList.add("chat-tag-" + data.tag);
+				messageContainer.appendChild(tag);
 			}
 
 			if (data.username) {
@@ -1916,12 +1994,13 @@
 				if(this.settings.watchedPlayers.includes(data.username) && !data.channel.startsWith("private_")) {
 					messageContainer.className = "fc-pingMessages";
 				}
-			} else if(this.getConfig("lessEnergyWarning") && message.startsWith("You are too tired to gain xp")) {//TBD
-				const now = Date.now()
-				if (this.lastWarning > now - 300000) {
-					return
-				} else {
-					this.lastWarning = now;
+			} else {
+				for (const not in textToNotification) {
+					if(message.includes(textToNotification[not].blocked)) {
+						this.updateNotification(message, not);
+						this.showNotification(not);
+						return;
+					}
 				}
 			}
 
@@ -1972,6 +2051,44 @@
 
 			this.channels[data.channel].lastSender = data.username;
 			this.channels[data.channel].lastMessage = data.message;
+		}
+
+		updateNotification(message, blocked) {
+			switch (blocked) {
+				case "nessieTime": {
+					textToNotification[blocked].text = message.slice(0,-1);
+				} break;
+				case "fireFish": {
+					const match = message.match(/\((.*)\)/);
+					if (match) {
+						textToNotification[blocked].text = match[1];
+					} else {
+						textToNotification[blocked].text = "0/0";
+					}
+				} break;
+				case "bondfirePoints": {
+					const match = message.match(/\((.*) /);
+					if (match) {
+						textToNotification[blocked].text = match[1] + " points";
+					} else {
+						textToNotification[blocked].text = "0 points";
+					}
+				} break;
+				case "lightFire": {
+					const match = message.match(/last (.*) /)
+					if (match) {
+						textToNotification[blocked].text = match[1] + " seconds";
+					} else {
+						textToNotification[blocked].text = "0 seconds";
+					}
+				} break;
+
+			}
+		}
+
+		showNotification(blocked) {
+			const not = textToNotification[blocked];
+			FlatMMOPlus.addNotification(not.name, not.image, not.title, not.text, not.ticks, not.color);
 		}
 
 		showWarning(message, color = "aquamarine") {

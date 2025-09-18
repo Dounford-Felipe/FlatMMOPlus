@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         FlatMMOPlus
 // @namespace    com.dounford.flatmmo
-// @version      1.0.1
+// @version      1.0.4
 // @description  FlatMMO plugin framework
 // @author       Dounford adapted from Anwinity IPP
 // @match        *://flatmmo.com/play.php*
@@ -10,7 +10,7 @@
 
 (function() {
 	'use strict';
-	const VERSION = "1.0.1"
+	const VERSION = "1.0.4";
 
     Set.prototype.some = function(predicate) {
         for (const item of this) {
@@ -58,6 +58,7 @@
     let isFighting = false;
     let original_onmessage;
     let original_switch_panels;
+    let flatnotifications = {};
 
 	if (window.FlatMMOPlus) {
         if(window.FlatMMOPlus.version >= VERSION) {
@@ -132,6 +133,8 @@
                 play_sound("sounds/menu1.wav");
             }
         }
+        
+        flatnotifications = window.FlatMMOPlus.notifications || {};
         window.removeEventListener("keypress", window.FlatMMOPlus.fmpKeyPress, false);
         document.getElementById("ui-panel-flatmmoplus").remove();
         document.querySelector(".settings-ui tbody tr:last-child").remove()
@@ -243,6 +246,7 @@
             this.currentAction = this.currentAction;
             this.original_onmessage = original_onmessage;
             this.original_switch_panels = original_switch_panels;
+            this.notifications = flatnotifications;
 
 			if(localStorage.getItem(LOCAL_STORAGE_KEY_DEBUG) == "1") {
                 this.debug = true;
@@ -716,11 +720,52 @@
         });
     }
 
+    FlatMMOPlus.prototype.addNotification = function(name, imageSrc, title = "", text = "", ticks = 900, color = "white") {
+        const img = new Image();
+        img.src = imageSrc;
+        img.onload = () => {
+            this.notifications[name] = {
+                image: img,
+                title,
+                text,
+                color,
+                ticks
+            }
+        }
+    }
+
+    FlatMMOPlus.prototype.paintNotifications = function() {
+        const PADDING = 10;
+        let yOffset = 0;
+        let y = 13 * TILE_SIZE;
+        for (let notification in this.notifications) {
+            const not = this.notifications[notification];
+            not.ticks--;
+            ctx.font = "20px serif";
+            ctx.fillStyle = "white";
+            ctx.globalAlpha = 0.2;
+            ctx.fillRect(21 * TILE_SIZE, y - yOffset, TILE_SIZE * 3 - PADDING, TILE_SIZE - PADDING);
+            ctx.globalAlpha = 1.0;
+            ctx.drawImage(not.image, 21 * TILE_SIZE + PADDING, y + 10 - yOffset, 32, 32); 
+            ctx.fillStyle = not.color;
+            ctx.fillText(not.title, 21 * TILE_SIZE + 50, y + 20 - yOffset);
+            ctx.font = "16px serif";
+            ctx.fillText(not.text, 21 * TILE_SIZE + 50, y + 40 - yOffset);
+            if(not.ticks < 0) {
+                delete this.notifications[notification];
+            }
+            yOffset += TILE_SIZE;
+        }
+    }
+
     //After vanilla paint
     FlatMMOPlus.prototype.onPaint = function() {
         if(this.debug) {
             console.log("FM+ onPaint");
         }
+
+        this.paintNotifications();
+
         this.forEachPlugin((plugin) => {
             if(typeof plugin.onPaint === "function") {
                 plugin.onPaint();
@@ -1058,6 +1103,9 @@
         });
         
         logFancy(`(v${this.version}) initialized.`);
+        if(this.loggedIn === false && Object.keys(item_sell_prices).length !== 0) {
+            this.onLogin();
+        }
     }
 
 	// Add to window and init
