@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         FlatMMOPlus
 // @namespace    com.dounford.flatmmo
-// @version      1.0.5
+// @version      1.0.7
 // @description  FlatMMO plugin framework
 // @author       Dounford adapted from Anwinity IPP
 // @match        *://flatmmo.com/play.php*
@@ -10,7 +10,7 @@
 
 (function() {
 	'use strict';
-	const VERSION = "1.0.5";
+	const VERSION = "1.0.7";
 
     Set.prototype.some = function(predicate) {
         for (const item of this) {
@@ -155,7 +155,7 @@
 	}
 
     class AnimationSheetPlus {
-        constructor(filename, frames, path, speed, images) {
+        constructor(filename, frames, speed, images) {
             this.filename = filename;
             this.running = false;
             this.frame_at = 0;
@@ -166,11 +166,7 @@
             this.images = []
             for(var i = 1; i <= this.FRAMES; i++) {
                 let image = new Image();
-                if(images) {
-                    image.src = images[i - 1]
-                } else {
-                    image.src =  path + filename + i + ".png";
-                }
+                image.src = images[i - 1]
                 this.images.push(image);
             }
         }
@@ -259,10 +255,6 @@
         if ("flatChat" in window.FlatMMOPlus.plugins) {
             return;
         }
-        //If typing on panels it should not type on the chat
-        if(document.querySelector(".td-ui").contains(document.activeElement)) {
-            return;
-        }
         if(Globals.local_username == null) return;
         if(has_modal_open()) return;
 
@@ -272,7 +264,10 @@
 
         //firefox fix
         if(keyCode == "47" || keyCode == "39") {
+            chat_ele.value += "/";
+            request_focus_chatbox();
             e.preventDefault(); 
+            return
         }
         //13 is Enter
         if(keyCode == "13") {
@@ -293,21 +288,19 @@
                 }
 
                 if (window.FlatMMOPlus.handleCustomChatCommand(command, data)) {
-                    local_chat_message = "";
+                    chat_ele.value = "";
                     return
                 } 
             }
             Globals.websocket.send('CHAT=' + message);
-            local_chat_message = "";
+            chat_ele.value = "";
             return;
         }
 
         //if any normal key then checks if the message is too big
-        if(LOCAL_CHAT_MAX_LENGTH <= local_chat_message.length) {
+        if(LOCAL_CHAT_MAX_LENGTH <= chat_ele.value.length) {
             return;
         }
-        //if not then add the key pressed to the message
-        local_chat_message += char;
     }
     
 	FlatMMOPlus.prototype.registerCustomChatCommand = function(command, f, help) {

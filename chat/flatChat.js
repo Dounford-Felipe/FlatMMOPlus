@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         FlatChat+
 // @namespace    com.dounford.flatmmo.flatChat
-// @version      1.4
+// @version      1.4.1
 // @description  Better chat for FlatMMO
 // @author       Dounford
 // @license      MIT
@@ -476,7 +476,7 @@
 			}
 
 			//It will fetch a new version if the loaded is lower than this one here
-			this.fmpRequired = "1.0.5";
+			this.fmpRequired = "1.0.7";
 			this.loadedScripts = new Set();
 			this.loadedDependencies = new Set();
 
@@ -643,6 +643,7 @@
 			refresh_chat_div = function(){};
 			paint_chat = function(){};
 			document.getElementById("chat").style.display = "none";
+			document.querySelector(".chat-input").style.display = "none"
 
 			window.FlatMMOPlus.registerCustomChatCommand(["clear","clean"], (command, data='') => {
 				document.querySelector(`#flatChat-channels [data-channel=${FlatMMOPlus.plugins.flatChat.currentChannel}]`).innerHTML = "";
