@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         FlatMMOPlus
 // @namespace    com.dounford.flatmmo
-// @version      1.0.7
+// @version      1.0.8
 // @description  FlatMMO plugin framework
 // @author       Dounford adapted from Anwinity IPP
 // @match        *://flatmmo.com/play.php*
@@ -10,7 +10,7 @@
 
 (function() {
 	'use strict';
-	const VERSION = "1.0.7";
+	const VERSION = "1.0.8";
 
     Set.prototype.some = function(predicate) {
         for (const item of this) {
@@ -146,6 +146,7 @@
         </style>`);
         //For some reason I was unable to change the original function, so I just deleted and added a new one
         window.removeEventListener("keypress", keypress_listener, false);
+        document.getElementById("chat-text-input").onkeypress = null
         original_onmessage = Globals.websocket.onmessage;
         original_switch_panels = window.switch_panels;
     }
@@ -255,27 +256,9 @@
         if ("flatChat" in window.FlatMMOPlus.plugins) {
             return;
         }
-        if(Globals.local_username == null) return;
-        if(has_modal_open()) return;
-
-        let keyCode = e.keyCode;
-        let char = String.fromCharCode(keyCode);
-
-
-        //firefox fix
-        if(keyCode == "47" || keyCode == "39") {
-            chat_ele.value += "/";
-            request_focus_chatbox();
-            e.preventDefault(); 
-            return
-        }
-        //13 is Enter
-        if(keyCode == "13") {
-            const message = local_chat_message.trim()
-            if(message.length == 0) return; //if empty do nothing
-
-            //if command
-            if(message.startsWith("/")) {
+        if(e.keyCode === 13){
+            if (chat_ele.value.trim().startsWith("/")) {
+                const message = chat_ele.value.trim();
                 const space = message.indexOf(" ");
                 let command;
                 let data;
@@ -287,19 +270,17 @@
                     data = message.substring(space + 1);
                 }
 
-                if (window.FlatMMOPlus.handleCustomChatCommand(command, data)) {
+                if(command in window.FlatMMOPlus.customChatCommands) {
+                    window.FlatMMOPlus.handleCustomChatCommand(command, data);
                     chat_ele.value = "";
-                    return
-                } 
+                } else {
+                    enter_pressed(e);
+                }
+            } else {
+                enter_pressed(e);
             }
-            Globals.websocket.send('CHAT=' + message);
-            chat_ele.value = "";
-            return;
-        }
-
-        //if any normal key then checks if the message is too big
-        if(LOCAL_CHAT_MAX_LENGTH <= chat_ele.value.length) {
-            return;
+        } else {
+            keypress_listener(e);
         }
     }
     
@@ -1101,6 +1082,22 @@
         }
     }
 
+    FlatMMOPlus.prototype.upDateSelf = async function(){
+        try {
+            let script;
+            await fetch('https://scripts.dounford.tech/scripts/fmp').then(async (response) => {
+                script = await response.text()
+                script = JSON.parse(script);
+            })
+
+            const scriptTag = document.createElement("script");
+			scriptTag.textContent = script.code;
+			document.head.appendChild(scriptTag);
+        } catch(err) {
+            console.error("FMP was not loaded, please reload the page")
+        }
+    }
+
 	// Add to window and init
     window.AnimationSheetPlus = AnimationSheetPlus;
     window.FlatMMOPlusPlugin = FlatMMOPlusPlugin;
@@ -1136,7 +1133,7 @@
         document.getElementById("chat").innerHTML = "";
     }, `Clears all messages in chat.`);
 
-	window.FlatMMOPlus.registerCustomChatCommand("yell", (command, data='') => {
+	window.FlatMMOPlus.registerCustomChatCommand(["y", "yell"], (command, data='') => {
         Globals.websocket.send('CHAT=/yell ' + data);
     }, `Chat to everyone on server.<br><strong>Usage:</strong> /yell [message]`);
 
@@ -1149,4 +1146,5 @@
     }, `Show all players online.`);
 
 	window.FlatMMOPlus.init();
+	window.FlatMMOPlus.upDateSelf();
 })();
