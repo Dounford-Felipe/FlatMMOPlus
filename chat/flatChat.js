@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         FlatChat+
 // @namespace    com.dounford.flatmmo.flatChat
-// @version      1.4.2
+// @version      1.4.3
 // @description  Better chat for FlatMMO
 // @author       Dounford
 // @license      MIT
@@ -1113,7 +1113,7 @@
 				const sender = e.target.closest("[data-sender]");
 				if (sender) {
 					const username = sender.dataset.sender;
-					await navigator.clipboard.writeText(username);
+					await navigator.clipboard.writeText(username.replaceAll("_", " "));
 
 					const copyMessage = document.getElementById("flatChat-copyUsername");
 					copyMessage.style.top = e.clientY + "px"
@@ -1670,7 +1670,7 @@
 					this.showWarning("You need to specify the username", "red");
 					return;
 				}
-				Globals.websocket.send("RIGHT_CLICKED_PLAYER=" + data);
+				Globals.websocket.send("RIGHT_CLICKED_PLAYER=" + data.replaceAll("_", " "));
 			}, `Opens the player profile.<br><b>Usage:</b>/profile [username]`);
 
 			window.FlatMMOPlus.registerCustomChatCommand("trade", (command, data='') => {
@@ -1678,7 +1678,7 @@
 					this.showWarning("You need to specify the username", "red");
 					return;
 				}
-				Globals.websocket.send("SEND_TRADE_REQUEST=" + data);
+				Globals.websocket.send("SEND_TRADE_REQUEST=" + data.replaceAll("_", " "));
 			}, `Send a trade request if the player is in the same map.<br><b>Usage:</b>/trade [username]`);
 
 			window.FlatMMOPlus.registerCustomChatCommand("leave", (command, data='') => {
@@ -1783,8 +1783,15 @@
 			</button>`)
 			document.getElementById("flatChat-channels").insertAdjacentHTML("beforeend",`<div data-channel="${channelName}" style="display:none"></div>`);
 			if(isPrivate) {
-				document.querySelector(`#flatChat-channels [data-channel=${channelName}]`).insertAdjacentHTML("beforeend",`
+				const privateChannel = document.querySelector(`#flatChat-channels [data-channel=${channelName}]`);
+				privateChannel.insertAdjacentHTML("beforeend",`
 				<div style="color: var(--fc-lvlUpMessages);"><strong>${this.getDateStr()}</strong><span>New chat with ${channel}</span></div>`)
+				document.querySelectorAll("[data-channel=channel_global] .fc-privateMessages,.fc-ownPrivateMessages").forEach(el => {
+				const match = el.innerText.match(/(?:>|<) (?:\[[0-9][0-9]:[0-9][0-9]])?(.*?):/)
+					if(match && match[1] === channel) {
+						privateChannel.appendChild(el);
+					}
+				})
 			}
 			this.saveChannels();
 		}
@@ -1794,6 +1801,14 @@
 			if (oldChannel === "channel_local" || oldChannel === "channel_global") {
 				return;
 			}
+
+			if(oldChannel.includes("private_")) {
+				const globalChat = document.querySelector("#flatChat-channels [data-channel=channel_global]");
+				document.querySelectorAll(`#flatChat-channels [data-channel=${oldChannel}] div:not(:first-child)`).forEach(el => {
+					globalChat.appendChild(el)  ;
+				})
+			}
+
 			this.switchChannel("local", false);
 
 			delete this.channels[oldChannel];
@@ -1924,10 +1939,10 @@
 						this.switchChannel(username, true);
 					} break;
 					case "profile": {
-						Globals.websocket.send("RIGHT_CLICKED_PLAYER=" + username);
+						Globals.websocket.send("RIGHT_CLICKED_PLAYER=" + username.replaceAll("_", " "));
 					} break;
 					case "trade": {
-						Globals.websocket.send("SEND_TRADE_REQUEST=" + username);
+						Globals.websocket.send("SEND_TRADE_REQUEST=" + username.replaceAll("_", " "));
 					} break;
 					case "watch": {
 						this.watchIgnorePlayersWords("watchedPlayers", username);
