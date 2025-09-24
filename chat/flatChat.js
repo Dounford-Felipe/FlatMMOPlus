@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         FlatChat+
 // @namespace    com.dounford.flatmmo.flatChat
-// @version      1.4.3
+// @version      1.4.3.1
 // @description  Better chat for FlatMMO
 // @author       Dounford
 // @license      MIT
@@ -651,6 +651,7 @@
 		}
 
 		addStyle() {
+			document.querySelector(".td-ui").style.height = "auto"
 			const style = document.createElement("style");
 			style.innerHTML = `
 			/*Chat box*/

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         FlatMMOPlus
 // @namespace    com.dounford.flatmmo
-// @version      1.0.8
+// @version      1.0.9
 // @description  FlatMMO plugin framework
 // @author       Dounford adapted from Anwinity IPP
 // @match        *://flatmmo.com/play.php*
@@ -10,7 +10,7 @@
 
 (function() {
 	'use strict';
-	const VERSION = "1.0.8";
+	const VERSION = "1.0.9";
 
     Set.prototype.some = function(predicate) {
         for (const item of this) {
@@ -714,6 +714,10 @@
         let y = 13 * TILE_SIZE;
         for (let notification in this.notifications) {
             const not = this.notifications[notification];
+            if(not.ticks <= 0) {
+                delete this.notifications[notification];
+                return;
+            }
             not.ticks--;
             ctx.font = "20px serif";
             ctx.fillStyle = "white";
@@ -725,9 +729,6 @@
             ctx.fillText(not.title, 21 * TILE_SIZE + 50, y + 20 - yOffset);
             ctx.font = "16px serif";
             ctx.fillText(not.text, 21 * TILE_SIZE + 50, y + 40 - yOffset);
-            if(not.ticks < 0) {
-                delete this.notifications[notification];
-            }
             yOffset += TILE_SIZE;
         }
     }
