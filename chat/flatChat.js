@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         FlatChat+
 // @namespace    com.dounford.flatmmo.flatChat
-// @version      1.4.3.1
+// @version      1.4.4
 // @description  Better chat for FlatMMO
 // @author       Dounford
 // @license      MIT
@@ -1052,6 +1052,7 @@
 					<li data-action="message">Message</li>
 					<li data-action="tabMessage">Message (tab)</li>
 					<li data-action="profile">Profile</li>
+					<li data-action="profilePage">Profile Page</li>
 					<li data-action="trade">Trade</li>
 					<li class="flatChat-contextSection">MODERATION</li>
 					<li data-action="stalk">Stalk</li>
@@ -1941,6 +1942,9 @@
 					} break;
 					case "profile": {
 						Globals.websocket.send("RIGHT_CLICKED_PLAYER=" + username.replaceAll("_", " "));
+					} break;
+					case "profilePage": {
+						window.open(`https://flatmmo.com/profile/?user=${username}`, '_blank');
 					} break;
 					case "trade": {
 						Globals.websocket.send("SEND_TRADE_REQUEST=" + username.replaceAll("_", " "));
