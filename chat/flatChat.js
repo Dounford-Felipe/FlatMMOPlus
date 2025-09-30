@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         FlatChat+
 // @namespace    com.dounford.flatmmo.flatChat
-// @version      1.5
+// @version      1.5.1
 // @description  Better chat for FlatMMO
 // @author       Dounford
 // @license      MIT
@@ -2120,7 +2120,8 @@
 				}
 			}
 
-			const messageArray = this.divideStringByLength(message, 85);
+			const maxlength = this.currentChannel.startsWith("channel") ? 95 : 85;
+			const messageArray = this.divideStringByLength(message, maxlength);
 			for (let i = 0; i < messageArray.length; i++) {
 				if(this.currentChannel === "channel_local") {
 					Globals.websocket.send('CHAT=' + messageArray[i]);
