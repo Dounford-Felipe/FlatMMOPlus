@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         FlatChat+
 // @namespace    com.dounford.flatmmo.flatChat
-// @version      1.4.4
+// @version      1.5
 // @description  Better chat for FlatMMO
 // @author       Dounford
 // @license      MIT
@@ -246,7 +246,7 @@
 					},
 					{
 						id: "ignorePings",
-						label: "Ignore all chat pings",
+						label: "Silence Pings",
 						type: "boolean",
 						default: false
 					},
@@ -261,25 +261,25 @@
 					},
 					{
 						id: "showTime",
-						label: "Display message received time",
+						label: "Mssage Received Time",
 						type: "boolean",
 						default: true
 					},
 					{
 						id: "showSpam",
-						label: "Show duplicate messages from the same user (it may be spam)",
+						label: "Show Spam Messages",
 						type: "boolean",
 						default: false
 					},
 					{
 						id: "hideUnwanted",
-						label: "Mark unwanted words as spoiler instead of ignoring the message",
+						label: "Mark Ignored Words as spoiler",
 						type: "boolean",
 						default: true
 					},
 					{
 						id: "fontSize",
-						label: "Message font size",
+						label: "Message Font Size",
 						type: "number",
 						min: 0,
 						max: 10,
@@ -310,33 +310,34 @@
 					},
 					{
 						id: "ignoredPlayers",
-						label: "Players ignored by you (use , to separate)",
-						type: "string",
-						default: ""
+						label: "Players Ignored",
+						type: "list",
+						default: []
 					},
 					{
 						id: "ignoredWords",
-						label: "Words blocked by you, messages containing these will not show (use , to separate)",
-						type: "string",
-						default: ""
+						label: "Blocked Words",
+						type: "list",
+						default: []
 					},
 					{
 						id: "watchedPlayers",
-						label: "Players watched, every message from them will be highlighted (use , to separate)",
-						type: "string",
-						default: ""
+						label: "Watched Players",
+						type: "list",
+						default: []
 					},
 					{
 						id: "watchedWords",
-						label: "Words watched, you will receive a ping every time a message containing them is sent (use , to separate)",
-						type: "string",
-						default: ""
+						label: "Watched Words",
+						type: "list",
+						default: []
 					},
 					{
 						id: "scriptsToLoad",
-						label: "Scripts that should load on game load",
-						type: "string",
-						default: ""
+						label: "Scripts to Load",
+						type: "list",
+						unique: true,
+						default: []
 					},
 					{
 						id: "themeEditor",
@@ -346,13 +347,6 @@
 					}
 				]
 			});
-			this.settings = {
-				ignoredPlayers: [],
-				ignoredWords: [],
-				watchedPlayers: [],
-				watchedWords: [],
-				scriptsToLoad: new Set([]), //This is useless, but I wanted to use the block function
-			}
 
 			this.channels = {};
 			this.currentChannel = "channel_local";
@@ -368,119 +362,13 @@
 
 			this.lastPM = "";
 
-			this.themes = {
-				dark: {
-					bgColor: "#323437",
-					oddMessageBg: "#323437",
-					evenMessageBg: "#323437",
-					pickerLocal: "#C0C0C0",
-					pickerGlobal: "#C0C0C0",
-					pickerRoom: "#C0C0C0",
-					pickerPrivate: "#C0C0C0",
-					inputName: "#FA8072",
-					inputColor: "#252729",
-					inputText: "#C0C0C0",
-					messagesColor: "#e1e1e1",
-					serverMessages: "#6495ED",
-					lvlMilestoneMessages: "#FF1493",
-					errorMessages: "#FF0000",
-					restMessages: "#00FF00",
-					lvlUpMessages: "#00ad00",
-					areaChangeMessages: "#00FFFF",
-					privateMessages: "#FFA500",
-					ownPrivateMessages: "#e88f4f",
-					pingMessages: "#5F9EA0",
-					contextBackground: "#323437",
-					contextSection: "#252729",
-					contextText: "#C0C0C0",
-					linkColor: "#00FFFF",
-				},
-				light: {
-					bgColor: "#ffffff",
-					oddMessageBg: "#ffffff",
-					evenMessageBg: "#ffffff",
-					pickerLocal: "#000000",
-					pickerGlobal: "#000000",
-					pickerRoom: "#000000",
-					pickerPrivate: "#000000",
-					inputName: "#FA8072",
-					inputColor: "#D3D3D3",
-					inputText: "#000000",
-					messagesColor: "#000000",
-					serverMessages: "#6495ED",
-					lvlMilestoneMessages: "#FF1493",
-					errorMessages: "#FF0000",
-					restMessages: "#00FF00",
-					lvlUpMessages: "#008000",
-					areaChangeMessages: "#00FFFF",
-					privateMessages: "#FFA500",
-					ownPrivateMessages: "#e88f4f",
-					pingMessages: "#5F9EA0",
-					contextBackground: "#323437",
-					contextSection: "#252729",
-					contextText: "#C0C0C0",
-					linkColor: "#00FFFF",
-				},
-				catppuccinMochaByMae: {
-					"bgColor":"#201c2c",
-					"pickerLocal":"#54576c",
-					"pickerGlobal":"#54576c",
-					"pickerRoom":"#54576c",
-					"pickerPrivate":"#54576c",
-					"inputName":"#53566a",
-					"inputColor":"#181825",
-					"inputText":"#c0c0c0",
-					"messagesColor":"#c3bdff",
-					"serverMessages":"#89b4fa",
-					"lvlMilestoneMessages":"#cba6f7",
-					"errorMessages":"#f38ba8",
-					"restMessages":"#99d5a4",
-					"lvlUpMessages":"#99d5a4",
-					"areaChangeMessages":"#89dceb",
-					"privateMessages":"#f9e2af",
-					"ownPrivateMessages":"#f9c8aa",
-					"pingMessages":"#74c7ec",
-					"contextBackground":"#323437",
-					"contextSection":"#252729",
-					"contextText":"#b4befa",
-					"linkColor":"#ceb4ee",
-					"oddMessageBg":"#201c2c",
-					"evenMessageBg":"#201c2c"
-				},
-				catppuccinLatteByMae: {
-					"bgColor":"#eff1f5",
-					"pickerLocal":"#7c7f93",
-					"pickerGlobal":"#7c7f93",
-					"pickerRoom":"#54576c",
-					"pickerPrivate":"#54576c",
-					"inputName":"#53566a",
-					"inputColor":"#ccd0da",
-					"inputText":"#53566a",
-					"messagesColor":"#4c4f69",
-					"serverMessages":"#1e66f5",
-					"lvlMilestoneMessages":"#ea76cb",
-					"errorMessages":"#d20f39",
-					"restMessages":"#40a02b",
-					"lvlUpMessages":"#40a02b",
-					"areaChangeMessages":"#04a5e5",
-					"privateMessages":"#fe640b",
-					"ownPrivateMessages":"#df8e1d",
-					"pingMessages":"#74c7ec",
-					"contextBackground":"#323437",
-					"contextSection":"#252729",
-					"contextText":"#b4befa",
-					"linkColor":"#8839ef",
-					"oddMessageBg":"#eff1f5",
-					"evenMessageBg":"#eff1f5"
-				}
-			}
+			this.themes = {};
 
-			//It will fetch a new version if the loaded is lower than this one here
-			this.fmpRequired = "1.0.8";
 			this.loadedScripts = new Set();
 			this.loadedDependencies = new Set();
 
-			if(FlatMMOPlus.version < this.fmpRequired) {
+			//Versions after 1.0.8 will always auto update
+			if(FlatMMOPlus.version < "1.0.8") {
 				this.loadScript("fmp");
 			}
 		}
@@ -489,7 +377,7 @@
 			try {
 				if(this.loadedScripts.has(id)) {
 					this.showWarning(id + " is already loaded", "red");
-					return
+					return false;
 				}
 				let script;
 				await fetch('https://scripts.dounford.tech/scripts/' + id).then(async (response) => {
@@ -509,17 +397,10 @@
 
 				this.createScript(script.code);
 				this.loadedScripts.add(id);
-
-				if(id !== "fmp") {
-					if(!this.settings.scriptsToLoad.has(id)) {
-						this.settings.scriptsToLoad.add(id)
-						this.config.scriptsToLoad = Array.from(this.settings.scriptsToLoad).join(", ");
-						this.saveConfig()
-					}
-					this.showWarning(script.name + " loaded with success", "cyan");
-				}
+				return true;
 			} catch(err) {
-				this.showWarning(id + " was not loaded")
+				console.error(id + " was not loaded");
+				return false;
 			}
 		}
 
@@ -545,13 +426,7 @@
 			this.showWarning(document.querySelectorAll("#chat span")[1].innerHTML, "white");
 			this.showWarning(`<span><strong style="color:cyan">FYI: </strong> Use the /help command to see information on available chat commands.</span>`, "white");
 
-			this.watchIgnorePlayersWords("ignoredPlayers", this.config["ignoredPlayers"], true, true);
-			this.watchIgnorePlayersWords("ignoredWords", this.config["ignoredWords"], true, true);
-			this.watchIgnorePlayersWords("watchedPlayers", this.config["watchedPlayers"], true, true);
-			this.watchIgnorePlayersWords("watchedWords", this.config["watchedWords"], true, true);
-			this.settings.scriptsToLoad = new Set(this.config.scriptsToLoad.trim().split(",").map(item=>item.trim()).filter(item=>item));
-
-			this.settings.scriptsToLoad.forEach(async script => {
+			this.config.scriptsToLoad.forEach(async script => {
 				await this.loadScript(script)
 			})
 		}
@@ -605,7 +480,7 @@
 					} break;
 					case "theme": {
 						const flatChat = document.getElementById("flatChat");
-						flatChat.classList = "flatChat flatChat-" + this.config.theme;
+						flatChat.className = "flatChat flatChat-" + this.config.theme;
 					} break;
 					case "chatPosition": {
 						this.changeChatPosition(this.config.chatPosition);
@@ -620,15 +495,6 @@
 								flatChat.classList.remove("flatChat-small")
 							}
 						}
-					} break;
-					case "ignoredPlayers":
-					case "ignoredWords":
-					case "watchedPlayers":
-					case "watchedWords": {
-						this.watchIgnorePlayersWords(config, this.config[config], true);
-					} break;
-					case "scriptsToLoad": {
-						this.settings.scriptsToLoad = new Set(this.config.scriptsToLoad.trim().split(",").map(item=>item.trim()).filter(item=>item));
 					} break;
 				}
 			})
@@ -860,6 +726,9 @@
 			.flatChatHidden {
 				background-color: black;
 				color: transparent;
+				a {
+					color: transparent;
+				}
 			}
 			/*player name*/
 			.flatChat-player {
@@ -924,7 +793,7 @@
 			/*Context menu*/
 			#flatChat-contextMenu {
 				visibility: hidden;
-				position: fixed;
+				position: absolute;
 				list-style: none;
 				padding: 0;
 				background-color: var(--fc-contextBackground);
@@ -992,14 +861,18 @@
 			`
 			document.head.append(style);
 
+			//Get saved themes
 			if(localStorage.getItem("flatChat-themes")) {
 				this.themes = JSON.parse(localStorage.getItem("flatChat-themes"));
-				for (let theme in defaultThemes) {
-					if (!this.themes.hasOwnProperty(theme)) {
-						this.themes[theme] = defaultThemes[theme];
-					}
+			}
+
+			//Default themes can't be removed
+			for (let theme in defaultThemes) {
+				if (!this.themes.hasOwnProperty(theme)) {
+					this.themes[theme] = defaultThemes[theme];
 				}
 			}
+
 			for (let theme in this.themes) {
 				if (!this.themes[theme].oddMessageBg) {
 					this.themes[theme].oddMessageBg = this.themes[theme].bgColor;
@@ -1029,7 +902,7 @@
 					</div>
 					<div id="flatChat-inputDiv">
 						<label for="flatChat-input"></label>
-						<input type="text" id="flatChat-input" autocomplete="off" maxlength="${LOCAL_CHAT_MAX_LENGTH || 100}">
+						<input type="text" id="flatChat-input" autocomplete="off">
 					</div>
 					<div class="flatChat-buttons">
 						<button type="button" id="flatChat-autoScroll">
@@ -1141,12 +1014,9 @@
 
 					const mouseX = e.clientX;
 					const mouseY = e.pageY;
-
-					if (mouseY + menuHeight > window.innerHeight) {
-						contextMenu.style.top = (mouseY - menuHeight) + "px";
-					} else {
-						contextMenu.style.top = mouseY + "px";
-					}
+					
+					//This will always go to top
+					contextMenu.style.top = (mouseY - menuHeight) + "px";
 					
 					if (mouseX + menuWidth > window.innerWidth) {
 						contextMenu.style.left = (window.innerWidth - menuWidth) + "px";
@@ -1299,6 +1169,7 @@
 				document.getElementById("chat").insertAdjacentElement("afterend",flatChat);
 				flatChat.classList.add("vanillaChat");
 				document.getElementById("game").style.userSelect = "unset";
+				this.showWarning("Press F9 to toggle transparency.")
 			}
 		}
 
@@ -1667,6 +1538,14 @@
 				}
 			}, `Opens a private channel in a new tab.<br><b>Usage:</b>/pm* [username] <message (optional)>`);
 
+			window.FlatMMOPlus.registerCustomChatCommand("page", (command, data='') => {
+				if (data === "") {
+					window.open(`https://flatmmo.com/profile?user=${Globals.local_username}`,"_blank")
+					return;
+				}
+				window.open(`https://flatmmo.com/profile?user=${data}`,"_blank");
+			}, `Opens the Player Profile Page in a new tab.<br><b>Usage:</b>/page [username]`);
+
 			window.FlatMMOPlus.registerCustomChatCommand("profile", (command, data='') => {
 				if (data === "") {
 					this.showWarning("You need to specify the username", "red");
@@ -1699,8 +1578,17 @@
 					return;
 				}
 				this.watchIgnorePlayersWords("ignoredPlayers", data)
-				this.showWarning("Player added to ignored list");
 			}, `Ignores all messages from user.<br><b>Usage:</b>/ignore [username] (use _ for names with space)`);
+
+			window.FlatMMOPlus.registerCustomChatCommand("unignore", (command, data='') => {
+				if (data === "") {
+					this.showWarning("You need to specify the username", "red");
+					return;
+				}
+				this.config.ignoredPlayers = this.config.ignoredPlayers.filter(player => player !== data);
+				this.saveConfig();
+				this.showWarning(data + " removed from Ignored List");
+			}, `Removes someone from the Ignored List.<br><b>Usage:</b>/unignore [username] (use _ for names with space)`);
 
 			window.FlatMMOPlus.registerCustomChatCommand("watch", (command, data='') => {
 				if (data === "") {
@@ -1708,17 +1596,35 @@
 					return;
 				}
 				this.watchIgnorePlayersWords("watchedPlayers",data);
-				this.showWarning("Player added to watched list");
 			}, `Highlights all messages from user.<br><b>Usage:</b>/watch [username] (use _ for names with space)`);
+
+			window.FlatMMOPlus.registerCustomChatCommand("unwatch", (command, data='') => {
+				if (data === "") {
+					this.showWarning("You need to specify the username", "red");
+					return;
+				}
+				this.config.watchedPlayers = this.config.watchedPlayers.filter(player => player !== data);
+				this.saveConfig();
+				this.showWarning(data + " removed from Watched List");
+			}, `Removes someone from the Watched List.<br><b>Usage:</b>/unwatch [username] (use _ for names with space)`);
 
 			window.FlatMMOPlus.registerCustomChatCommand("ignoreword", (command, data='') => {
 				if (data === "") {
-					this.showWarning("You need to specify at least one word", "red");
+					this.showWarning("You need to specify one term", "red");
 					return;
 				}
 				this.watchIgnorePlayersWords("ignoredWords",data);
-				this.showWarning("Word added to ignored list");
-			}, `Ignores all messages that contains this word.<br><b>Usage:</b>/ignoreword [word] (use _ for words with space)`);
+			}, `Ignores all messages that contains this term.<br><b>Usage:</b>/ignoreword [term]`);
+
+			window.FlatMMOPlus.registerCustomChatCommand("unignoreword", (command, data='') => {
+				if (data === "") {
+					this.showWarning("You need to specify the word", "red");
+					return;
+				}
+				this.config.ignoredWords = this.config.ignoredWords.filter(word => word !== data);
+				this.saveConfig();
+				this.showWarning(data + " removed from Ignored List");
+			}, `Removes a term from the Ignored List.<br><b>Usage:</b>/unignoreword [term]`);
 
 			window.FlatMMOPlus.registerCustomChatCommand("watchword", (command, data='') => {
 				if (data === "") {
@@ -1726,8 +1632,17 @@
 					return;
 				}
 				this.watchIgnorePlayersWords("watchedWords",data);
-				this.showWarning("Word added to watched list");
 			}, `Ping you every time this word is sent.<br><b>Usage:</b>/watchword [word] (use _ for words with space)`);
+
+			window.FlatMMOPlus.registerCustomChatCommand("unwatchword", (command, data='') => {
+				if (data === "") {
+					this.showWarning("You need to specify the word", "red");
+					return;
+				}
+				this.config.watchedWords = this.config.watchedWords.filter(word => word !== data);
+				this.saveConfig();
+				this.showWarning(data + " removed from Watched List");
+			}, `Removes a term from the Watched List.<br><b>Usage:</b>/unwatchword [term]`);
 
 			window.FlatMMOPlus.registerCustomChatCommand("ticks", (command, data='') => {
 				this.showWarning(`The current action takes ${progress_bar_target + 1} ticks (${(progress_bar_target + 1) / 2} seconds)`);
@@ -1749,8 +1664,12 @@
 					this.showWarning("You need to specify the script you want to load", "red");
 					return;
 				}
-				
-				this.loadScript(data);
+
+				//Only adds to auto load if it exists
+				if (this.loadScript(data)) {
+					this.config.scriptsToLoad.push(id);
+					this.saveConfig();
+				}
 			}, "Loads a script");
 
 			window.FlatMMOPlus.registerCustomChatCommand("unload", (command, data='') => {
@@ -1758,9 +1677,8 @@
 					this.showWarning("You need to specify the script you want to unload", "red");
 					return;
 				}
-				
-				this.settings.scriptsToLoad.delete(data);
-				this.config.scriptsToLoad = Array.from(this.settings.scriptsToLoad).join();
+
+				this.config.scriptsToLoad = this.config.scriptsToLoad.filter(script=> script !== data);
 				this.saveConfig();
 				this.showWarning(data + " will not auto load anymore");
 			}, "Remove a script from auto load (it doesn't unload, you need to refresh the page)");
@@ -1908,21 +1826,12 @@
 			}
 		}
 
-		watchIgnorePlayersWords(type, words, replace, login = false) {
+		watchIgnorePlayersWords(type, word) {
 			//type can be watchedWords, ignoredWords, watchedPlayers, ignoredPlayers
-			if(!replace) {
-				words += "," + this.config[type];
-			};
-			words = words.split(",") //split by ,
-			.flatMap((word)=>word.split(" ")) //split by spaces
-			.map(word=>word.replaceAll("_"," ")) //replace underscore to space
-			.filter(word=>word); //remove empty
-			this.settings[type] = words; //This is the variable I use to check
-			this.config[type] = words.join(",").replaceAll(" ", "_");//Config is saved as string
+			//Warning first because of the ignoredWord list
+			this.showWarning(word + " added to " + type + " list");
+			this.config[type].push(word)
 			this.saveConfig();
-			if(!login) {
-				this.showWarning(words + " added to " + type + " list");
-			}
 		}
 
 		contextMenu(e) {
@@ -1984,16 +1893,19 @@
 			}
 
 			//If the message sender is blocked the message will be ignored
-			if(this.settings.ignoredPlayers.includes(data.username)) {
+			if(this.config.ignoredPlayers.includes(data.username)) {
 				return;
 			}
 
 			let messageContainer = document.createElement('div');
 
 			//Ping if any watched word is present or if the message contains the username
-			if (!this.getConfig("ignorePings") && (message.includes("@" + Globals.local_username) || this.settings.watchedWords.some(word => message.includes(word))) && data.username !== "") {
+			//Doesn't ping if it is yours message or server message
+			if ((message.includes("@" + Globals.local_username) || this.config.watchedWords.some(word => message.includes(word))) && data.username !== "" && data.username !== Globals.local_username) {
 				messageContainer.className = "fc-pingMessages";
-				ding.play();
+				if(!this.config.ignorePings) {
+					ding.play();
+				}
 			}
 
 			if (data.color && data.color !== "white" && data.color !== "grey") {
@@ -2049,7 +1961,7 @@
 				senderStrong.setAttribute("data-sender", data.username.replaceAll(" ", "_"));
 				messageContainer.appendChild(senderStrong);
 
-				if(this.settings.watchedPlayers.includes(data.username) && !data.channel.startsWith("private_")) {
+				if(this.config.watchedPlayers.includes(data.username) && !data.channel.startsWith("private_")) {
 					messageContainer.className = "fc-pingMessages";
 				}
 			} else {
@@ -2080,7 +1992,7 @@
 			});
 
 			//If the message contains any ignored word it will ignore the message or mark as spoiler
-			if(this.settings.ignoredWords.some(word => message.includes(word))) {
+			if(this.config.ignoredWords.some(word => message.includes(word))) {
 				if(this.config["hideUnwanted"]) {
 					messageSpan.style.cursor = "pointer";
 					messageSpan.classList.add("flatChatHidden");
@@ -2208,13 +2120,16 @@
 				}
 			}
 
-			if(this.currentChannel === "channel_local") {
-				Globals.websocket.send('CHAT=' + message);
-			} else if(this.currentChannel === "channel_global") {
-				Globals.websocket.send('CHAT=/yell ' + message);
-			} else if (this.currentChannel.startsWith("private_")) {
-				const username = this.currentChannel.slice(8);
-				Globals.websocket.send(`CHAT=/pm ${username} ${message}`);
+			const messageArray = this.divideStringByLength(message, 85);
+			for (let i = 0; i < messageArray.length; i++) {
+				if(this.currentChannel === "channel_local") {
+					Globals.websocket.send('CHAT=' + messageArray[i]);
+				} else if(this.currentChannel === "channel_global") {
+					Globals.websocket.send('CHAT=/yell ' + messageArray[i]);
+				} else if (this.currentChannel.startsWith("private_")) {
+					const username = this.currentChannel.slice(8);
+					Globals.websocket.send(`CHAT=/pm ${username} ${messageArray[i]}`);
+				}
 			}
 		}
 
@@ -2248,6 +2163,21 @@
 		toTitleCase(str) {
 			const result = str.replace(/([A-Z])/g, " $1");
 			return result.charAt(0).toUpperCase() + result.slice(1)
+		}
+
+		divideStringByLength(str, l, delimiterChat = " "){
+			const strs = [];
+			while(str.length > l){
+				let pos = str.substring(0, l).lastIndexOf(delimiterChat);
+				pos = pos <= 0 ? l : pos;
+				strs.push(str.substring(0, pos));
+				let i = str.indexOf(delimiterChat, pos)+1;
+				if(i < pos || i > pos+l)
+					i = pos;
+				str = str.substring(i);
+			}
+			strs.push(str);
+			return strs;
 		}
 	}
 

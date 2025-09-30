@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         FlatMMOPlus
 // @namespace    com.dounford.flatmmo
-// @version      1.0.9
+// @version      1.1
 // @description  FlatMMO plugin framework
 // @author       Dounford adapted from Anwinity IPP
 // @match        *://flatmmo.com/play.php*
@@ -10,7 +10,7 @@
 
 (function() {
 	'use strict';
-	const VERSION = "1.0.9";
+	const VERSION = "1.1";
 
     Set.prototype.some = function(predicate) {
         for (const item of this) {
@@ -40,6 +40,7 @@
     const CONFIG_TYPES_STRING = ["string", "text"];
     const CONFIG_TYPES_SELECT = ["select"];
     const CONFIG_TYPES_COLOR = ["color"];
+    const CONFIG_TYPES_LIST = ["list", "array"];
 
 	const CHAT_COMMAND_NO_OVERRIDE = ["help"];
 
@@ -244,6 +245,9 @@
             this.original_onmessage = original_onmessage;
             this.original_switch_panels = original_switch_panels;
             this.notifications = flatnotifications;
+            this.level = [
+                0,0,108,177,265,380,527,717,956,1254,1622,2068,2605,3245,4000,4885,5913,7100,8464,10022,11794,13799,16060,18599,21442,24614,28145,32063,36400,41191,46470,52277,58652,65637,73279,81625,90728,100642,111424,123135,135841,149611,164516,180634,198047,216840,237105,258938,282440,307721,334893,364077,395399,428994,465003,503577,544871,589054,636300,686794,740732,798320,859775,925326,995213,1069691,1149027,1233503,1323417,1419081,1520824,1628993,1743952,1866086,1995798,2133515,2279683,2434772,2599278,2773721,2958649,3154637,3362289,3582243,3815166,4061762,4322767,4598959,4891153,5200203,5527011,5872521,6237725,6623665,7031436,7462185,7917120,8397507,8904674,9440017,10004999,10601158,11230106,11893534,12593217,13331018,14108890,14928883,15793144,16703929,17663602,18674641,19739647,20861344,22042590,23286382,24595860,25974317,27425202,28952134,30558903,32249481,34028033,35898920,37866713,39936202,42112405,44400579,46806231,49335129,51993317,54787124,57723179,60808425,64050133,67455918,71033752,74791986,78739361,82885031,87238578,91810037,96609909,101649191,106939392,112492559,118321304,124438823,130858933,137596089,144665421,152082764,159864685,168028523,176592418,185575354,194997190,204878707,215241643,226108743,237503800,249451703,261978489,275111393,288878903,303310817,318438300,334293948,350911852,368327667,386578678,405703877,425744040,446741808,468741765,491790534,515936862,541231719,567728396,595482609,624552610,654999299,686886341,720280294,755250734,791870395,830215305,870364937,912402361,956414404,1002491823,1050729473,1101226494,1154086502,1209417785,1267333518,1327951974,1391396753,1457797021,1527287754,1600009999
+            ];
 
 			if(localStorage.getItem(LOCAL_STORAGE_KEY_DEBUG) == "1") {
                 this.debug = true;
@@ -350,6 +354,60 @@
         }
     }
 
+    FlatMMOPlus.prototype.newListField = function(pluginId, configId, text = "New Field") {
+        if(typeof pluginId !== "string" || typeof configId !== "string" || typeof text !== "string") {
+            throw new TypeError("FlatMMOPlus.newListField takes the following arguments: (id:string, text:string)");
+        }
+        const plugin = this.plugins[pluginId];
+        const parentDiv = document.getElementById(`flatmmoplus-config-${pluginId}-${configId}`);
+
+        const item = document.createElement("div");
+        const textDiv = document.createElement("div");
+        const closeSpan = document.createElement("span");
+
+        item.className = "fmp-list-item";
+        item.addEventListener("dblclick", function(e){
+            e.preventDefault();
+            textDiv.contentEditable = true;
+            textDiv.focus();
+        })
+        item.addEventListener("contextmenu", function(e) {
+            e.preventDefault();
+            textDiv.contentEditable = true;
+            textDiv.focus();
+        });
+
+
+        textDiv.innerText = text;
+        textDiv.spellcheck = false;
+        textDiv.autocorrect = false;
+        textDiv.addEventListener("focusout", function(e) {
+            this.contentEditable = false;
+            plugin.changedConfigs.add(configId);
+            window.FlatMMOPlus.setPluginConfigUIDirty(pluginId, true, configId)
+        });
+
+        
+        closeSpan.innerText = "×";
+        closeSpan.className = "fmp-list-close";
+        closeSpan.addEventListener("click", function(){
+            item.remove();
+        })
+
+        item.appendChild(textDiv);
+        item.appendChild(closeSpan);
+        parentDiv.appendChild(item);
+
+        parentDiv.scrollTop = parentDiv.scrollHeight;
+
+        plugin.changedConfigs.add(configId);
+        window.FlatMMOPlus.setPluginConfigUIDirty(pluginId, true, configId)
+        if(text = "New Field") {
+            textDiv.contentEditable = true;
+            textDiv.focus();
+        }
+    }
+
     FlatMMOPlus.prototype.loadPluginConfigs = function(id) {
         if (typeof id !== "string") {
             throw new TypeError("FlatMMOPlus.reloadPluginConfigs takes the following arguments: (id:string)");
@@ -388,6 +446,21 @@
                         el.value = value;
                     } else if (CONFIG_TYPES_COLOR.includes(cfg.type) && typeof value === "string") {
                         el.value = value;
+                    } else if (CONFIG_TYPES_LIST.includes(cfg.type)) {
+                        el.innerHTML = "";
+                        if(typeof value === "string") {
+                            value = value.split(",")
+                            .map(item => item.trim())
+                            .filter(item=> item !== "");
+                            if(cfg.unique) {
+                                const valuesSet = new Set(value);
+                                value = Array.from(valuesSet);
+                            }
+                            config[cfg.id] = value;
+                        }
+                        value.forEach(item => {
+                            window.FlatMMOPlus.newListField(id, cfg.id, item);
+                        })
                     }
                 }
             });
@@ -423,6 +496,18 @@
                     config[cfg.id] = el.value;
                 } else if (CONFIG_TYPES_COLOR.includes(cfg.type)) {
                     config[cfg.id] = el.value;
+                } else if (CONFIG_TYPES_LIST.includes(cfg.type)) {
+                    let values = [];
+                    document.querySelectorAll(`#flatmmoplus-config-${plugin.id}-${cfg.id} div div`).forEach(el => {
+                        values.push(el.innerText)
+                    })
+
+                    //This will remove duplicates
+                    if(cfg.unique) {
+                        const valuesSet = new Set(values);
+                        values = Array.from(valuesSet);
+                    }
+                    config[cfg.id] = values;
                 }
             });
         }
@@ -947,6 +1032,35 @@
                     input[type=checkbox]:checked::before {
                         transform: translateX(10px);
                     }
+
+                    label {
+                        font-size: 1.17em;
+                        font-weight: bold;
+                    }
+                }
+                .flatmmoplus-plugin-config-section >div {
+                    margin: 5px 0;
+                }
+                .fmp-list-div {
+                    max-height: calc(5em + 60px);
+                    overflow-y: auto;
+                }
+                .fmp-list-item {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+
+                    div {
+                        width: 100%;
+                        padding: 5px;
+                    }
+                }
+                .fmp-list-item:nth-child(odd) {
+                    background-color: rgba(0, 0, 0, 0.3);
+                }
+                .fmp-list-close {
+                    cursor: pointer;
+                    float: right;
                 }
             </style>`;
             this.forEachPlugin(plugin => {
@@ -994,8 +1108,6 @@
                             content += `
                                 <div>
                                     <label for="flatmmoplus-config-${plugin.id}-${cfg.id}">${cfg.label || cfg.id}</label>
-                                </div>
-                                <div>
                                     <input id="flatmmoplus-config-${plugin.id}-${cfg.id}" type="number" step="1" min="${cfg.min || ''}" max="${cfg.max || ''}" onchange="FlatMMOPlus.setPluginConfigUIDirty('${id}', true, '${cfg.id}')" />
                                 </div>
                                 `;
@@ -1004,26 +1116,22 @@
                             content += `
                                 <div>
                                     <label for="flatmmoplus-config-${plugin.id}-${cfg.id}">${cfg.label || cfg.id}</label>
-                                </div>
-                                <div>
                                     <input id="flatmmoplus-config-${plugin.id}-${cfg.id}" type="number" step="${cfg.step || ''}" min="${cfg.min || ''}" max="${cfg.max || ''}" onchange="FlatMMOPlus.setPluginConfigUIDirty('${id}', true, '${cfg.id}');" />
                                 </div>
                                 `;
                         } else if (CONFIG_TYPES_RANGE.includes(cfg.type)) {
                             content += `<div>
                                 <label for="flatmmoplus-config-${plugin.id}-${cfg.id}">${cfg.label || cfg.id}</label>
-                            </div>
-                            <div>
-                                <input id="flatmmoplus-config-${plugin.id}-${cfg.id}" type="range" step="${cfg.step || ''}" min="${cfg.min || ''}" max="${cfg.max || ''}" onchange="FlatMMOPlus.setPluginConfigUIDirty('${id}', true, '${cfg.id}');" oninput="document.getElementById('flatmmoplus-config-${plugin.id}-${cfg.id}-value').innerText = this.value" />
-                                <span id="flatmmoplus-config-${plugin.id}-${cfg.id}-value"></span>
+                                <div>
+                                    <input id="flatmmoplus-config-${plugin.id}-${cfg.id}" type="range" step="${cfg.step || ''}" min="${cfg.min || ''}" max="${cfg.max || ''}" onchange="FlatMMOPlus.setPluginConfigUIDirty('${id}', true, '${cfg.id}');" oninput="document.getElementById('flatmmoplus-config-${plugin.id}-${cfg.id}-value').innerText = this.value" />
+                                    <span id="flatmmoplus-config-${plugin.id}-${cfg.id}-value"></span>
+                                </div>
                             </div>`;
                         }
                         else if(CONFIG_TYPES_STRING.includes(cfg.type)) {
                             content += `
                                 <div>
                                     <label for="flatmmoplus-config-${plugin.id}-${cfg.id}">${cfg.label || cfg.id}</label>
-                                </div>
-                                <div>
                                     <textarea id="flatmmoplus-config-${plugin.id}-${cfg.id}" type="text" maxlength="${cfg.max || ''}" onchange="FlatMMOPlus.setPluginConfigUIDirty('${id}', true, '${cfg.id}')" rows="5" autocomplete="off" spellcheck="false"></textarea>
                                 </div>
                                 `;
@@ -1032,9 +1140,16 @@
                             content += `
                                 <div>
                                     <label for="flatmmoplus-config-${plugin.id}-${cfg.id}">${cfg.label || cfg.id}</label>
-                                </div>
-                                <div>
                                     <input id="flatmmoplus-config-${plugin.id}-${cfg.id}" type="color" onchange="FlatMMOPlus.setPluginConfigUIDirty('${id}', true, '${cfg.id}')" />
+                                </div>
+                                `;
+                        }
+                        else if(CONFIG_TYPES_LIST.includes(cfg.type)) {
+                            content += `
+                                <div>
+                                    <label>${cfg.label || cfg.id}</label>
+                                    <div class="fmp-list-div" id="flatmmoplus-config-${plugin.id}-${cfg.id}"></div>
+                                    <button style="cursor:pointer;font-size: 1rem;" onclick="FlatMMOPlus.newListField('${plugin.id}', '${cfg.id}')">Add new field</button>
                                 </div>
                                 `;
                         }
@@ -1042,9 +1157,8 @@
                             content += `
                                 <div>
                                     <label for="flatmmoplus-config-${plugin.id}-${cfg.id}">${cfg.label || cfg.id}</label>
-                                </div>
-                                <div>
-                                    <select id="flatmmoplus-config-${plugin.id}-${cfg.id}" onchange="FlatMMOPlus.setPluginConfigUIDirty('${id}', true,'${cfg.id}')">
+                                    <div>
+                                        <select id="flatmmoplus-config-${plugin.id}-${cfg.id}" onchange="FlatMMOPlus.setPluginConfigUIDirty('${id}', true,'${cfg.id}')">
                                 `;
                             if(cfg.options && Array.isArray(cfg.options)) {
                                 cfg.options.forEach(option => {
@@ -1058,9 +1172,9 @@
                                 });
                             }
                             content += `
-                                    </select>
-                                </div>
-                                `;
+                                        </select>
+                                    </div>
+                                </div>`;
                         }
                     });
                     content += `
