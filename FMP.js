@@ -217,6 +217,12 @@
 			}
 		}
 
+        sendCustom(user, command, payload) {
+            const message = `CUSTOM=${user}~${this.id}:${command}`
+            message += payload ? `:${payload}` : "";
+            window.FlatMMOPlus.sendMessage(message);
+        }
+
 		/*
         onConfigsChanged() { }
         onLogin() { }
@@ -694,8 +700,27 @@
                 const split = data.substring("SET_PLAYER_ANIMATION=".length).split("~");
                 this.currentAction = split[1];
                 this.onActionChanged();
+            } else if (data.startsWith("CUSTOM")) {
+                const [sender, message] = data.substring("CUSTOM=".length).split("~");
+                this.onCustomReceived(sender, message);
             }
         }
+    }
+
+    FlatMMOPlus.prototype.onCustomReceived = function(sender, message) {
+        if(this.debug) {
+            console.log(`FM+ onCustomReceived: ${sender} ${message}`);
+        }
+
+        if(sender === undefined || message === undefined) {
+            return;
+        }
+
+        this.forEachPlugin((plugin) => {
+            if(typeof plugin.onCustomReceived === "function") {
+                plugin.onCustomReceived(sender, message);
+            }
+        })
     }
 
     FlatMMOPlus.prototype.onLogin = function() {

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         FlatChat+
 // @namespace    com.dounford.flatmmo.flatChat
-// @version      1.5.1
+// @version      1.5.1.4
 // @description  Better chat for FlatMMO
 // @author       Dounford
 // @license      MIT
@@ -414,8 +414,8 @@
 			this.removeOriginalChat();
 			this.addStyle();
 			this.addUI();
-			this.changeChatPosition(this.config.chatPosition);
 			this.loadChannels();
+			this.changeChatPosition(this.config.chatPosition);
 			this.switchChannel("local", false);
 			this.messagesWaiting.forEach((message)=>this.showMessage(message));
 			this.defineCommands();
@@ -426,6 +426,17 @@
 			this.showWarning(document.querySelectorAll("#chat span")[1].innerHTML, "white");
 			this.showWarning(`<span><strong style="color:cyan">FYI: </strong> Use the /help command to see information on available chat commands.</span>`, "white");
 
+			FlatMMOPlus.plugins.flatChat.opts.config.forEach(config => {
+				if(config.type === "list" && typeof FlatMMOPlus.plugins.flatChat.config[config.id] === "string") {
+					FlatMMOPlus.plugins.flatChat.config[config.id] = FlatMMOPlus.plugins.flatChat.config[config.id].split(",")
+					.map(item => item.trim())
+					.filter(item=> item !== "");
+					if(config.unique) {
+						const valuesSet = new Set(FlatMMOPlus.plugins.flatChat.config[config.id]);
+						FlatMMOPlus.plugins.flatChat.config[config.id] = Array.from(valuesSet);
+					}
+				}
+			})
 			this.config.scriptsToLoad.forEach(async script => {
 				await this.loadScript(script)
 			})
@@ -1667,7 +1678,7 @@
 
 				//Only adds to auto load if it exists
 				if (this.loadScript(data)) {
-					this.config.scriptsToLoad.push(id);
+					this.config.scriptsToLoad.push(data);
 					this.saveConfig();
 				}
 			}, "Loads a script");
@@ -1887,8 +1898,10 @@
 			}
 			let message = data.message;
 
+			const lastSender = this.channels[data.channel]?.lastSender || "";
+			const lastMessage = this.channels[data.channel]?.lastMessage || "";
 			//This should prevent some spam to show
-			if (this.channels[data.channel].lastSender === data.username && this.channels[data.channel].lastMessage === data.message && !this.getConfig("showSpam")) {
+			if (lastSender === data.username && lastMessage === data.message && !this.getConfig("showSpam")) {
 				return;
 			}
 
