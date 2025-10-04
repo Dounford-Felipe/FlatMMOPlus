@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         FlatChat+
 // @namespace    com.dounford.flatmmo.flatChat
-// @version      1.5.1.4
+// @version      1.5.1.5
 // @description  Better chat for FlatMMO
 // @author       Dounford
 // @license      MIT
@@ -2101,7 +2101,7 @@
 		}
 
 		sendMessage() {
-			let message = document.getElementById("flatChat-input").value.slice(-LOCAL_CHAT_MAX_LENGTH).trim();
+			let message = document.getElementById("flatChat-input").value.trim();
 			if (!message) {return};
 
 			document.getElementById("flatChat-input").value = "";
