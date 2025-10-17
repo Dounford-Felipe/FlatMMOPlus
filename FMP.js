@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         FlatMMOPlus
 // @namespace    com.dounford.flatmmo
-// @version      1.1
+// @version      1.2
 // @description  FlatMMO plugin framework
 // @author       Dounford adapted from Anwinity IPP
 // @match        *://flatmmo.com/play.php*
@@ -10,7 +10,7 @@
 
 (function() {
 	'use strict';
-	const VERSION = "1.1";
+	const VERSION = "1.2";
 
     Set.prototype.some = function(predicate) {
         for (const item of this) {
@@ -216,12 +216,6 @@
 				return this.config[name];
 			}
 		}
-
-        sendCustom(user, command, payload) {
-            const message = `CUSTOM=${user}~${this.id}:${command}`
-            message += payload ? `:${payload}` : "";
-            window.FlatMMOPlus.sendMessage(message);
-        }
 
 		/*
         onConfigsChanged() { }
@@ -701,26 +695,48 @@
                 this.currentAction = split[1];
                 this.onActionChanged();
             } else if (data.startsWith("CUSTOM")) {
-                const [sender, message] = data.substring("CUSTOM=".length).split("~");
-                this.onCustomReceived(sender, message);
+                const [sender, content] = data.substring("CUSTOM=".length).split("~");
+                let plugin = "unknown";
+                let command = "unknown";
+                let payload = content;
+
+                const splitContent = content.split(":");
+                if (splitContent.length >= 3) {
+                    plugin = splitContent[0];
+                    command = splitContent[1];
+                    payload = splitContent.slice(2).join(":");
+                }
+                this.onCustomReceived(sender, plugin, command, payload);
             }
         }
     }
 
-    FlatMMOPlus.prototype.onCustomReceived = function(sender, message) {
+    FlatMMOPlus.prototype.onCustomReceived = function(sender, script, command, payload) {
         if(this.debug) {
-            console.log(`FM+ onCustomReceived: ${sender} ${message}`);
-        }
-
-        if(sender === undefined || message === undefined) {
-            return;
+            console.log(`FMMO+ onCustomReceived: ${sender} ${message}`);
         }
 
         this.forEachPlugin((plugin) => {
-            if(typeof plugin.onCustomReceived === "function") {
-                plugin.onCustomReceived(sender, message);
+            if (typeof plugin.onCustomReceived === "function") {
+                plugin.onCustomReceived(sender, script, command, payload);
             }
         })
+    }
+
+    FlatMMOPlusPlugin.prototype.sendCustom = function(user, command, payload) {
+        let message = `CUSTOM=${user}~${this.id}`;
+        message += command ? `:${command}` : ":ping";
+        message += payload ? `:${payload}` : ":";
+        window.FlatMMOPlus.sendMessage(message);
+    }
+
+    FlatMMOPlus.prototype.sendCustomMessage = function(toPlayer, content) {
+        if(this.debug) {
+            console.log(`FMMO+ sendCustomMessage`, toPlayer, opts);
+        }
+
+        const message = `CUSTOM=${toPlayer}~${content}`;
+        this.sendMessage(message);
     }
 
     FlatMMOPlus.prototype.onLogin = function() {
@@ -758,9 +774,9 @@
         //Chat auto scroll is always true for now
         chat_div_element.scrollTop = chat_div_element.scrollHeight;
 
-        const original_paint = window.paint;
+        const original_paint = window.paint_effects;
 
-        window.paint = function() {
+        window.paint_effects = function() {
             original_paint();
 
             try {
@@ -1271,19 +1287,23 @@
 	//flatChat overrides this
 	window.FlatMMOPlus.registerCustomChatCommand(["clear", "clean"], (command, data='') => {
         document.getElementById("chat").innerHTML = "";
-    }, `Clears all messages in chat.`);
+    }, "Clears all messages in chat.");
 
 	window.FlatMMOPlus.registerCustomChatCommand(["y", "yell"], (command, data='') => {
         Globals.websocket.send('CHAT=/yell ' + data);
-    }, `Chat to everyone on server.<br><strong>Usage:</strong> /yell [message]`);
+    }, "Chat to everyone on server.<br><strong>Usage:</strong> /yell [message]");
+
+	window.FlatMMOPlus.registerCustomChatCommand("pm", (command, data='') => {
+        Globals.websocket.send('CHAT=/pm ' + data);
+    }, "Send a private message to someone.<br><strong>Usage:</strong> /pm [username] [message]");
 
 	window.FlatMMOPlus.registerCustomChatCommand("stuck", (command, data='') => {
         Globals.websocket.send('CHAT=/stuck');
-    }, `Use if your character is stuck and cannot move.`);
+    }, "`Use if your character is stuck and cannot move.");
 
     window.FlatMMOPlus.registerCustomChatCommand(["players","who"], (command, data='') => {
         Globals.websocket.send('CHAT=/players');
-    }, `Show all players online.`);
+    }, "Show all players online.");
 
 	window.FlatMMOPlus.init();
 	window.FlatMMOPlus.upDateSelf();

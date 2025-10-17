@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         FlatChat+
 // @namespace    com.dounford.flatmmo.flatChat
-// @version      1.5.1.5
+// @version      1.5.1.7
 // @description  Better chat for FlatMMO
 // @author       Dounford
 // @license      MIT
@@ -58,6 +58,7 @@
 			contextSection: "#252729",
 			contextText: "#C0C0C0",
 			linkColor: "#00FFFF",
+			visitedLinkColor: "#00FFFF",
 		},
 		light: {
 			bgColor: "#ffffff",
@@ -84,6 +85,7 @@
 			contextSection: "#252729",
 			contextText: "#C0C0C0",
 			linkColor: "#00FFFF",
+			visitedLinkColor: "#00FFFF",
 		},
 		catppuccinMochaByMae: {
 			"bgColor":"#201c2c",
@@ -108,6 +110,7 @@
 			"contextSection":"#252729",
 			"contextText":"#b4befa",
 			"linkColor":"#ceb4ee",
+			"visitedLinkColor":"#ceb4ee",
 			"oddMessageBg":"#201c2c",
 			"evenMessageBg":"#201c2c"
 		},
@@ -134,6 +137,7 @@
 			"contextSection":"#252729",
 			"contextText":"#b4befa",
 			"linkColor":"#8839ef",
+			"visitedLinkColor":"#8839ef",
 			"oddMessageBg":"#eff1f5",
 			"evenMessageBg":"#eff1f5"
 		}
@@ -209,6 +213,24 @@
 			image: "https://flatmmo.com/images/ui/sleep.png",
 			title: "TIRED",
 			text: "0 energy",
+			ticks: 600,
+			color: "white"
+		},
+		dehydration: {
+			blocked: "due to dehydration",
+			name: "dehydration",
+			image: "https://flatmmo.com/images/items/water_bucket.png",
+			title: "DEHYDRATION",
+			text: "-10 hp",
+			ticks: 600,
+			color: "white"
+		},
+		sipOfWater: {
+			blocked: "sip of water",
+			name: "sipOfWater",
+			image: "https://flatmmo.com/images/items/water_bucket.png",
+			title: "-1 BUCKET",
+			text: "",
 			ticks: 600,
 			color: "white"
 		},
@@ -463,6 +485,9 @@
 					}
 					data.username = match[1].trim().replaceAll(" ", "_");
 					data.message = match[2].trim();
+					if(this.config.ignoredPlayers.includes(data.username)) {
+						return
+					}
 					if(this.config["alwaysTabsPM"] && !this.channels["private_" + data.username]) {
 						this.newChannel(data.username, true)
 					}
@@ -491,7 +516,12 @@
 					} break;
 					case "theme": {
 						const flatChat = document.getElementById("flatChat");
-						flatChat.className = "flatChat flatChat-" + this.config.theme;
+						flatChat.classList.forEach(className => {
+							if(className.startsWith("flatChat-")) {
+								flatChat.classList.remove(className);
+							}
+						})
+						flatChat.classList.add("flatChat-" + this.config.theme);
 					} break;
 					case "chatPosition": {
 						this.changeChatPosition(this.config.chatPosition);
@@ -702,7 +732,7 @@
 						color: var(--fc-linkColor);
 
 						&:visited {
-							color: var(--fc-linkColor);
+							color: var(--fc-visitedLinkColor);
 						}
 					}
 				}
@@ -1099,7 +1129,7 @@
 
 			document.getElementById("flatChat-input").addEventListener("blur", function(){
 				setTimeout(function() {
-					if(FlatMMOPlus.plugins.flatChat.config["alwaysOnFocus"] && document.activeElement.tagName !== "INPUT"){
+					if(FlatMMOPlus.plugins.flatChat.config["alwaysOnFocus"] && document.activeElement.tagName !== "INPUT" && document.activeElement.contentEditable !== "true"){
 						document.getElementById("flatChat-input").focus({
 							preventScroll: true
 						})
@@ -1363,6 +1393,9 @@
 				<label for="fc-linkColor-editor">Hyperlink Text Color</label>
 				<input type="color" id="fc-linkColor-editor">
 
+				<label for="fc-visitedLinkColor-editor">Visited Hyperlink Text Color</label>
+				<input type="color" id="fc-visitedLinkColor-editor">
+
 				<div style="display: grid;grid-template-columns: auto auto;grid-column: 1 / span 2;">
 					<input type="text" id="fc-themeName-editor" placeholder="Theme Name" style="grid-column: 1 / span 2;">
 					<button type="button" onclick="FlatMMOPlus.plugins.flatChat.saveTheme()">Save</button>
@@ -1509,7 +1542,7 @@
 					}
 					Globals.websocket.send(`CHAT=/pm ${receiver} ${message}`);
 				}
-			}, `Send a private message to someone.`);
+			}, `Send a private message to someone.<br><strong>Usage:</strong> /pm [username] [message]`);
 
 			window.FlatMMOPlus.registerCustomChatCommand("r", (command, data='') => {
 				if (this.lastPM === "") {
