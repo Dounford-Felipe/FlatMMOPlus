@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         FlatChat+
 // @namespace    com.dounford.flatmmo.flatChat
-// @version      1.5.1.7
+// @version      2.0.0
 // @description  Better chat for FlatMMO
 // @author       Dounford
 // @license      MIT
@@ -19,13 +19,13 @@
 		white: "messagesColor",//local message
 		grey: "messagesColor", //global message
 		server: "serverMessages",
-		pink: "lvlMilestoneMessages", //server messages
-		red: "errorMessages", //errors (trade declines, no energy)
+		pink: "milestoneMessages", //server messages
+		red: "warningMessages", //errors (trade declines, no energy)
 		lime: "restMessages", //rest message
 		green: "lvlUpMessages", //level up
 		cyan: "areaChangeMessages", //Leaving/Entering town
-		private: "privateMessages", //private messages
-		ownPrivate: "ownPrivateMessages",
+		pmReceived: "pmReceivedMessages", //private messages
+		pmSent: "pmSentMessages",
 		gold: "pingMessages",
 	};
 	const ding = new Audio("https://github.com/Dounford-Felipe/DHM-Idle-Again/raw/refs/heads/main/ding.wav");
@@ -234,6 +234,33 @@
 			ticks: 600,
 			color: "white"
 		},
+		orbDig: {
+			blocked: "start digging",
+			name: "orbDig",
+			image: "https://flatmmo.com/images/items/none.png",
+			title: "",
+			text: "",
+			ticks: 0,
+			color: "white"
+		},
+		noRunning: {
+			blocked: "combat has interrupetd",
+			name: "noRunning",
+			image: "https://flatmmo.com/images/worship/run.png",
+			title: "COMBAT",
+			text: "No longer Running",
+			ticks: 600,
+			color: "white"
+		},
+		fastBite: {
+			blocked: "between bites!",
+			name: "fastBite",
+			image: "https://flatmmo.com/images/items/raw_tuna.png",
+			title: "FAST BITE",
+			text: "Wait 3 seconds",
+			ticks: 600,
+			color: "white"
+		},
 	}
 
 	class flatChatPlugin extends FlatMMOPlusPlugin {
@@ -246,26 +273,6 @@
 					description: GM_info.script.description
 				},
 				config: [
-					{
-						id: "chatPosition",
-						label: "Chat Position",
-						type: "select",
-						options: [
-							{value: "bottom", label: "Bottom"},
-							{value: "side", label: "Side"},
-							{value: "vanilla", label: "Vanilla"},
-						],
-						default: "bottom"
-					},
-					{
-						id: "sideChatWidth",
-						label: "Side Chat Width (px)",
-						type: "number",
-						min: 720,
-						max: 1500,
-						step: 10,
-						default: 1000,
-					},
 					{
 						id: "ignorePings",
 						label: "Silence Pings",
@@ -319,16 +326,60 @@
 						default: "dark"
 					},
 					{
+						id: "profilePage",
+						label: "Default Profile",
+						type: "select",
+						options: [
+							{value: "ingame", label: "In-game Profile"},
+							{value: "page", label: "Profile Page"},
+							{value: "stats", label: "FlatMMO Stats"},
+						],
+						default: "ingame"
+					},
+					{
 						id: "alwaysOnFocus",
 						label: "Keep chat on focus all the time",
 						type: "boolean",
 						default: false
 					},
 					{
+						id: "pingChat",
+						label: "Copy all ping messages on the ping chat",
+						type: "boolean",
+						default: true
+					},
+					{
 						id: "alwaysTabsPM",
 						label: "Always create tabs for PMs",
 						type: "boolean",
 						default: false
+					},
+					{
+						id: "defaultPmChat",
+						label: "Default PM Chat Tab",
+						type: "select",
+						options: [
+							{value: "whisper", label: "Whisper"},
+							{value: "local", label: "Local"},
+							{value: "global", label: "Global"},
+						],
+						default: "whisper"
+					},
+					{
+						id: "shortcuts",
+						label: "Shortcuts List (Use the key between [])",
+						type: "object",
+						default: {gz: "gratz"},
+						key: "Shortcut",
+						value: "Message"
+					},
+					{
+						id: "nicknames",
+						label: "Nicknames List",
+						type: "object",
+						default: {dounbot2: "dounbot"},
+						key: "username",
+						value: "nickname"
 					},
 					{
 						id: "ignoredPlayers",
@@ -382,10 +433,11 @@
 
 			this.ignoreClick = false;
 
-			this.lastPM = "";
+			this.lastPM = ""; //Used for /r
 
 			this.themes = {};
 
+			//This is for the /load feature
 			this.loadedScripts = new Set();
 			this.loadedDependencies = new Set();
 
@@ -437,9 +489,14 @@
 			this.addStyle();
 			this.addUI();
 			this.loadChannels();
-			this.changeChatPosition(this.config.chatPosition);
 			this.switchChannel("local", false);
-			this.messagesWaiting.forEach((message)=>this.showMessage(message));
+			this.messagesWaiting.forEach((message)=>{
+				if(message.username === "") {
+					this.showServerMessage(message);
+					return
+				}
+				this.showMessage(message);
+			});
 			this.defineCommands();
 			ding.volume = this.config.pingVolume / 100;
 			this.addThemeEditor();
@@ -479,19 +536,19 @@
 				let match = data.message.match(/\[PM (?:to|from) (.*?)\](.*)/);
 				if(match) {
 					if(data.message.startsWith("[PM to")) {
-						data.color = "ownPrivate";
+						data.color = "pmSent";
 					} else {
-						data.color = "private";
+						data.color = "pmReceived";
 					}
 					data.username = match[1].trim().replaceAll(" ", "_");
 					data.message = match[2].trim();
 					if(this.config.ignoredPlayers.includes(data.username)) {
 						return
 					}
-					if(this.config["alwaysTabsPM"] && !this.channels["private_" + data.username]) {
+					if(this.config["alwaysTabsPM"]) {
 						this.newChannel(data.username, true)
 					}
-					data.channel = this.channels["private_" + data.username] ? "private_" + data.username : "channel_global";
+					data.channel = this.channels["private_" + data.username] ? "private_" + data.username : "channel_" + this.config.defaultPmChat;
 					this.lastPM = data.username;
 				} else {
 					console.warn("There was something wrong with this pm:", data.message)
@@ -499,6 +556,10 @@
 			};
 
 			if(FlatMMOPlus.loggedIn) {
+				if(data.username === "") {
+					this.showServerMessage(data);
+					return
+				}
 				this.showMessage(data);
 			} else {
 				this.messagesWaiting.push(data);
@@ -560,346 +621,251 @@
 		addStyle() {
 			document.querySelector(".td-ui").style.height = "auto"
 			const style = document.createElement("style");
-			style.innerHTML = `
-			/*Chat box*/
-			.flatChat {
-				width: 1880px;
-				background: var(--fc-bgColor);
-				border: solid black 2px;
-				border-radius: 5px;
-				text-align: left;
-				outline: none;
-			}
-			.flatChat * {
-				outline: none;
-			}
-			.flatChat-mainArea {
-				display: flex;
-			}
+			style.innerHTML = `.flatChatTheme-dark{
+            --fc-chatBackground: #191b24;
+            /*Top bar*/
+            --fc-topBarBackground: #131c37;
+            --fc-tabsBackground: #393a5b;
+            --fc-activeTabBackground: #4357af;
+            --fc-hoverTabBackground: lightgrey;
+            --fc-tabsTextColor: #e7e7e7;
+            --fc-unreadMessagesBackground: #000090;
+            --fc-unreadMessagesTextColor: #e7e7e7;
+            /*Channels*/
+            --fc-oddMessageBackground: #191b24;
+            --fc-evenMessageBackground: #191b24;
+            --fc-messageTimeColor: #E1E1E1;
+            --fc-messageSenderUsernameColor: #E1E1E1;
+            --fc-regularMessageColor: #E1E1E1;
+            --fc-serverMessageColor: #6495ED;
+            --fc-milestoneMessageColor: #FF1493;
+            --fc-warningMessageColor: red;
+            --fc-restMessageColor: lime;
+            --fc-lvlUpMessageColor: green;
+            --fc-areaChangeMessageColor: aqua;
+            --fc-pmReceivedMessageColor: #FFA500;
+            --fc-pmSentMessageColor: #e88f4f;
+            --fc-pingBackground: #3F51B5;
+            --fc-pingTextColor: white;
+            /*Bottom bar*/
+            --fc-usernameBottomBar: #C0C0C0;
+            --fc-chatBarBackground: #131419;
+            --fc-chatBarTextColor: #7d7e80;
+            --fc-buttonsBackground: #000090;
+            --fc-buttonsTextColor: #C0C0C0;
+            /*Context Menu*/
+            --fc-contextMenuBackground: #191b24;
+            --fc-contextMenuUsernameColor: #C0C0C0;
+            --fc-contextMenuButtonBackground: #000090;
+            --fc-contextMenuWarningButtonBackground: red;
+            --fc-contextMenuTextColor: #C0C0C0;
+            /*Misc*/
+            --fc-hyperlinkTextColor: aqua;
+            --fc-visitedHyperlinkTextColor: aqua;
+            --fc-tabFontSize: 1rem;
+            --fc-messageFontSize: 1rem;
+        }
+        #game>table>tbody>tr:nth-child(2) td {
+            position: relative;
+        }
+        #flatChat {
+            position: absolute;
+            width: var(--fc-chatWidth, 50%);
+            background-color: var(--fc-chatBackground);
+            border-radius: 0 0 3% 3%;
+            inset: auto auto 0 auto;
+            inset: auto 0 0 auto;
+            /* inset: 0 auto auto; */
+            /* inset: 0 0 auto auto;*/
+        }
+        #flatChatExpandBtn{
+            width: 2rem;
+            cursor: pointer;
+        }
+        #flatChatTopBar {
+            background-color: var(--fc-topBarBackground);
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            color: var(--fc-tabsTextColor);
+            fill: var(--fc-tabsTextColor);
+        }
+        #flatChatTabs {
+            display: flex;
+            flex-direction: row;
+            font-size: var(--fc-tabFontSize, 1rem);
+        }
+        .flatChatTab {
+            background-color: var(--fc-tabsBackground);
+            position: relative;
+            border-radius: 15% 15% 0 0;
+            margin-right: 1px;
+            padding: 0.375rem;
+            &:hover {
+                background-color: var(--fc-hoverTabBackground);
+                cursor: pointer;
+            }
+        }
+        .flatChatTabActive {
+            background-color: var(--fc-activeTabBackground);
+        }
+        .flatChatUnread {
+            position: absolute;
+            right: 10%;
+            top: 0;
+            background-color: var(--fc-unreadMessagesBackground);
+            color: var(--fc-unreadMessagesTextColor);
+            padding: 0 0.3rem;
+            border-radius: 0.5rem;
+        }
+        .flatChatTopBarCollapsed {
+            transform: rotate(180deg);
+        }
+        #flatChatChannels {
+            height: var(--fc-chatHeight, 150px);
+            font-size: var(--fc-messageFontSize, 1rem);
+        }
+        .flatChatChannel {
+            width: 100%;
+            height: 100%;
+            overflow-y: auto;
+            scrollbar-width: thin;
+        }
+        /*messages*/
+        .flatChatChannel div {
+            overflow-wrap: anywhere;
+            color: var(--fc-regularMessageColor);
 
-			/* Side chat positioning */
-			.flatChatSide {
-				width: var(--side-chat-width, 300px);
-				height: 100%;
-				position: relative;
-			}
+            span {
+                margin-left: 5px;
+            }
 
-			.flatChatSide .flatChat-mainArea {
-				height: calc(100% - 50px);
-			}
+            a {
+                text-decoration: none;
+                color: var(--fc-hyperlinkTextColor) !important;
 
-			.flatChatSide #flatChat-channelPicker {
-				width: 150px;
-			}
-
-			.flatChatSide #flatChat-channels {
-				height: calc(100% - 8px);
-			}
-
-			#flatChat-resizer {
-				position: absolute;
-				right: 0;
-				top: 0;
-				width: 5px;
-				height: 100%;
-				background: rgba(0, 0, 0, 0.3);
-				cursor: ew-resize;
-				transition: background 0.2s;
-			}
-
-			#flatChat-resizer:hover {
-				background: rgba(0, 0, 0, 0.5);
-			}
-
-			#flatChat-resizer.dragging {
-				background: rgba(0, 0, 0, 0.7);
-			}
-
-			.flatChat-small .flatChat-buttons {
-				flex: auto !important;
-			}
-			
-			.flatChat-small .flatChat-mainArea {
-				height: calc(100% - 100px) !important;
-			}
-
-			/* Adjust game table for side chat */
-			#game-container-td {
-				vertical-align: top;
-			}
-
-			#chat-container-td {
-				vertical-align: top;
-				padding-left: 5px;
-			}
-
-			.vanillaChat {
-				position: absolute;
-				top: 650px;
-				width: 1336px;
-			}
-			.vanillaChat #flatChat-channels {
-				height: 200px;
-			}
-
-			/*channel list*/
-			#flatChat-channelPicker {
-				width: 10%;
-				padding: 5px;
-				flex: none;
-				overflow-x: hidden;
-				scrollbar-width: thin;
-				display: block;
-				transition: all 1s ease-in-out;
-				transition-behavior: allow-discrete;
-
-				@starting-style {
-					width: 0px;
-				}
-
-				button {
-					display: flex;
-					border: 0;
-					background-color: transparent;
-					font-weight: bold;
-					white-space: nowrap;
-					&:hover {
-						transform: scale(1.05);
-					}
-				}
-
-				/*Current room btn*/
-				[data-channel="channel_local"] {
-					color: var(--fc-pickerLocal) !important;
-				}
-
-				/*yell chat btn*/
-				[data-channel="channel_global"] {
-					color: var(--fc-pickerGlobal) !important;
-				}
-
-				/*custom room btn*/
-				.flatChat-channelPicker-room {
-					color: var(--fc-pickerRoom);
-				}
-
-				/*direct message btn*/
-				.flatChat-channelPicker-private {
-					color: var(--fc-pickerPrivate);
-				}
-			}
-			#flatChat-channelPicker[closed] {
-				width: 0 !important;
-				display: none;
-			}
-
-			/*messages area*/
-			#flatChat-channels {
-				width: -webkit-fill-available;
-				height: 300px;
-				font-size: var(--fc-size);
-				>div {
-					height: 100%;
-					overflow-y: auto;
-					padding: 5px;
-					scrollbar-width: thin;
-
-					div {
-						overflow-wrap: anywhere;
-						color: var(--fc-messagesColor);
-
-						span {
-							margin-left: 5px;
-						}
-					}
-
-					div:nth-child(even) {
-						background-color: var(--fc-evenMessageBg, var(--fc-bgColor));
-					}
-
-					div:nth-child(odd) {
-						background-color: var(--fc-oddMessageBg, var(--fc-bgColor));
-					}
-
-					img {
-						width: var(--fc-size);
-						vertical-align: bottom;
-						margin-right: 5px;
-					}
-
-					a {
-						text-decoration: none;
-						color: var(--fc-linkColor);
-
-						&:visited {
-							color: var(--fc-visitedLinkColor);
-						}
-					}
-				}
-			}
-			.fc-serverMessages {
-				color: var(--fc-serverMessages) !important;
-			}
-			.fc-lvlMilestoneMessages {
-				color: var(--fc-lvlMilestoneMessages) !important;
-			}
-			.fc-errorMessages {
-				color: var(--fc-errorMessages) !important;
-			}
-			.fc-restMessages {
-				color: var(--fc-restMessages) !important;
-			}
-			.fc-lvlUpMessages {
-				color: var(--fc-lvlUpMessages) !important;
-			}
-			.fc-areaChangeMessages {
-				color: var(--fc-areaChangeMessages) !important;
-			}
-			.fc-privateMessages {
-				color: var(--fc-privateMessages) !important;
-			}
-			.fc-ownPrivateMessages {
-				color: var(--fc-ownPrivateMessages) !important;
-			}
-			.fc-pingMessages {
-				background-color: var(--fc-pingMessages) !important;
-			}
-			.flatChatHidden {
-				background-color: black;
-				color: transparent;
-				a {
-					color: transparent;
-				}
-			}
-			/*player name*/
-			.flatChat-player {
-				cursor: pointer;
-			}
-			/*bottom bar*/
-			#flatChat-BottomBar{
-				display: flex;
-				align-items: center;
-				margin-top: 5px;
-				padding: 2px;
-
-				button {
-					border: solid black 1px;
-					border-radius: 5px;
-					padding: 0;
-					background-color: transparent;
-					cursor: pointer;
-
-					&:hover{
-						background-color: rgba(0,0,0,0.1);
-					}
-
-					img {
-						width: 40px;
-						vertical-align: middle;
-						padding: 1px;
-					}
-				}
-			}
-			/*message input*/
-			#flatChat-inputDiv {
-				display: flex;
-				align-items: center;
-				width: 100%;
-				margin: 0 5px;
-				background-color: var(--fc-inputColor);
-				border-radius: 5px;
-				padding: 2px;
-				label {
-					user-select: none;
-					cursor: text;
-					color: var(--fc-inputName);
-					font-size: larger;
-				}
-				input {
-					flex: auto;
-					border: 0;
-					padding-top: 0;
-					background-color: transparent;
-					color: var(--fc-inputText);
-					&:focus {
-						outline: transparent;
-					}
-				}
-			}
-			/*bottom bar btns*/
-			.flatChat-buttons{
-				flex: none;
-				text-align: center;
-			}
-			/*Context menu*/
-			#flatChat-contextMenu {
-				visibility: hidden;
-				position: absolute;
-				list-style: none;
-				padding: 0;
-				background-color: var(--fc-contextBackground);
-				color: var(--fc-contextText);
-				cursor: pointer;
-				font-size: clamp(12px, 1.2vw, 24px);
-				top:0;
-
-				li {
-					padding: 5px;
-				}
-			}
-
-			.flatChat-contextSection {
-				background-color: var(--fc-contextSection);
-				cursor: default;
-			}
-
-			#flatChat-copyUsername {
-				position: fixed;
-				background-color: var(--fc-inputColor);
-				color: var(--fc-inputText);
-				padding: 3px;
-				border-radius: 5px;
-				visibility: hidden;
-				font-size: clamp(12px, 1.2vw, 24px);
-				top:0;
-			}
-
-			#ui-panel-flatmmoplus-content {
-				input[type=checkbox] {
-					-webkit-appearance: none;
-					appearance: none;
-					position: relative;
-					width: 20px;
-					height: 10px;
-					border-radius: 15px;
-					background-color: #ccc;
-					outline: none;
-					cursor: pointer;
-					transition: background-color 0.3s;
-					top: 0.5rem
-				}
-
-				input[type=checkbox]::before {
-					content: '';
-					position: absolute;
-					top: 1px;
-					left: 1px;
-					width: 8px;
-					height: 8px;
-					background-color: #fff;
-					border-radius: 50%;
-					transition: transform 0.3s;
-				}
-
-				input[type=checkbox]:checked {
-					background-color: #4CAF50;
-				}
-
-				input[type=checkbox]:checked::before {
-					transform: translateX(10px);
-				}
-			}
-			`
+                &:visited {
+                    color: var(--fc-visitedHyperlinkTextColor) !important;
+                }
+            }
+        }
+        .flatChatChannel div:nth-child(even) {
+            background-color: var(--fc-evenMessageBackground, var(--fc-chatBackground));
+        }
+        .flatChatChannel div:nth-child(odd) {
+            background-color: var(--fc-oddMessageBackground, var(--fc-chatBackground));
+        }
+        .fc-serverMessages {
+            color: var(--fc-serverMessageColor) !important;
+        }
+        .fc-milestoneMessages {
+            color: var(--fc-milestoneMessageColor) !important;
+        }
+        .fc-warningMessages {
+            color: var(--fc-warningMessageColor) !important;
+        }
+        .fc-restMessages {
+            color: var(--fc-restMessageColor) !important;
+        }
+        .fc-lvlUpMessages {
+            color: var(--fc-lvlUpMessageColor) !important;
+        }
+        .fc-areaChangeMessages {
+            color: var(--fc-areaChangeMessages) !important;
+        }
+        .fc-pmReceivedMessages {
+            color: var(--fc-pmReceivedMessageColor) !important;
+        }
+        .fc-pmSentMessages {
+            color: var(--fc-pmSentMessageColor) !important;
+        }
+        .fc-pingMessages {
+            background-color: var(--fc-pingBackground) !important;
+            color: var(--fc-pingTextColor) !important;
+        }
+        #flatChatBottomBar {
+            display: flex;
+        }
+        #flatChatInputDiv {
+            flex: auto;
+            display: flex;
+            align-items: center;
+            border-radius: 0 0 3% 3%;
+            background-color: var(--fc-chatBarBackground);
+            color: var(--fc-chatBarTextColor);
+        }
+        #flatChatInput {
+            flex: auto;
+            border: 0;
+            padding: 0;
+            margin: 5px;
+            background-color: transparent;
+            color: var(--fc-chatBarTextColor);
+            outline: transparent;
+            &::placeholder {
+                color: var(--fc-usernameBottomBar);
+            }
+        }
+        .flatChatBtn {
+            background-color: var(--fc-buttonsBackground);
+            color: var(--fc-buttonsTextColor);
+            border: 0 !important;
+            padding: 5px;
+        }
+        #flatChatCloseBtn {
+            height: 100%;
+            display: flex;
+            align-items: center;
+            margin-left: 3px;
+        }
+        .chatSigil {
+            width: var(--fc-messageFontSize, 1rem);
+            vertical-align: bottom;
+            margin-right: 5px;
+        }
+        .chatName {
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        #flatChatContextMenu {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            row-gap: 5px;
+            position: absolute;
+            padding: 5px;
+            background-color: var(--fc-contextMenuBackground) !important;
+            color: var(--fc-contextMenuTextColor) !important;
+            border-radius: 5%;
+            bottom: 0;
+        }
+        #flatChatContextMenu button {
+            width: 80%;
+            cursor: pointer;
+            &:hover {
+                filter: brightness(0.8);
+            }
+        }
+        #flatChatContextUsername {
+            color: var(--fc-contextMenuUsernameColor);
+            cursor: text;
+        }
+        .flatChatContextBtn {
+            background-color: var(--fc-contextMenuButtonBackground) !important;
+        }
+        .flatChatContextWarningBtn {
+            background-color: var(--fc-contextMenuWarningButtonBackground) !important;
+        }
+        #flatChatCopyUsername {
+            visibility: hidden;
+            position: absolute;
+            top: 0;
+            padding: 3px;
+            border-radius: 5px;
+            background-color: var(--fc-contextMenuBackground);
+            color: var(--fc-contextMenuTextColor);
+        }`
 			document.head.append(style);
 
 			//Get saved themes
@@ -927,105 +893,78 @@
 
 		addUI() {
 			const chatDiv = document.createElement("div");
-			chatDiv.innerHTML = `
-				<div class="flatChat-mainArea">
-					<div id="flatChat-channelPicker"></div>
-					<div id="flatChat-channels" style="--fc-size:${this.config.fontSize}rem;"></div>
+			chatDiv.innerHTML = `<div id="flatChatTopBar">
+				<div id="flatChatTabs">
+					<div class="flatChatTab " data-channel="channel-local">
+						<span class="flatChatTabName">Local</span>
+						<div class="flatChatUnread">1200</div>
+					</div>
+					<div class="flatChatTab flatChatTabActive" data-channel="channel-global">Global</div>
+					<div class="flatChatTab" data-channel="channel-party">Party</div>
+					<div class="flatChatTab" data-channel="channel-pings">Pings</div>
+					<div class="flatChatTab" data-channel="channel-whisper">Whisper</div>
+					<div class="flatChatTab" data-channel="private-dounbot">Dounbot</div>
 				</div>
-				<div id="flatChat-BottomBar">
-					<div class="flatChat-buttons">
-						<button type="button" id="flatChat-togglePicker">
-							<img src="https://cdn.idle-pixel.com/images/collection_small_circle_icon.png" alt="">
-						</button>
-						<button type="button" id="flatChat-closeChat">
-							<img src="https://cdn.idle-pixel.com/images/x.png" alt="">
-						</button>
+				<div id="flatChatExpandBtn" class="flatChatTopBarCollapsed" style="fill:var(--fc-tabsTextColor, white)">
+					<svg id="Layer_1" version="1.1" viewBox="0 0 512 512" xml:space="preserve" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" style="
+						height: 30px;
+						">
+						<path d="M256,298.3L256,298.3L256,298.3l174.2-167.2c4.3-4.2,11.4-4.1,15.8,0.2l30.6,29.9c4.4,4.3,4.5,11.3,0.2,15.5L264.1,380.9  c-2.2,2.2-5.2,3.2-8.1,3c-3,0.1-5.9-0.9-8.1-3L35.2,176.7c-4.3-4.2-4.2-11.2,0.2-15.5L66,131.3c4.4-4.3,11.5-4.4,15.8-0.2L256,298.3  z"></path>
+					</svg>
+				</div>
+			</div>
+			<div id="flatChatMainArea">
+				<div id="flatChatChannels" style="height: 190px;">
+					<div class="flatChatChannel" data-channel="channel-local">
+						<div><strong>[08:48]</strong><span class="chat-tag-moderator">MODERATOR</span><img class="chatSigil" src="https://cdn.idle-pixel.com/images/basket_sigil.png"><strong class="flatChat-player" data-sender="felipewolf">felipewolf:</strong><span>1</span></div>
+						<div><strong>[08:48]</strong><span class="chat-tag-moderator">MODERATOR</span><img class="chatSigil" src="https://cdn.idle-pixel.com/images/basket_sigil.png"><strong class="flatChat-player" data-sender="felipewolf">felipewolf:</strong><span>1</span></div>
 					</div>
-					<div id="flatChat-inputDiv">
-						<label for="flatChat-input"></label>
-						<input type="text" id="flatChat-input" autocomplete="off">
-					</div>
-					<div class="flatChat-buttons">
-						<button type="button" id="flatChat-autoScroll">
-							<img src="https://cdn.idle-pixel.com/images/x.png" id="fc-autoScrollfalse" alt="" class="displaynone">
-							<img src="https://cdn.idle-pixel.com/images/check.png" id="fc-autoScrolltrue" alt="">
-						</button>
-						<button type="button" id="flatChat-scrollToBottom">
-							<img src="https://flatmmo.com/images/icons/damage.png" alt="" style="transform: rotate(180deg);">
-						</button>
-						<button type="button" id="flatChat-srollDown">
-							<img src="https://flatmmo.com/images/icons/arrow_damage.png" alt="" style="transform: rotate(180deg);">
-						</button>
-						<button type="button" id="flatChat-srollUp">
-							<img src="https://flatmmo.com/images/icons/arrow_damage.png" alt="">
+					<div class="flatChatChannel" data-channel="channel-global"></div>
+					<div class="flatChatChannel" data-channel="private-dounbot"></div>
+				</div>
+				<div id="flatChatBottomBar">
+					<div id="flatChatInputDiv">
+						<input type="text" id="flatChatInput" autocomplete="off" placeholder="felipewolf:">
+						<button type="text" id="flatChatSendBtn" class="flatChatBtn">Send</button><button type="button" id="flatChatCloseBtn" class="flatChatBtn">
+						<img src="https://cdn.idle-pixel.com/images/x.png" alt="" style="height: 25px;">
 						</button>
 					</div>
 				</div>
-				<ul id="flatChat-contextMenu">
-					<li id="flatChat-contextUser" class="flatChat-contextSection" data-user=""></li>
-					<li data-action="message">Message</li>
-					<li data-action="tabMessage">Message (tab)</li>
-					<li data-action="profile">Profile</li>
-					<li data-action="profilePage">Profile Page</li>
-					<li data-action="trade">Trade</li>
-					<li class="flatChat-contextSection">MODERATION</li>
-					<li data-action="stalk">Stalk</li>
-					<li data-action="ignore">Ignore</li>
-				</ul>
-				<div id="flatChat-copyUsername">USERNAME COPIED</div>`
+				<div id="flatChatContextMenu" class="flatChatContextMenu" style="visibility:hidden">
+					<span id="flatChatContextUsername" data-user="" style="font-size: 2rem;" class="flatChatContextUsername">felipewolf</span>
+					<button data-action="message" class="flatChatContextBtn">Message</button>
+					<button data-action="tabMessage" class="flatChatContextBtn">Message (Tab)</button>
+					<button data-action="profile" class="flatChatContextBtn">Profile</button>
+					<button data-action="trade" class="flatChatContextBtn">Trade</button>
+					<button data-action="stalk" class="flatChatContextWarningBtn">Stalk</button>
+					<button data-action="ignore" class="flatChatContextWarningBtn">Ignore</button>
+				</div>
+				<div id="flatChatCopyUsername" style="visibility:hidden">USERNAME COPIED</div>`
 			chatDiv.id = "flatChat";
-			chatDiv.tabIndex = 0;
 			let currentTheme = this.config.theme
 			if(this.themes[currentTheme]) {
-				chatDiv.classList = "flatChat flatChat-" + this.config.theme;
+				chatDiv.classList = "flatChat flatChatTheme-" + this.config.theme;
 			} else {
 				this.config.theme = "dark";
-				chatDiv.classList = "flatChat flatChat-dark";
+				chatDiv.classList = "flatChat flatChatTheme-dark";
 				this.saveConfig();
 			}
 
-			document.querySelector("body center").insertAdjacentElement("beforeend",chatDiv);
+			document.getElementById("chat").insertAdjacentElement("beforebegin", chatDiv);
 
-			document.querySelector("#flatChat-inputDiv label").innerText = `[${Globals.local_username}]:`;
+			document.getElementById("flatChatInput").placeholder = Globals.local_username;
 
-			document.querySelector("#flatChat-channelPicker").onclick = (e) => {
-				const channelName = e.target.closest("[data-channel]");
-				if (channelName) {
-					const match = channelName.dataset.channel.match(/(.*?)_(.*)/);
-					if (match) {
-						const type = match[1];
-						const channel = match[2];
-						this.switchChannel(channel, type === "private")
-					}
-				}
-			}
+			const closeBtn = document.getElementById("flatChatSendBtn");
+			closeBtn.style.display = this.config.showCloseBtn ? "" : "none";
+			closeBtn.onclick = () => this.closeChannel();
 
-			document.getElementById("flatChat-togglePicker").addEventListener("click", ()=>{
-				const picker = document.getElementById("flatChat-channelPicker");
-				picker.toggleAttribute("closed");
-			})
+			const channelsDiv = document.getElementById("flatChatChannels");
 
-			document.getElementById("flatChat-closeChat").addEventListener("click",()=>{
-				this.closeChannel()
-			})
-			document.getElementById("flatChat-autoScroll").addEventListener("click",()=>{
-				this.toggleAutoScroll();
-			})
-			document.getElementById("flatChat-scrollToBottom").addEventListener("click",()=>{
-				this.scrollButtons("bottom");
-			})
-			document.getElementById("flatChat-srollDown").addEventListener("click",()=>{
-				this.scrollButtons("down");
-			})
-			document.getElementById("flatChat-srollUp").addEventListener("click",()=>{
-				this.scrollButtons("up");
-			})
-
-			document.getElementById("flatChat-channels").onwheel = (event)=>{
+			channelsDiv.onwheel = (event)=>{
 				this.scrollChannel(event);
 			}
 
-			document.querySelector("#flatChat-channels").addEventListener("click", async (e) => {
+			channelsDiv.addEventListener("click", async (e) => {
 				const sender = e.target.closest("[data-sender]");
 				if (sender) {
 					const username = sender.dataset.sender;
@@ -1040,31 +979,18 @@
 			});
 
 			//Shows custom context menu on right click
-			document.querySelector("#flatChat-channels").addEventListener("contextmenu", (e) => {
+			channelsDiv.addEventListener("contextmenu", (e) => {
 				const sender = e.target.closest("[data-sender]");
 				if (sender) {
 					e.preventDefault()
-					const contextMenu = document.getElementById("flatChat-contextMenu");
 					const username = sender.dataset.sender;
-					document.getElementById("flatChat-contextUser").setAttribute("data-user", username);
-					document.getElementById("flatChat-contextUser").innerText = username;
 
-					const menuRect = contextMenu.getBoundingClientRect();
-					const menuWidth = menuRect.width;
-					const menuHeight = menuRect.height;
-
-					const mouseX = e.clientX;
-					const mouseY = e.pageY;
+					const contestUser = document.getElementById("flatChatContextMenu");					
+					contestUser.setAttribute("data-user", username);
+					contestUser.innerText = username;
 					
-					//This will always go to top
-					contextMenu.style.top = (mouseY - menuHeight) + "px";
-					
-					if (mouseX + menuWidth > window.innerWidth) {
-						contextMenu.style.left = (window.innerWidth - menuWidth) + "px";
-					} else {
-						contextMenu.style.left = mouseX + "px";
-					}
-
+					const contextMenu = document.getElementById("flatChatContextMenu");
+					contextMenu.style.left = e.clientX + "px";
 					contextMenu.style.visibility = "visible";
 				}
 			});
@@ -1080,41 +1006,33 @@
 			});
 
 			document.addEventListener("keydown", (e) => {
-				if (e.key === "F9" && this.config["chatPosition"] === "vanilla") {
-					e.preventDefault();
-					this.ignoreClick = !this.ignoreClick;
-					if(this.ignoreClick) {
-						chatDiv.style.opacity = "0.2";
-						chatDiv.style.pointerEvents = "none";
-					} else {
-						chatDiv.style.opacity = "1";
-						chatDiv.style.pointerEvents = "unset";
-					}
-				}
+				//Switch back and forth between channels with tab and shift+tab
 				if (e.key === "Tab" && e.target.closest('#flatChat')) {
 					e.preventDefault();
-					if(document.querySelector(`#flatChat-channelPicker [data-channel=${this.currentChannel}]`).nextElementSibling) {
-						const channel = document.querySelector(`#flatChat-channelPicker [data-channel=${this.currentChannel}]`).nextElementSibling.dataset.channel
-						const match = channel.match(/(.*?)_(.*)/);
-						if (match) {
-							const type = match[1];
-							const channel = match[2];
-							this.switchChannel(channel, type === "private")
-						}
-						return;
+					let sibling = null;
+					if(e.shiftKey) {
+						sibling = document.querySelector(".flatChatTabActive").previousElementSibling || document.querySelector("#flatChatTabs").lastElementChild;
 					} else {
-						this.switchChannel("local", false)
-						return;
+						sibling = document.querySelector(".flatChatTabActive").nextElementSibling || document.querySelector("#flatChatTabs").firstElementChild;
 					}
+					const channel = sibling.dataset.channel
+					const match = channel.match(/(.*?)_(.*)/);
+					if (match) {
+						const type = match[1];
+						const channel = match[2];
+						this.switchChannel(channel, type === "private")
+					}
+					return;
 				}
-				if(document.activeElement === document.getElementById("flatChat-input")) {
+				if(document.activeElement === document.getElementById("flatChatInput")) {
 					if(e.key === "Enter") {
 						if(has_modal_open()) return;
 						this.sendMessage();
 					}
 
-					const input = document.getElementById("flatChat-input");
+					const input = document.getElementById("flatChatInput");
 
+					//Navigate between sent messages
 					if (e.key === "ArrowUp" && input.selectionStart === 0) {
 						if(this.historyPosition + 1 === this.chatHistory.length) {return}
 						input.value = this.chatHistory[++this.historyPosition] || "";
@@ -1124,153 +1042,22 @@
 						input.value = this.chatHistory[--this.historyPosition] || "";
 						input.selectionStart = input.value.length
 					}
+				} else if(e.key === "Enter") {
+					document.getElementById("flatChatInput").focus({
+						preventScroll: true
+					})
 				}
 			}, true)
 
-			document.getElementById("flatChat-input").addEventListener("blur", function(){
+			document.getElementById("flatChatInput").addEventListener("blur", function(){
 				setTimeout(function() {
 					if(FlatMMOPlus.plugins.flatChat.config["alwaysOnFocus"] && document.activeElement.tagName !== "INPUT" && document.activeElement.contentEditable !== "true"){
-						document.getElementById("flatChat-input").focus({
+						document.getElementById("flatChatInput").focus({
 							preventScroll: true
 						})
 					}
 				}, 1)
 			})
-		}
-
-		changeChatPosition(position) {
-			const flatChat = document.getElementById("flatChat");
-			const gameElement = document.getElementById("game");
-
-			// Remove side chat positioning
-			flatChat.classList.remove("flatChatSide");
-			flatChat.classList.remove("flatChat-small");
-			flatChat.classList.remove("vanillaChat");
-			document.getElementById("game").style.userSelect = "none";
-
-			// Remove resizer
-			const resizer = document.getElementById("flatChat-resizer");
-			if (resizer) {
-				resizer.remove();
-			}
-
-			// Move chat back to original position
-			const container = document.getElementById("game-chat-container");
-			if (container) {
-				const gameElement = document.getElementById("game");
-				container.parentNode.replaceChild(gameElement, container);
-			}
-			flatChat.style.height = ""
-			document.querySelector("body center").appendChild(flatChat);
-			if (position === "side") {
-				// Create container structure if it doesn't exist
-				if (!document.getElementById("game-chat-container")) {
-					const container = document.createElement("table");
-					container.id = "game-chat-container";
-					container.style.display = "inline-table";
-					container.innerHTML = `
-						<tr>
-							<td id="game-container-td"></td>
-							<td id="chat-container-td"></td>
-						</tr>
-					`;
-
-					// Replace game with container
-					gameElement.parentNode.replaceChild(container, gameElement);
-					document.getElementById("game-container-td").appendChild(gameElement);
-				}
-
-				// Add side chat class and move to side
-				flatChat.classList.add("flatChatSide");
-				document.getElementById("chat-container-td").appendChild(flatChat);
-
-				// Set initial width
-				const width = this.config.sideChatWidth || 600;  /* Changed from 300 */
-				flatChat.style.setProperty("--side-chat-width", width + "px");
-				if(width < 720) {
-					flatChat.classList.add("flatChat-small")
-				} else {
-					flatChat.classList.remove("flatChat-small")
-				}
-
-				// Match canvas height
-				const gameCanvas = document.querySelector("#game canvas");
-				if (gameCanvas) {
-					flatChat.style.height = gameCanvas.offsetHeight + "px";
-				}
-
-				// Add resizer if it doesn't exist
-				if (!document.getElementById("flatChat-resizer")) {
-					const resizer = document.createElement("div");
-					resizer.id = "flatChat-resizer";
-					flatChat.insertBefore(resizer, flatChat.firstChild);
-					this.addResizeHandler(resizer);
-				}
-			} else if(position === "vanilla") {
-				document.getElementById("chat").insertAdjacentElement("afterend",flatChat);
-				flatChat.classList.add("vanillaChat");
-				document.getElementById("game").style.userSelect = "unset";
-				this.showWarning("Press F9 to toggle transparency.")
-			}
-		}
-
-		addResizeHandler(resizer) {
-			let isResizing = false;
-			let startX = 0;
-			let startWidth = 0;
-
-			const startResize = (e) => {
-				isResizing = true;
-				startX = e.pageX;
-				const flatChat = document.getElementById("flatChat");
-				startWidth = flatChat.offsetWidth;
-
-				resizer.classList.add("dragging");
-				document.body.style.cursor = "ew-resize";
-
-				// Prevent text selection while dragging
-				e.preventDefault();
-			};
-
-			const doResize = (e) => {
-				if (!isResizing) return;
-
-				const flatChat = document.getElementById("flatChat");
-				const width = startWidth + (e.pageX - startX);  /* Changed from - to + */
-
-				// Constrain width between min and max
-				const constrainedWidth = Math.min(Math.max(width, 720), 1500);
-
-				flatChat.style.setProperty("--side-chat-width", constrainedWidth + "px");
-
-				window.scrollTo(window.innerWidth,window.screenY)
-
-				// Save the width to config
-				this.config.sideChatWidth = constrainedWidth;
-
-				if(constrainedWidth < 720) {
-					flatChat.classList.add("flatChat-small")
-				} else {
-					flatChat.classList.remove("flatChat-small")
-				}
-
-				this.saveConfig();
-			};
-
-			const stopResize = () => {
-				if (!isResizing) return;
-
-				isResizing = false;
-				resizer.classList.remove("dragging");
-				document.body.style.cursor = "";
-
-				// Save config after resize
-				this.saveConfig();
-			};
-
-			resizer.addEventListener("mousedown", startResize);
-			document.addEventListener("mousemove", doResize);
-			document.addEventListener("mouseup", stopResize);
 		}
 
 		addTheme(theme) {
@@ -1303,7 +1090,6 @@
 						overflow-y: scroll;
 
 						* {
-							height: auto;
 							border-top: solid 1px black;
 							margin-bottom: 5px;
 							padding: 5px;
@@ -1313,6 +1099,11 @@
 							grid-column: 1 / span 2;
 							text-align: center;
 							font-size: large;
+						}
+
+						input[type="color"] {
+							width: 50px;
+							height: 50px;
 						}
 					}
 				</style>
@@ -1735,22 +1526,30 @@
 			if(this.channels[channelName]) {return};
 			this.channels[channelName] = {
 				name: channel,
-				isPrivate: isPrivate,
+				isPrivate,
 				autoScroll: true,
 				unreadMessages: 0,
 				inputText: "",
 				lastMessage: "",
 				lastSender: "",
 			}
-			document.getElementById("flatChat-channelPicker").insertAdjacentHTML("beforeend",`<button data-channel="${channelName}" class="flatChat-channelPicker-${isPrivate ? "private" : "room"}">
-				<span id="unreadMessages-${channelName}" style="display: none;"></span><span id="activeChat-${channelName}" style="display:none">></span><span>${isPrivate ? "@" : "#"}${channel.replace("_"," ")}</span>
-			</button>`)
-			document.getElementById("flatChat-channels").insertAdjacentHTML("beforeend",`<div data-channel="${channelName}" style="display:none"></div>`);
+			const tabBtn = document.createElement("div");
+			tabBtn.className = "flatChatTab";
+			tabBtn.setAttribute("data-channel", channelName);
+			tabBtn.innerHTML = `<span class="flatChatTabName">${channel.replaceAll("_", " ")}</span>
+				<div class="flatChatUnread"></div>`
+			document.getElementById("flatChatTabs").appendChild(tabBtn);
+
+			tabBtn.onclick = () => {
+				this.switchChannel(channel, isPrivate);
+			}
+
+			document.getElementById("flatChatChannels").insertAdjacentHTML("beforeend",`<div data-channel="${channelName}" style="display:none"></div>`);
 			if(isPrivate) {
 				const privateChannel = document.querySelector(`#flatChat-channels [data-channel=${channelName}]`);
 				privateChannel.insertAdjacentHTML("beforeend",`
 				<div style="color: var(--fc-lvlUpMessages);"><strong>${this.getDateStr()}</strong><span>New chat with ${channel}</span></div>`)
-				document.querySelectorAll("[data-channel=channel_global] .fc-privateMessages,.fc-ownPrivateMessages").forEach(el => {
+				document.querySelectorAll(`[data-channel=${this.config.defaultPmChat}] .fc-pmReceivedMessages,.fc-pmSentMessages`).forEach(el => {
 				const match = el.innerText.match(/(?:>|<) (?:\[[0-9][0-9]:[0-9][0-9]])?(.*?):/)
 					if(match && match[1] === channel) {
 						privateChannel.appendChild(el);
@@ -1762,22 +1561,15 @@
 
 		closeChannel(channel) {
 			const oldChannel = channel || this.currentChannel;
-			if (oldChannel === "channel_local" || oldChannel === "channel_global") {
+			if(this.defaultChannels.has(oldChannel)) {
 				return;
-			}
-
-			if(oldChannel.includes("private_")) {
-				const globalChat = document.querySelector("#flatChat-channels [data-channel=channel_global]");
-				document.querySelectorAll(`#flatChat-channels [data-channel=${oldChannel}] div:not(:first-child)`).forEach(el => {
-					globalChat.appendChild(el)  ;
-				})
 			}
 
 			this.switchChannel("local", false);
 
 			delete this.channels[oldChannel];
-			document.querySelector(`#flatChat-channelPicker [data-channel=${oldChannel}]`).remove();
-			document.querySelector(`#flatChat-channels [data-channel=${oldChannel}]`).remove();
+			document.querySelector(`#flatChatTabs [data-channel=${oldChannel}]`).remove();
+			document.querySelector(`#flatChatChannels [data-channel=${oldChannel}]`).remove();
 
 			this.saveChannels();
 		}
@@ -1789,6 +1581,13 @@
 
 		loadChannels() {
 			const channels = JSON.parse(localStorage.getItem("flatChat-channels") || '["channel_local","channel_global"]');
+
+			//It should not be possible to remove default channels, but just in case
+			this.defaultChannels.forEach(channel => {
+				if(!channels.includes(channel)) {
+					channels.push(channel)
+				}
+			})
 			channels.forEach(channel => {
 				const match = channel.match(/(.*?)_(.*)/);
 				if (match) {
@@ -1802,11 +1601,11 @@
 		switchChannel(channel, isPrivate) {
 			const input = document.getElementById("flatChat-input");
 			//remove old
-			document.getElementById("activeChat-" + this.currentChannel).style.display = "none";
-			document.querySelector(`#flatChat-channels [data-channel=${this.currentChannel}]`).style.display = "none";
+			document.querySelector(".flatChatTabActive").classList.remove("flatChatTabActive");
+			document.querySelector(`.flatChatChannel[data-channel=${this.currentChannel}]`).style.display = "none";
 			this.channels[this.currentChannel].inputText = input.value;
 
-			//show  new
+			//update current chat
 			const newChannel = (isPrivate ? "private_" : "channel_") + channel
 			//Makes sure the channel exists
 			if (!newChannel in this.channels) {
@@ -1816,39 +1615,17 @@
 
 			//Removes unreadMessages number
 			this.channels[this.currentChannel].unreadMessages = 0;
-			const unreadSpan = document.getElementById("unreadMessages-" + this.currentChannel);
-			unreadSpan.style.display = "none";
-
-			//Change auto scroll icon
-			const autoScroll = this.channels[this.currentChannel].autoScroll;
-			document.getElementById("fc-autoScroll" + autoScroll).className = "";
-			document.getElementById("fc-autoScroll" + !autoScroll).className = "displaynone";
+			const unreadDiv = document.querySelector(`.flatChatTab[data-channel=${this.currentChannel}] .flatChatUnread`);
+			unreadDiv.style.visibility = "hidden";
 
 			//shows the new chat
-			document.getElementById("activeChat-" + this.currentChannel).style.display = "block";
-			document.querySelector(`#flatChat-channels [data-channel=${this.currentChannel}]`).style.display = "block";
+			document.querySelector(`.flatChatTab[data-channel=${currentChannel}]`).classList.add("flatChatTabActive");
+			const messageArea = document.querySelector(`.flatChatChannel[data-channel=${this.currentChannel}]`);
+			messageArea.style.display = "block";
 			input.value = this.channels[this.currentChannel].inputText;
 
 			//Auto scrolls if needed
-			if (autoScroll) {
-				const messageArea = document.querySelector(`#flatChat-channels [data-channel=${this.currentChannel}]`);
-				messageArea.scrollTop = messageArea.scrollHeight;
-			}
-		}
-
-		toggleAutoScroll() {
-			this.channels[this.currentChannel].autoScroll = !this.channels[this.currentChannel].autoScroll;
-			document.getElementById("fc-autoScrolltrue").classList.toggle("displaynone");
-			document.getElementById("fc-autoScrollfalse").classList.toggle("displaynone");
-		}
-
-		scrollButtons(btn) {
-			const messageArea = document.querySelector(`#flatChat-channels [data-channel=${this.currentChannel}]`);
-			if (btn === "up") {
-				messageArea.scrollTop -= 100;
-			} else if (btn === "down") {
-				messageArea.scrollTop += 100
-			} else { //btn === bottom
+			if (this.channels[this.currentChannel].autoScroll) {
 				messageArea.scrollTop = messageArea.scrollHeight;
 			}
 		}
@@ -1867,6 +1644,13 @@
 				this.config.fontSize = size;
 				this.saveConfig();
 				return;
+			} else {
+				const currentDiv = document.querySelector(`#flatChatChannels [data-channel=${this.currentChannel}]`)
+				if(currentDiv.clientHeight + currentDiv.scrollTop > currentDiv.scrollHeight - 10) {
+					this.channels[this.currentChannel].autoScroll = true;
+				} else {
+					this.channels[this.currentChannel].autoScroll = false;
+				}
 			}
 		}
 
@@ -1894,15 +1678,22 @@
 						this.switchChannel(username, true);
 					} break;
 					case "profile": {
-						Globals.websocket.send("RIGHT_CLICKED_PLAYER=" + username.replaceAll("_", " "));
-					} break;
-					case "profilePage": {
-						window.open(`https://flatmmo.com/profile/?user=${username}`, '_blank');
+						switch(this.config.profilePage) {
+							case "ingame": {
+								Globals.websocket.send("RIGHT_CLICKED_PLAYER=" + username.replaceAll("_", " "));
+							} break;
+							case "page": {
+								window.open(`https://flatmmo.com/profile/?user=${username.replaceAll("_", " ")}`, '_blank');
+							} break;
+							case "stats": {
+								window.open(`https://www.flatmmostats.com/player_profile.html?username=${username.replaceAll("_", " ")}`, '_blank');
+							} break;
+						}
 					} break;
 					case "trade": {
 						Globals.websocket.send("SEND_TRADE_REQUEST=" + username.replaceAll("_", " "));
 					} break;
-					case "watch": {
+					case "stalk": {
 						this.watchIgnorePlayersWords("watchedPlayers", username);
 					} break;
 					case "ignore": {
@@ -1912,6 +1703,106 @@
 
 				const contextMenu = document.getElementById("flatChat-contextMenu");
 				contextMenu.style.visibility = "hidden";
+			}
+		}
+
+		updateUnread(channel) {
+			if(channel !== this.currentChannel) {
+				const unreadMessages = ++this.channels[channel].unreadMessages;
+				const unreadDiv = document.querySelector(`.flatChatTab[data-channel=${channel}] .flatChatUnread`);
+				unreadDiv.innerText = unreadMessages
+				unreadDiv.style.visibility = "visible";
+			}
+		}
+
+		//Server messages don't require some of the checks, most is the same as user messages, but I think it is better to have them as different functions now
+		showServerMessage(data, html = false) {
+			// data = {
+			//     username: "",
+			//     tag: "none",
+			//     sigil: "none",
+			//     color: "white",
+			//     message: "oi gente",
+			//     yell: false,
+			//     channel: "channel_local"
+			//     channel: "private_dounford"
+			//     usernameColor: "red"
+			// }
+
+			//If for some reason the channel does not exist
+			if(!data.channel in this.channels) {
+				data.channel = "channel_local"
+			}
+
+			let message = data.message;
+
+			for (const not in textToNotification) {
+				if(message.includes(textToNotification[not].blocked)) {
+					this.updateNotification(message, not);
+					this.showNotification(not);
+					return;
+				}
+			}
+
+			let messageContainer = document.createElement('div');
+
+			if (messageColors[data.color]) {
+				messageContainer.className += " fc-" + messageColors[data.color]
+			} else {
+				//In case a color that doesn't has a variable yet is used
+				messageContainer.style.color = data.color || "white";
+			}
+
+			//Message reiceived time [12:43]
+			if (this.config.showTime) {
+				const timeStrong = document.createElement("strong");
+				timeStrong.className = "fc-timestamp"
+				timeStrong.innerHTML = this.getDateStr();
+				messageContainer.appendChild(timeStrong);
+			}
+
+			//For now it will never use html, but maybe Smitty changes something in the future
+			const messageSpan = document.createElement('span');
+			if (html) {
+				messageSpan.innerHTML = message;
+			} else {
+				messageSpan.innerText = message;
+			}
+
+			//I find it hard to believe that the server will ever send links, but just in case...
+			messageSpan.innerHTML = anchorme({
+				input: messageSpan.innerHTML,
+				options: {
+					attributes: {
+						target: "_blank",
+						class: "detected"
+					}
+				},
+			});
+
+			//If the message contains any ignored word it will ignore the message or mark as spoiler
+			if(this.config.ignoredWords.some(word => message.includes(word))) {
+				if(this.config["hideUnwanted"]) {
+					messageSpan.style.cursor = "pointer";
+					messageSpan.classList.add("flatChatHidden");
+					messageSpan.onclick = ()=>{
+						messageSpan.classList.toggle("flatChatHidden")
+					}
+				} else {
+					return;
+				}
+			}
+
+			messageContainer.appendChild(messageSpan);
+
+			const messageArea = document.querySelector(`#flatChat-channels [data-channel=${data.channel}]`);
+			messageArea.appendChild(messageContainer);
+
+			//Update the unread messages number if needed
+			this.updateUnread(data.channel);
+
+			if (this.channels[data.channel].autoScroll) {
+				messageArea.scrollTop = messageArea.scrollHeight;
 			}
 		}
 
@@ -1925,15 +1816,19 @@
 			//     yell: false,
 			//     channel: "channel_local"
 			//     channel: "private_dounford"
+			//     usernameColor: "red"
 			// }
+
+			//If for some reason the channel does not exist
 			if(!data.channel in this.channels) {
 				data.channel = "channel_local"
 			}
+
 			let message = data.message;
 
+			//This should prevent some spam to show
 			const lastSender = this.channels[data.channel]?.lastSender || "";
 			const lastMessage = this.channels[data.channel]?.lastMessage || "";
-			//This should prevent some spam to show
 			if (lastSender === data.username && lastMessage === data.message && !this.getConfig("showSpam")) {
 				return;
 			}
@@ -1946,9 +1841,14 @@
 			let messageContainer = document.createElement('div');
 
 			//Ping if any watched word is present or if the message contains the username
-			//Doesn't ping if it is yours message or server message
-			if ((message.includes("@" + Globals.local_username) || this.config.watchedWords.some(word => message.includes(word))) && data.username !== "" && data.username !== Globals.local_username) {
+			//Doesn't ping if it is yours message
+			const isMention = message.includes("@" + Globals.local_username);
+			const hasWatchedWord = this.config.watchedWords.some(word => message.includes(word));
+			let isPing = false;
+			if (data.username !== Globals.local_username && (isMention || hasWatchedWord)) {
+				isPing = this.config.pingChat;
 				messageContainer.className = "fc-pingMessages";
+				//Ignore ping is just about the sound
 				if(!this.config.ignorePings) {
 					ding.play();
 				}
@@ -1957,11 +1857,11 @@
 			if (data.color && data.color !== "white" && data.color !== "grey") {
 				if (messageColors[data.color]) {
 					messageContainer.className += " fc-" + messageColors[data.color]
-					if (data.color === "ownPrivate") {
+					if (data.color === "pmSentMessages") {
 						const ownPrivateSpan = document.createElement("span");
 						ownPrivateSpan.innerText = "< "
 						messageContainer.appendChild(ownPrivateSpan);
-					} else if (data.color === "private") {
+					} else if (data.color === "pmReceivedMessages") {
 						const privateSpan = document.createElement("span");
 						privateSpan.innerText = "> "
 						messageContainer.appendChild(privateSpan);
@@ -1972,10 +1872,20 @@
 				}
 			}
 
+			//Message reiceived time [12:43]
 			if (this.config.showTime) {
 				const timeStrong = document.createElement("strong");
+				timeStrong.className = "fc-timestamp"
 				timeStrong.innerHTML = this.getDateStr();
 				messageContainer.appendChild(timeStrong);
+			}
+
+			if (data.tag && data.tag !== "none") {
+				let tag = document.createElement("span");
+
+				tag.innerText = data.tag === "investor-plus" ? "INVESTOR" : data.tag === "moderator" ? "MOD" : data.tag.toUpperCase();
+				tag.classList.add("chat-tag-" + data.tag);
+				messageContainer.appendChild(tag);
 			}
 
 			if (data.sigil && data.sigil !== "none") {
@@ -1992,17 +1902,11 @@
 				messageContainer.appendChild(sigilImg);
 			}
 
-			if (data.tag && data.tag !== "none") {
-				let tag = document.createElement("span");
-
-				tag.innerText = data.tag === "investor-plus" ? "INVESTOR" : data.tag.toUpperCase();
-				tag.classList.add("chat-tag-" + data.tag);
-				messageContainer.appendChild(tag);
-			}
-
 			if (data.username) {
 				const senderStrong = document.createElement("strong");
-				senderStrong.innerText = data.username.replaceAll("_", " ") + ":";
+				let username = data.username.replaceAll("_", " ");
+				username = this.config.nicknames[username] || username;
+				senderStrong.innerText = username + ":";
 				senderStrong.className = "flatChat-player";
 				senderStrong.setAttribute("data-sender", data.username.replaceAll(" ", "_"));
 				messageContainer.appendChild(senderStrong);
@@ -2021,7 +1925,11 @@
 			}
 
 			const messageSpan = document.createElement('span');
-			if (html) {
+			const match = message.match(/My (.*?) level is: (.*?) \((.*?) xp\)/);
+			if(match) {
+				const [_, skill, level, xp] = match;
+				this.createLevelTooltip(messageSpan, this.toTitleCase(skill), level, xp);
+			} else if (html) {
 				messageSpan.innerHTML = message;
 			} else {
 				messageSpan.innerText = message;
@@ -2053,6 +1961,10 @@
 
 			const messageArea = document.querySelector(`#flatChat-channels [data-channel=${data.channel}]`);
 			messageArea.appendChild(messageContainer);
+			//Clones the message on the ping channel
+			if(isPing) {
+				document.querySelector(`.flatChatChannel[data-channel=channel_pings]`).appendChild(messageContainer.cloneNode());
+			}
 
 			if(data.channel !== this.currentChannel) {
 				const unreadMessages = ++this.channels[data.channel].unreadMessages;
@@ -2067,6 +1979,22 @@
 
 			this.channels[data.channel].lastSender = data.username;
 			this.channels[data.channel].lastMessage = data.message;
+		}
+
+		createLevelTooltip(element, skill, level, xp) {
+			let nextLvl = "";
+			if(skill !== "Global") {
+				const value = format_number(FlatMMOPlus.level[level + 1] - parseInt(xp.replaceAll(",","")));
+				nextLvl `<div>XP to Level Up: ${value}</div>`
+			}
+			element.innerHTML = `<span class="flatChatLevelSpan">Lvl ${level} ${skill}</span>
+			<div class="tooltiptext flatChatLevelTooltip">
+				<div>${skill}</div>
+				<div>Level: ${level}</div>
+				<div>XP: ${xp}</div>
+				${nextLvl}
+			</div>`;
+			element.classList.add("tooltip");
 		}
 
 		updateNotification(message, blocked) {
@@ -2120,24 +2048,16 @@
 			this.showMessage(data, true);
 		}
 
-		showOwnMessage(message, channel, color = "white") {
-			//I'm getting the sigil in a hacky way, I don't know how to get the tag, so unless Smitty adds a variable for it I can't do much
-			const data = {
-				username: Globals.local_username,
-				tag: "none",
-				color,
-				message,
-				channel
-			}
-			data.sigil = document.querySelector("#equipment-slot-sigil img").src.slice(33,-4) == "none" ? "none" : "images/ui" + document.querySelector("#equipment-slot-sigil img").src.slice(32);
-			this.showMessage(data, false);
-		}
-
 		sendMessage() {
-			let message = document.getElementById("flatChat-input").value.trim();
+			let message = document.getElementById("flatChatInput").value.trim();
 			if (!message) {return};
 
-			document.getElementById("flatChat-input").value = "";
+			//[here] can't be modified, it will always use the current_map id
+			message.replaceAll("[here]", current_map);
+			//This replaces all [shortcuts]
+			Object.keys(this.config.shortcuts).forEach(shortcut => message = message.replaceAll(`[${shortcut}]`, this.config.shortcuts[shortcut]));
+
+			document.getElementById("flatChatInput").value = "";
 			this.channels[this.currentChannel].inputText = "";
 
 			if(message !== this.chatHistory[0]) {
