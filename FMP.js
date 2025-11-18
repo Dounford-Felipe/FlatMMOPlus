@@ -430,7 +430,7 @@
         item.className = "fmp-list-item";
         function editField(e) {
             e.preventDefault();
-            el = e.target;
+            const el = e.target;
             el.contentEditable = true;
             el.focus();
         }
@@ -449,13 +449,13 @@
 
         function focusOut(e) {
             e.preventDefault();
-            el = e.target;
+            const el = e.target;
             el.contentEditable = false;
             plugin.changedConfigs.add(configId);
             window.FlatMMOPlus.setPluginConfigUIDirty(pluginId, true, configId)
         }
-        keyDiv.onfocusout = (e) => focusOut(e);
-        valueDiv.onfocusout = (e) => focusOut(e);
+        keyDiv.onblur = (e) => focusOut(e);
+        valueDiv.onblur = (e) => focusOut(e);
 
         closeSpan.innerText = "×";
         closeSpan.className = "fmp-list-close";
@@ -1185,6 +1185,11 @@
                 .fmp-list-close {
                     cursor: pointer;
                     float: right;
+                }
+                .fmp-objectLabel {
+                    display: grid;
+                    grid-template-columns: auto auto;
+                    justify-items: center;
                 }
             </style>`;
             this.forEachPlugin(plugin => {
