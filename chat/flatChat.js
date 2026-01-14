@@ -62,7 +62,7 @@
             /*Bottom bar*/
             usernameBottomBar: "#C0C0C0",
             chatBarBackground: "#131419",
-            chatBarTextColor: "#7d7e80",
+            chatBarTextColor: "white",
             buttonsBackground: "#000090",
             buttonsTextColor: "#C0C0C0",
             /*Context Menu*/
@@ -507,8 +507,8 @@
 			});
 			this.defineCommands();
 			ding.volume = this.config.pingVolume / 100;
-			this.addThemeEditor();
-			this.changeThemeEditor();
+			//this.addThemeEditor();
+			//this.changeThemeEditor();
 			this.showWarning("Welcome to flatmmo.com", "orange");
 			this.showWarning(document.querySelectorAll("#chat span")[1].innerHTML, "white");
 			this.showWarning(`<span><strong style="color:cyan">FYI: </strong> Use the /help command to see information on available chat commands.</span>`, "white");
@@ -861,7 +861,7 @@
 				</div>
 			</div>
 			<div id="flatChatMainArea">
-				<div id="flatChatChannels" style="height: 190px;"></div>
+				<div id="flatChatChannels" style="height: var(--fc-chatHeight, 190px);--fc-messageFontSize: ${this.config.fontSize}rem;"></div>
 				<div id="flatChatBottomBar">
 					<div id="flatChatInputDiv">
 						<input type="text" id="flatChatInput" autocomplete="off" placeholder="">
@@ -916,8 +916,6 @@
 					await navigator.clipboard.writeText(username.replaceAll("_", " "));
 
 					const copyMessage = document.getElementById("flatChatCopyUsername");
-					copyMessage.style.top = e.clientY + "px"
-					copyMessage.style.left = e.clientX + "px"
 					copyMessage.style.visibility = "visible"
 					setTimeout(()=>{copyMessage.style.visibility = "hidden"}, 1000);
 				}
@@ -935,7 +933,6 @@
 					contestUser.innerText = username;
 					
 					const contextMenu = document.getElementById("flatChatContextMenu");
-					contextMenu.style.left = e.clientX + "px";
 					contextMenu.style.visibility = "visible";
 				}
 			});
@@ -1271,11 +1268,7 @@
 				} else {
 					const receiver = data.substring(0, space);
 					const message = data.substring(space + 1);
-					if (this.channels["private_" + receiver]) {
-						this.switchChannel(receiver, true);
-					} else {
-						this.switchChannel("global", false);
-					}
+
 					Globals.websocket.send(`CHAT=/pm ${receiver} ${message}`);
 				}
 			}, `Send a private message to someone.<br><strong>Usage:</strong> /pm [username] [message]`);
@@ -1918,7 +1911,14 @@
 			messageArea.appendChild(messageContainer);
 			//Clones the message on the ping channel
 			if(isPing) {
-				document.querySelector(`.flatChatChannel[data-channel=channel_pings]`).appendChild(messageContainer.cloneNode());
+				const pingElement = messageContainer.cloneNode(true);
+				pingElement.className = ""; //Every message is a ping, there is no reason to highlight them
+
+				pingElement.onclick = function() {
+					FlatMMOPlus.plugins.flatChat.switchChannel(data.channel.slice(8), data.channel.startsWith("private_"))
+					messageContainer.scrollIntoView();
+				}
+				document.querySelector(`.flatChatChannel[data-channel=channel_pings]`).appendChild(pingElement);
 				
 				//Update the unread messages number if needed
 				if(this.currentChannel !== "channel_pings") {
@@ -2046,8 +2046,11 @@
 
 			const maxlength = this.currentChannel.startsWith("channel") ? 95 : 85;
 			const messageArray = this.divideStringByLength(message, maxlength);
+			const isPM = message.startsWith("/pm");
 			for (let i = 0; i < messageArray.length; i++) {
-				if(this.currentChannel === "channel_local") {
+				if(this.currentChannel === "channel_whisper" || (isPM && i > 0)) {
+					FlatMMOPlus.customChatCommands.r("r", messageArray[i])
+				} else if(this.currentChannel === "channel_local") {
 					Globals.websocket.send('CHAT=' + messageArray[i]);
 				} else if(this.currentChannel === "channel_global") {
 					Globals.websocket.send('CHAT=/yell ' + messageArray[i]);
