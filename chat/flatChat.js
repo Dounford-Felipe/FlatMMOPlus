@@ -149,6 +149,12 @@
 		// 	visitedLinkColor: "#00FFFF",
 		// },
 	}
+	const chatInset = {
+		bottomRight: "auto 0 0 auto",
+		bottomLeft: "auto auto 0 auto",
+		topRight: "0 0 auto auto",
+		topLeft: "0 auto auto"
+	}
 
 	const textToNotification = {
 		nessieTime: {
@@ -320,7 +326,7 @@
 						min: 0,
 						max: 10,
 						step: 0.1,
-						default: 1
+						default: 1.5
 					},
 					{
 						id: "theme",
@@ -331,6 +337,34 @@
 							{value: "dark", label: "Dark"},
 						],
 						default: "dark"
+					},
+					{
+						id: "chatWidth",
+						label: "Chat Width",
+						type: "range",
+						min: 0,
+						max: 100,
+						step: 1,
+						default: 50,
+					},
+					{
+						id: "chatHeight",
+						label: "Chat Height",
+						type: "number",
+						step: 5,
+						default: 190
+					},
+					{
+						id: "chatPosition",
+						label: "Chat Position",
+						type: "select",
+						options: [
+							{value: "bottomRight", label: "Bottom Right"},
+							{value: "bottomLeft", label: "Bottom Left"},
+							{value: "topRight", label: "Top Right"},
+							{value: "topLeft", label: "Top Left"},
+						],
+						default: "bottomRight"
 					},
 					{
 						id: "profilePage",
@@ -384,7 +418,7 @@
 						id: "nicknames",
 						label: "Nicknames List",
 						type: "object",
-						default: {dounbot2: "dounbot"},
+						default: {dounbot2: "dounbot", felipewolf: "Liam"},
 						key: "Username",
 						value: "Nickname"
 					},
@@ -592,6 +626,32 @@
 						})
 						flatChat.classList.add("flatChatTheme-" + this.config.theme);
 					} break;
+					case "pingChat": {
+						if(this.config.pingChat) {
+							document.querySelector(".flatChatTab[data-channel='channel_pings']").classList.remove("displaynone")
+						} else {
+							document.querySelector(".flatChatTab[data-channel='channel_pings']").classList.add("displaynone")
+						}
+					} break;
+					case "defaultPmChat": {
+						if(this.config.defaultPmChat === "whisper") {
+							document.querySelector(".flatChatTab[data-channel='channel_whisper']").classList.remove("displaynone")
+						} else {
+							document.querySelector(".flatChatTab[data-channel='channel_whisper']").classList.add("displaynone")
+						}
+					} break;
+					case "chatWidth": {
+						const flatChat = document.getElementById("flatChat");
+						flatChat.style.setProperty("--fc-chatWidth", this.config.chatWidth + "%");
+					} break;
+					case "chatHeight": {
+						const flatChat = document.getElementById("flatChat");
+						flatChat.style.setProperty("--fc-chatHeight", this.config.chatHeight + "px");
+					} break;
+					case "chatPosition": {
+						const flatChat = document.getElementById("flatChat");
+						flatChat.style.inset = chatInset[this.config.chatPosition];
+					} break;
 				}
 			})
 		}
@@ -623,10 +683,6 @@
 				width: var(--fc-chatWidth, 50%);
 				background-color: var(--fc-chatBackground);
 				border-radius: 0 0 3% 3%;
-				inset: auto auto 0 auto;
-				inset: auto 0 0 auto;
-				/* inset: 0 auto auto; */
-				/* inset: 0 0 auto auto;*/
 			}
 			#flatChatExpandBtn{
 				width: 2rem;
@@ -881,6 +937,7 @@
 				</div>
 				<div id="flatChatCopyUsername" style="visibility:hidden">USERNAME COPIED</div>`
 			chatDiv.id = "flatChat";
+			chatDiv.style.inset = "auto 0 0 auto";
 			let currentTheme = this.config.theme
 			if(this.themes[currentTheme]) {
 				chatDiv.classList = "flatChat flatChatTheme-" + this.config.theme;
@@ -899,7 +956,7 @@
 
 			document.getElementById("flatChatInput").placeholder = Globals.local_username;
 
-			const closeBtn = document.getElementById("flatChatSendBtn");
+			const closeBtn = document.getElementById("flatChatCloseBtn");
 			closeBtn.style.display = this.config.showCloseBtn ? "" : "none";
 			closeBtn.onclick = () => this.closeChannel();
 
@@ -1313,10 +1370,10 @@
 
 			window.FlatMMOPlus.registerCustomChatCommand("page", (command, data='') => {
 				if (data === "") {
-					window.open(`https://flatmmo.com/profile?user=${Globals.local_username}`,"_blank")
+					window.open(`https://flatstats.ravenwoodsoftware.org/player/${Globals.local_username}`,"_blank")
 					return;
 				}
-				window.open(`https://flatmmo.com/profile?user=${data}`,"_blank");
+				window.open(`https://flatstats.ravenwoodsoftware.org/player/${data}`,"_blank");
 			}, `Opens the Player Profile Page in a new tab.<br><b>Usage:</b>/page [username]`);
 
 			window.FlatMMOPlus.registerCustomChatCommand("profile", (command, data='') => {
@@ -1518,16 +1575,6 @@
 		}
 
 		loadChannels() {
-			if(this.config.defaultPmChat === "whisper") {
-				this.defaultChannels.add("channel_whisper");
-			} else {
-				this.defaultChannels.remove("channel_whisper");
-			}
-			if(this.config.pingChat) {
-				this.defaultChannels.add("channel_pings");
-			} else {
-				this.defaultChannels.remove("channel_pings");
-			}
 			const channels = JSON.parse(localStorage.getItem("flatChat-channels") || '["channel_local","channel_global","channel_pings","channel_whisper"]');
 
 			//It should not be possible to remove default channels, but just in case
@@ -1544,6 +1591,30 @@
 					this.newChannel(name, type === "private");
 				}
 			})
+
+			if(this.config.pingChat) {
+				document.querySelector(".flatChatTab[data-channel='channel_pings']")?.classList.remove("displaynone")
+			} else {
+				document.querySelector(".flatChatTab[data-channel='channel_pings']")?.classList.add("displaynone")
+			}
+			if(this.config.defaultPmChat === "whisper") {
+				document.querySelector(".flatChatTab[data-channel='channel_whisper']")?.classList.remove("displaynone")
+			} else {
+				document.querySelector(".flatChatTab[data-channel='channel_whisper']")?.classList.add("displaynone")
+			}
+
+			document.querySelector(`.flatChatChannel[data-channel=channel_pings]`).addEventListener("click", async (e) => {
+				const message = e.target.closest("[data-mid]");
+				if (message) {
+					const id = message.dataset.mid;
+					const channelName = message.dataset.channel;
+					const isPrivate = channelName.slice(0,7) === "private";
+					const channel = channelName.slice(8);
+
+					this.switchChannel(channel, isPrivate)
+					document.querySelector(`[data-mid="${id}"]`)?.scrollIntoView();
+				}
+			});
 		}
 
 		switchChannel(channel, isPrivate) {
@@ -1556,7 +1627,7 @@
 			//update current chat
 			const newChannel = (isPrivate ? "private_" : "channel_") + channel
 			//Makes sure the channel exists
-			if (!newChannel in this.channels) {
+			if (!this.channels[newChannel]) {
 				newChannel = "channel_local"
 			};
 			this.currentChannel = newChannel;
@@ -1634,7 +1705,7 @@
 								window.open(`https://flatmmo.com/profile/?user=${username.replaceAll("_", " ")}`, '_blank');
 							} break;
 							case "stats": {
-								window.open(`https://www.flatmmostats.com/player_profile.html?username=${username.replaceAll("_", " ")}`, '_blank');
+								window.open(`https://flatstats.ravenwoodsoftware.org/player/${username.replaceAll("_", " ")}`, '_blank');
 							} break;
 						}
 					} break;
