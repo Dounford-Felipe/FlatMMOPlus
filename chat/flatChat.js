@@ -39,7 +39,7 @@
             topBarBackground: "#131c37",
             tabsBackground: "#393a5b",
             activeTabBackground: "#4357af",
-            hoverTabBackground: "lightgrey",
+            hoverTabBackground: "#D3D3D3",
             tabsTextColor: "#e7e7e7",
             unreadMessagesBackground: "#000090",
             unreadMessagesTextColor: "#e7e7e7",
@@ -51,18 +51,18 @@
             regularMessageColor: "#E1E1E1",
             serverMessageColor: "#6495ED",
             milestoneMessageColor: "#FF1493",
-            warningMessageColor: "red",
-            restMessageColor: "lime",
-            lvlUpMessageColor: "green",
-            areaChangeMessageColor: "aqua",
+            warningMessageColor: "#FF0000",
+            restMessageColor: "#00FF00",
+            lvlUpMessageColor: "#008000",
+            areaChangeMessageColor: "#00FFFF",
             pmReceivedMessageColor: "#FFA500",
             pmSentMessageColor: "#e88f4f",
             pingBackground: "#3F51B5",
-            pingTextColor: "white",
+            pingTextColor: "#ffffff",
             /*Bottom bar*/
-            usernameBottomBar: "#C0C0C0",
             chatBarBackground: "#131419",
-            chatBarTextColor: "white",
+            usernameBottomBar: "#C0C0C0",
+            chatBarTextColor: "#ffffff",
             buttonsBackground: "#000090",
             buttonsTextColor: "#C0C0C0",
             /*Context Menu*/
@@ -72,10 +72,8 @@
             contextMenuWarningButtonBackground: "red",
             contextMenuTextColor: "#C0C0C0",
             /*Misc*/
-            hyperlinkTextColor: "aqua",
-            visitedHyperlinkTextColor: "aqua",
-            tabFontSize: "1rem",
-            messageFontSize: "1rem",
+            hyperlinkTextColor: "#00FFFF",
+            visitedHyperlinkTextColor: "#00FFFF",
         },
 		light: {
             chatBackground: "#191b24",
@@ -83,7 +81,7 @@
             topBarBackground: "#131c37",
             tabsBackground: "#393a5b",
             activeTabBackground: "#4357af",
-            hoverTabBackground: "lightgrey",
+            hoverTabBackground: "#D3D3D3",
             tabsTextColor: "#e7e7e7",
             unreadMessagesBackground: "#000090",
             unreadMessagesTextColor: "#e7e7e7",
@@ -95,18 +93,18 @@
             regularMessageColor: "#E1E1E1",
             serverMessageColor: "#6495ED",
             milestoneMessageColor: "#FF1493",
-            warningMessageColor: "red",
-            restMessageColor: "lime",
-            lvlUpMessageColor: "green",
-            areaChangeMessageColor: "aqua",
+            warningMessageColor: "#FF0000",
+            restMessageColor: "#00FF00",
+            lvlUpMessageColor: "#008000",
+            areaChangeMessageColor: "#00FFFF",
             pmReceivedMessageColor: "#FFA500",
             pmSentMessageColor: "#e88f4f",
             pingBackground: "#3F51B5",
-            pingTextColor: "white",
+            pingTextColor: "#ffffff",
             /*Bottom bar*/
-            usernameBottomBar: "#C0C0C0",
             chatBarBackground: "#131419",
-            chatBarTextColor: "#7d7e80",
+            usernameBottomBar: "#C0C0C0",
+            chatBarTextColor: "#ffffff",
             buttonsBackground: "#000090",
             buttonsTextColor: "#C0C0C0",
             /*Context Menu*/
@@ -116,10 +114,8 @@
             contextMenuWarningButtonBackground: "red",
             contextMenuTextColor: "#C0C0C0",
             /*Misc*/
-            hyperlinkTextColor: "aqua",
-            visitedHyperlinkTextColor: "aqua",
-            tabFontSize: "1rem",
-            messageFontSize: "1rem",
+            hyperlinkTextColor: "#00FFFF",
+            visitedHyperlinkTextColor: "#00FFFF",
         },
 		// light: {
 		// 	bgColor: "#ffffff",
@@ -149,6 +145,50 @@
 		// 	visitedLinkColor: "#00FFFF",
 		// },
 	}
+	const themesText = {
+		chatBackground: "Chat Background",
+		/*Top bar*/
+		topBarBackground: "Top Bar Background",
+		tabsBackground: "Tabs Background",
+		activeTabBackground: "Active Tab Background",
+		hoverTabBackground: "Hover Tab Background",
+		tabsTextColor: "Tabs Text",
+		unreadMessagesBackground: "Unread Background",
+		unreadMessagesTextColor: "Unread Text",
+		/*Channels*/
+		oddMessageBackground: "Odd Messages Background",
+		evenMessageBackground: "Even Messages Background",
+		messageTimeColor: "Message Time Color",
+		messageSenderUsernameColor: "Sender Color",
+		regularMessageColor: "Regular Message Color",
+		serverMessageColor: "Server Message",
+		milestoneMessageColor: "Milestone Message",
+		warningMessageColor: "Error/Warning Message",
+		restMessageColor: "Rest Messages",
+		lvlUpMessageColor: "LVL UP Messages",
+		areaChangeMessageColor: "Entering/Leaving Town",
+		pmReceivedMessageColor: "Private Messages Received",
+		pmSentMessageColor: "Private Messages Sent",
+		pingBackground: "Ping Messages Background",
+		pingTextColor: "Ping Messages Text",
+		/*Bottom bar*/
+		chatBarBackground: "Chat Bar Background",
+		usernameBottomBar: "Username Color",
+		chatBarTextColor: "Chat Text",
+		sendButtonBackground: "Send Button Background",
+		sendButtonTextColor: "Send Button Text",
+		buttonsBackground: "Buttons Background",
+		buttonsTextColor: "Buttons Text",
+		/*Context Menu*/
+		contextMenuBackground: "Context Menu Background",
+		contextMenuUsernameColor: "Context Menu Username",
+		contextMenuButtonBackground: "Context Menu Button Background",
+		contextMenuWarningButtonBackground: "Context Menu Warning Button Background",
+		contextMenuTextColor: "Context Menu Text",
+		/*Misc*/
+		hyperlinkTextColor: "Hyperlink Color",
+		visitedHyperlinkTextColor: "Visited Hyperlink Color",
+	};
 	const chatInset = {
 		bottomRight: "auto 0 0 auto",
 		bottomLeft: "auto auto 0 auto",
@@ -541,23 +581,12 @@
 			});
 			this.defineCommands();
 			ding.volume = this.config.pingVolume / 100;
-			//this.addThemeEditor();
-			//this.changeThemeEditor();
+			this.addThemeEditor();
+			this.changeThemeEditor();
 			this.showWarning("Welcome to flatmmo.com", "orange");
 			this.showWarning(document.querySelectorAll("#chat span")[1].innerHTML, "white");
 			this.showWarning(`<span><strong style="color:cyan">FYI: </strong> Use the /help command to see information on available chat commands.</span>`, "white");
 
-			FlatMMOPlus.plugins.flatChat.opts.config.forEach(config => {
-				if(config.type === "list" && typeof FlatMMOPlus.plugins.flatChat.config[config.id] === "string") {
-					FlatMMOPlus.plugins.flatChat.config[config.id] = FlatMMOPlus.plugins.flatChat.config[config.id].split(",")
-					.map(item => item.trim())
-					.filter(item=> item !== "");
-					if(config.unique) {
-						const valuesSet = new Set(FlatMMOPlus.plugins.flatChat.config[config.id]);
-						FlatMMOPlus.plugins.flatChat.config[config.id] = Array.from(valuesSet);
-					}
-				}
-			})
 			this.config.scriptsToLoad.forEach(async script => {
 				await this.loadScript(script)
 			})
@@ -824,8 +853,8 @@
 				}
 			}
 			.flatChatBtn {
-				background-color: var(--fc-buttonsBackground);
-				color: var(--fc-buttonsTextColor);
+				background-color: var(--fc-buttonsBackground) !important;
+				color: var(--fc-buttonsTextColor) !important;
 				border: 0 !important;
 				padding: 5px;
 			}
@@ -853,12 +882,12 @@
 				position: absolute;
 				padding: 5px;
 				background-color: var(--fc-contextMenuBackground) !important;
-				color: var(--fc-contextMenuTextColor) !important;
 				border-radius: 5%;
 				bottom: 0;
-			}
+				}
 			#flatChatContextMenu button {
 				width: 80%;
+				color: var(--fc-contextMenuTextColor) !important;
 				cursor: pointer;
 				&:hover {
 					filter: brightness(0.8);
@@ -919,12 +948,17 @@
 			<div id="flatChatMainArea">
 				<div id="flatChatChannels" style="height: var(--fc-chatHeight, 190px);--fc-messageFontSize: ${this.config.fontSize}rem;"></div>
 				<div id="flatChatBottomBar">
+					<button type="text" id="flatChatCloseBtn" class="buttonsBackground">
+						<img src="https://cdn.idle-pixel.com/images/x.png" alt="" style="height: 25px;">
+					</button>
 					<div id="flatChatInputDiv">
 						<input type="text" id="flatChatInput" autocomplete="off" placeholder="">
-						<button type="text" id="flatChatSendBtn" class="flatChatBtn">Send</button><button type="button" id="flatChatCloseBtn" class="flatChatBtn">
-						<img src="https://cdn.idle-pixel.com/images/x.png" alt="" style="height: 25px;">
-						</button>
+						<button type="text" id="flatChatSendBtn" class="flatChatBtn">Send</button>
 					</div>
+					<button type="button" id="flatChatAutoScrollBtn" class="buttonsBackground">
+						<img src="https://cdn.idle-pixel.com/images/x.png" id="flatChatAutoScrollFalse" alt="" class="displaynone">
+						<img src="https://cdn.idle-pixel.com/images/check.png" id="flatChatAutoScrollTrue" alt="">
+					</button>
 				</div>
 				<div id="flatChatContextMenu" style="visibility:hidden">
 					<span id="flatChatContextUsername" data-user="" class="flatChatContextUsername"></span>
@@ -1110,83 +1144,14 @@
 				FlatMMOPlus.plugins.flatChat.opts.config[6].options.forEach(theme=>{
 					content += `<option value="${theme.value}">${theme.label}</option>`
 				})
-				content += `</select>
-				<label for="fc-bgColor-editor">Chat Background</label>
-				<input type="color" id="fc-bgColor-editor">
+				content += "</select>"
 
-				<label for="fc-oddMessageBg-editor">Odd Messages Background</label>
-				<input type="color" id="fc-oddMessageBg-editor">
+				for (let option in themesText) {
+					content += `<label for="fc-${option}-editor">${themesText[option]}</label>
+					<input type="color" id="fc-${option}-editor">`
+				}
 
-				<label for="fc-evenMessageBg-editor">Even Messages Background</label>
-				<input type="color" id="fc-evenMessageBg-editor">
-
-				<label for="fc-pickerLocal-editor">Picker Local Channel</label>
-				<input type="color" id="fc-pickerLocal-editor">
-
-				<label for="fc-pickerGlobal-editor">Picker Global Channel</label>
-				<input type="color" id="fc-pickerGlobal-editor">
-
-				<label for="fc-pickerRoom-editor">Picker Room Channel (not available)</label>
-				<input type="color" id="fc-pickerRoom-editor">
-
-				<label for="fc-pickerPrivate-editor">Picker Private Channel</label>
-				<input type="color" id="fc-pickerPrivate-editor">
-
-				<label for="fc-inputName-editor">Username on Chat Bar</label>
-				<input type="color" id="fc-inputName-editor">
-
-				<label for="fc-inputColor-editor">Background of Chat Bar</label>
-				<input type="color" id="fc-inputColor-editor">
-
-				<label for="fc-inputText-editor">Chat Bar Text Color</label>
-				<input type="color" id="fc-inputText-editor">
-
-				<label for="fc-messagesColor-editor">Regular Message Color</label>
-				<input type="color" id="fc-messagesColor-editor">
-
-				<label for="fc-serverMessages-editor">Server Messages</label>
-				<input type="color" id="fc-serverMessages-editor">
-
-				<label for="fc-lvlMilestoneMessages-editor">Lvl Up Milestone (each 10 lvls)</label>
-				<input type="color" id="fc-lvlMilestoneMessages-editor">
-
-				<label for="fc-errorMessages-editor">Error/Warning Messages</label>
-				<input type="color" id="fc-errorMessages-editor">
-
-				<label for="fc-restMessages-editor">Rest Messages</label>
-				<input type="color" id="fc-restMessages-editor">
-
-				<label for="fc-lvlUpMessages-editor">Lvl Up Messages</label>
-				<input type="color" id="fc-lvlUpMessages-editor">
-
-				<label for="fc-areaChangeMessages-editor">Entering/Leaving Town</label>
-				<input type="color" id="fc-areaChangeMessages-editor">
-
-				<label for="fc-privateMessages-editor">Private Messages Received</label>
-				<input type="color" id="fc-privateMessages-editor">
-
-				<label for="fc-ownPrivateMessages-editor">Private Messages Sent</label>
-				<input type="color" id="fc-ownPrivateMessages-editor">
-
-				<label for="fc-pingMessages-editor">Ping/Watched Messages</label>
-				<input type="color" id="fc-pingMessages-editor">
-
-				<label for="fc-contextBackground-editor">Context Menu Background Color</label>
-				<input type="color" id="fc-contextBackground-editor">
-
-				<label for="fc-contextSection-editor">Context Menu Section Background (MODERATION)</label>
-				<input type="color" id="fc-contextSection-editor">
-
-				<label for="fc-contextText-editor">Context Menu Text Color</label>
-				<input type="color" id="fc-contextText-editor">
-
-				<label for="fc-linkColor-editor">Hyperlink Text Color</label>
-				<input type="color" id="fc-linkColor-editor">
-
-				<label for="fc-visitedLinkColor-editor">Visited Hyperlink Text Color</label>
-				<input type="color" id="fc-visitedLinkColor-editor">
-
-				<div style="display: grid;grid-template-columns: auto auto;grid-column: 1 / span 2;">
+				content += `<div style="display: grid;grid-template-columns: auto auto;grid-column: 1 / span 2;">
 					<input type="text" id="fc-themeName-editor" placeholder="Theme Name" style="grid-column: 1 / span 2;">
 					<button type="button" onclick="FlatMMOPlus.plugins.flatChat.saveTheme()">Save</button>
 					<button type="button" onclick="FlatMMOPlus.plugins.flatChat.deleteTheme()">Delete Theme</button>
@@ -1235,7 +1200,7 @@
 			//Change to new theme
 			this.config.theme =  themeName;
 			const flatChat = document.getElementById("flatChat");
-			flatChat.classList = "flatChat flatChat-" + this.config.theme;
+			flatChat.classList = "flatChat flatChatTheme-" + this.config.theme;
 			this.saveConfig();
 
 			localStorage.setItem("flatChat2-themes", JSON.stringify(this.themes));
@@ -1268,7 +1233,7 @@
 			document.querySelector(`#flatChat-ThemeEditor-theme option[value=${theme}]`).remove();
 
 			//save themes on localstorage
-			localStorage.setItem("flatChat-themes", JSON.stringify(this.themes));
+			localStorage.setItem("flatChat2-themes", JSON.stringify(this.themes));
 
 			//If there is a theme style (it should exist) remove it
 			if (document.getElementById("fc-themeStyle-" + theme)) {
@@ -1341,11 +1306,6 @@
 				}
 				const receiver = this.lastPM;
 				const message = data;
-				if (this.channels["private_" + receiver]) {
-					this.switchChannel(receiver, true);
-				} else {
-					this.switchChannel("global", false);
-				}
 				Globals.websocket.send(`CHAT=/pm ${receiver} ${message}`);
 			}, `Auto respond the last pm.`);
 
@@ -1474,7 +1434,7 @@
 				this.showWarning(data + " removed from Watched List");
 			}, `Removes a term from the Watched List.<br><b>Usage:</b>/unwatchword [term]`);
 
-			window.FlatMMOPlus.registerCustomChatCommand("ticks", (command, data='') => {
+			window.FlatMMOPlus.registerCustomChatCommand("tick", (command, data='') => {
 				this.showWarning(`The current action takes ${progress_bar_target + 1} ticks (${(progress_bar_target + 1) / 2} seconds)`);
 			}, `Shows the time needed to complete the current action`);
 
@@ -1663,13 +1623,6 @@
 				this.config.fontSize = size;
 				this.saveConfig();
 				return;
-			} else {
-				const currentDiv = document.querySelector(`#flatChatChannels [data-channel=${this.currentChannel}]`)
-				if(currentDiv.clientHeight + currentDiv.scrollTop > currentDiv.scrollHeight - 10) {
-					this.channels[this.currentChannel].autoScroll = true;
-				} else {
-					this.channels[this.currentChannel].autoScroll = false;
-				}
 			}
 		}
 
