@@ -1117,7 +1117,7 @@
                     Globals.websocket.send = (message) => {
                         let canSend = !this.onMessageSent(message);
                         if(canSend) {
-                            this.original_sendmessage(message);
+                            this.original_sendmessage.call(Globals.websocket, message);
                         }
                     }
                 }
