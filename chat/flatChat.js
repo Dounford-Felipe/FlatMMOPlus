@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         FlatChat+
 // @namespace    com.dounford.flatmmo.flatChat
-// @version      2.0.0
+// @version      2.0.4
 // @description  Better chat for FlatMMO
 // @author       Dounford
 // @license      MIT
@@ -383,6 +383,7 @@
 							{value: "bottomLeft", label: "Bottom Left"},
 							{value: "topRight", label: "Top Right"},
 							{value: "topLeft", label: "Top Left"},
+							{value: "outside", label: "Outside"},
 						],
 						default: "bottomRight"
 					},
@@ -665,7 +666,12 @@
 					} break;
 					case "chatPosition": {
 						const flatChat = document.getElementById("flatChat");
-						flatChat.style.inset = chatInset[this.config.chatPosition];
+						if(this.config.chatPosition === "outside") {
+							flatChat.style.position = "unset";
+						} else {
+							flatChat.style.position = "absolute";
+							flatChat.style.inset = chatInset[this.config.chatPosition];
+						}
 					} break;
 					case "hideCloseBtn": {
 						const closeBtn = document.getElementById("flatChatCloseBtn");
@@ -806,7 +812,7 @@
 				color: var(--fc-lvlUpMessageColor) !important;
 			}
 			.fc-areaChangeMessages {
-				color: var(--fc-areaChangeMessages) !important;
+				color: var(--fc-areaChangeMessageColor) !important;
 			}
 			.fc-pmReceivedMessages {
 				color: var(--fc-pmReceivedMessageColor) !important;
@@ -1049,6 +1055,17 @@
 			});
 
 			document.addEventListener("keydown", (e) => {
+				if (e.key === "F4") {
+					e.preventDefault();
+					this.ignoreClick = !this.ignoreClick;
+					if(this.ignoreClick) {
+						chatDiv.style.opacity = "0.2";
+						chatDiv.style.pointerEvents = "none";
+					} else {
+						chatDiv.style.opacity = "1";
+						chatDiv.style.pointerEvents = "unset";
+					}
+				}
 				//Switch back and forth between channels with tab and shift+tab
 				if (e.key === "Tab" && e.target.closest('#flatChat')) {
 					e.preventDefault();
