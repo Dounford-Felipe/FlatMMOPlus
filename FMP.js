@@ -59,6 +59,7 @@
     let loggedIn = false;
     let isFighting = false;
     let original_onmessage;
+    let original_sendmessage;
     let original_switch_panels;
     let flatnotifications = {};
 
@@ -75,6 +76,7 @@
         loggedIn = window.FlatMMOPlus.loggedIn;
         isFighting = window.FlatMMOPlus.isFighting;
         original_onmessage = window.FlatMMOPlus.original_onmessage || null;
+        original_sendmessage = window.FlatMMOPlus.original_sendmessage || null;
         original_switch_panels = window.FlatMMOPlus.original_switch_panels || null;
         //This is required for users that have a FMP version lower than 1.0.0
         if (original_onmessage === null) {
@@ -150,6 +152,7 @@
         window.removeEventListener("keypress", keypress_listener, false);
         document.getElementById("chat-text-input").onkeypress = null
         original_onmessage = Globals.websocket.onmessage;
+        original_sendmessage = Globals.websocket.send;
         original_switch_panels = window.switch_panels;
     }
 
@@ -244,6 +247,7 @@
             this.in_combat_ticker = 0;
             this.currentAction = this.currentAction;
             this.original_onmessage = original_onmessage;
+            this.original_sendmessage = original_sendmessage;
             this.original_switch_panels = original_switch_panels;
             this.notifications = flatnotifications;
             this.level = [
@@ -709,6 +713,22 @@
         });
     }
 
+    FlatMMOPlus.prototype.onMessageSent = function(message) {
+        if(this.debug) {
+            console.log(`FM+ onMessageSent: ${message}`);
+        }
+        let interrupt = false;
+        this.forEachPlugin((plugin) => {
+            if(typeof plugin.onMessageSent === "function") {
+                if(plugin.onMessageSent(message)) {
+                    interrupt = true;
+                };
+            }
+        });
+
+        return interrupt;
+    }
+
     FlatMMOPlus.prototype.onMessageReceived = function(data) {
         if(this.debug) {
             console.log(`FM+ onMessageReceived: ${data}`);
@@ -1091,6 +1111,14 @@
                         }
                         this.original_onmessage(event);
                         this.onMessageReceived(event.data);
+                    }
+                }
+                if(typeof this.original_sendmessage === "function") {
+                    Globals.websocket.send = (message) => {
+                        let canSend = !this.onMessageSent(message);
+                        if(canSend) {
+                            this.original_sendmessage(message);
+                        }
                     }
                 }
                 return true;
