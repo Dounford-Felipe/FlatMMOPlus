@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         FlatMMOPlus
 // @namespace    com.dounford.flatmmo
-// @version      1.3
+// @version      1.4
 // @description  FlatMMO plugin framework
 // @author       Dounford adapted from Anwinity IPP
 // @match        *://flatmmo.com/play.php*
@@ -10,7 +10,7 @@
 
 (function() {
 	'use strict';
-	const VERSION = "1.3";
+	const VERSION = "1.4";
 
     Set.prototype.some = function(predicate) {
         for (const item of this) {
@@ -1017,6 +1017,17 @@
         });
     }
 
+    FlatMMOPlus.prototype.onDamageTaken = function(hpBefore, hpAfter) {
+        if(this.debug) {
+            console.log(`FMMO+ onDamageTaken "${hpBefore}" -> "${hpAfter}"`);
+        }
+        this.forEachPlugin((plugin) => {
+            if(typeof plugin.onDamageTaken === "function") {
+                plugin.onDamageTaken(hpBefore, hpAfter);
+            }
+        });
+    }
+
     FlatMMOPlus.prototype.onFightStarted = function() {
         if(this.debug) {
             console.log(`FMMO+ onFightStarted`);
@@ -1070,6 +1081,13 @@
                             const inventoryAfter = items;
                             this.onInventoryChanged(inventoryBefore, inventoryAfter);
                             return;
+                        } else if (event.data.startsWith(`REFRESH_PLAYER_HP_BAR=${Globals.local_username}`)) {
+                            const hpBefore = players[Globals.local_username].hp;
+                            this.original_onmessage(event);
+                            const hpAfter = players[Globals.local_username].hp;
+                            if(hpAfter < hpBefore) {
+                                this.onDamageTaken(hpBefore, hpAfter);
+                            }
                         }
                         this.original_onmessage(event);
                         this.onMessageReceived(event.data);
