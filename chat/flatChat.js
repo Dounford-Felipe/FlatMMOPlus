@@ -59,6 +59,9 @@
             pmSentMessageColor: "#78ffb5",
             pingBackground: "#3F51B5",
             pingTextColor: "#ffffff",
+			tooltipBorder: "#808080",
+			tooltipBackground: "#aaaaaa",
+			tooltipTextColor: "#000000",
             /*Bottom bar*/
             chatBarBackground: "#131419",
             usernameBottomBar: "#C0C0C0",
@@ -76,74 +79,50 @@
             visitedHyperlinkTextColor: "#00FFFF",
         },
 		light: {
-            chatBackground: "#191b24",
-            /*Top bar*/
-            topBarBackground: "#131c37",
-            tabsBackground: "#393a5b",
-            activeTabBackground: "#4357af",
-            hoverTabBackground: "#D3D3D3",
-            tabsTextColor: "#e7e7e7",
-            unreadMessagesBackground: "#000090",
-            unreadMessagesTextColor: "#e7e7e7",
-            /*Channels*/
-            oddMessageBackground: "#191b24",
-            evenMessageBackground: "#191b24",
-            messageTimeColor: "#E1E1E1",
-            messageSenderUsernameColor: "#E1E1E1",
-            regularMessageColor: "#E1E1E1",
-            serverMessageColor: "#6495ED",
-            milestoneMessageColor: "#FF1493",
-            warningMessageColor: "#FF0000",
-            restMessageColor: "#00FF00",
-            lvlUpMessageColor: "#008000",
-            areaChangeMessageColor: "#00FFFF",
-            pmReceivedMessageColor: "#FFA500",
-            pmSentMessageColor: "#e88f4f",
-            pingBackground: "#3F51B5",
-            pingTextColor: "#ffffff",
-            /*Bottom bar*/
-            chatBarBackground: "#131419",
-            usernameBottomBar: "#C0C0C0",
-            chatBarTextColor: "#ffffff",
-            buttonsBackground: "#000090",
-            buttonsTextColor: "#C0C0C0",
-            /*Context Menu*/
-            contextMenuBackground: "#191b24",
-            contextMenuUsernameColor: "#C0C0C0",
-            contextMenuButtonBackground: "#000090",
-            contextMenuWarningButtonBackground: "red",
-            contextMenuTextColor: "#C0C0C0",
-            /*Misc*/
-            hyperlinkTextColor: "#00FFFF",
-            visitedHyperlinkTextColor: "#00FFFF",
-        },
-		// light: {
-		// 	bgColor: "#ffffff",
-		// 	oddMessageBg: "#ffffff",
-		// 	evenMessageBg: "#ffffff",
-		// 	pickerLocal: "#000000",
-		// 	pickerGlobal: "#000000",
-		// 	pickerRoom: "#000000",
-		// 	pickerPrivate: "#000000",
-		// 	inputName: "#FA8072",
-		// 	inputColor: "#D3D3D3",
-		// 	inputText: "#000000",
-		// 	messagesColor: "#000000",
-		// 	serverMessages: "#6495ED",
-		// 	lvlMilestoneMessages: "#FF1493",
-		// 	errorMessages: "#FF0000",
-		// 	restMessages: "#00FF00",
-		// 	lvlUpMessages: "#008000",
-		// 	areaChangeMessages: "#00FFFF",
-		// 	privateMessages: "#FFA500",
-		// 	ownPrivateMessages: "#e88f4f",
-		// 	pingMessages: "#5F9EA0",
-		// 	contextBackground: "#323437",
-		// 	contextSection: "#252729",
-		// 	contextText: "#C0C0C0",
-		// 	linkColor: "#00FFFF",
-		// 	visitedLinkColor: "#00FFFF",
-		// },
+			chatBackground: "#F5F7FA",
+			/*Top bar*/
+			topBarBackground: "#E3E8F0",
+			tabsBackground: "#D1DAE6",
+			activeTabBackground: "#4A90E2",
+			hoverTabBackground: "#B8C7D9",
+			tabsTextColor: "#2C3E50",
+			unreadMessagesBackground: "#FF6B6B",
+			unreadMessagesTextColor: "#FFFFFF",
+			/*Channels*/
+			oddMessageBackground: "#F5F7FA",
+			evenMessageBackground: "#FFFFFF",
+			messageTimeColor: "#7F8C8D",
+			messageSenderUsernameColor: "#2C3E50",
+			regularMessageColor: "#34495E",
+			serverMessageColor: "#3498DB",
+			milestoneMessageColor: "#9B59B6",
+			warningMessageColor: "#E74C3C",
+			restMessageColor: "#27AE60",
+			lvlUpMessageColor: "#2ECC71",
+			areaChangeMessageColor: "#1ABC9C",
+			pmReceivedMessageColor: "#E67E22",
+			pmSentMessageColor: "#D35400",
+			pingBackground: "#F1C40F",
+			pingTextColor: "#2C3E50",
+			tooltipBorder: "#BDC3C7",
+			tooltipBackground: "#ECF0F1",
+			tooltipTextColor: "#2C3E50",
+			/*Bottom bar*/
+			chatBarBackground: "#E3E8F0",
+			usernameBottomBar: "#7F8C8D",
+			chatBarTextColor: "#2C3E50",
+			buttonsBackground: "#4A90E2",
+			buttonsTextColor: "#FFFFFF",
+			/*Context Menu*/
+			contextMenuBackground: "#FFFFFF",
+			contextMenuUsernameColor: "#34495E",
+			contextMenuButtonBackground: "#4A90E2",
+			contextMenuWarningButtonBackground: "#E74C3C",
+			contextMenuTextColor: "#2C3E50",
+			/*Misc*/
+			hyperlinkTextColor: "#2980B9",
+			visitedHyperlinkTextColor: "#8E44AD",
+		},
 	}
 	const themesText = {
 		chatBackground: "Chat Background",
@@ -171,6 +150,9 @@
 		pmSentMessageColor: "Private Messages Sent",
 		pingBackground: "Ping Messages Background",
 		pingTextColor: "Ping Messages Text",
+		tooltipBorder: "!lvl Tooltip Border",
+		tooltipBackground: "!lvl Tooltip Background",
+		tooltipTextColor: "!lvl Tooltip Text",
 		/*Bottom bar*/
 		chatBarBackground: "Chat Bar Background",
 		usernameBottomBar: "Username Color",
@@ -864,8 +846,6 @@
 				color: var(--fc-buttonsTextColor) !important;
 				border: 0 !important;
 				padding: 5px;
-			}
-			#flatChatCloseBtn {
 				height: 100%;
 				display: flex;
 				align-self: center;
@@ -881,6 +861,20 @@
 				-webkit-background-clip: text;
 				background-clip: text;
 				color: transparent;
+			}
+			.flatChatHidden {
+				background-color: black;
+				color: transparent;
+				a {
+					color: transparent;
+				}
+			}
+			.flatChatLevelTooltip {
+				background-color: var(--fc-tooltipBorder, gray) !important;
+				div {
+					background-color: var(--fc-tooltipBackground, gray) !important;
+					color: var(--fc-tooltipTextColor, black) !important;
+				}
 			}
 			#flatChatContextMenu {
 				display: flex;
@@ -960,7 +954,7 @@
 				<div id="flatChatChannels" style="height: var(--fc-chatHeight, 190px);"></div>
 				<div id="flatChatBottomBar">
 					<button type="text" id="flatChatCloseBtn" class="flatChatBtn">
-						<img src="https://cdn.idle-pixel.com/images/x.png" alt="" style="height: 25px;">
+						<img src="https://cdn.idle-pixel.com/images/x.png">
 					</button>
 					<div id="flatChatInputDiv">
 						<input type="text" id="flatChatInput" autocomplete="off" placeholder="">
@@ -1591,12 +1585,12 @@
 				const message = e.target.closest("[data-mid]");
 				if (message) {
 					const id = message.dataset.mid;
-					const channelName = message.dataset.channel;
+					const channelName = message.dataset.channelname;
 					const isPrivate = channelName.slice(0,7) === "private";
 					const channel = channelName.slice(8);
 
 					this.switchChannel(channel, isPrivate)
-					document.querySelector(`[data-mid="${id}"]`)?.scrollIntoView();
+					document.querySelector(`[data-omid="${id}"]`)?.scrollIntoView();
 				}
 			});
 		}
@@ -1864,15 +1858,6 @@
 			if (data.color && data.color !== "white" && data.color !== "grey") {
 				if (messageColors[data.color]) {
 					messageContainer.className += " fc-" + messageColors[data.color]
-					if (data.color === "pmSentMessages") {
-						const ownPrivateSpan = document.createElement("span");
-						ownPrivateSpan.innerText = "< "
-						messageContainer.appendChild(ownPrivateSpan);
-					} else if (data.color === "pmReceivedMessages") {
-						const privateSpan = document.createElement("span");
-						privateSpan.innerText = "> "
-						messageContainer.appendChild(privateSpan);
-					}
 				} else {
 					//In case a color that doesn't has a variable yet is used
 					messageContainer.style.color = data.color;
@@ -1909,16 +1894,21 @@
 				messageContainer.appendChild(sigilImg);
 			}
 
+			let isPm = data.channel.startsWith("private_");
+
 			if (data.username) {
 				const senderStrong = document.createElement("strong");
 				let username = data.username.replaceAll("_", " ");
+				if(isPm && data.color === "pmSent") {
+					username = Globals.local_username;
+				}
 				username = this.config.nicknames[username] || username;
 				senderStrong.innerText = username + ":";
 				senderStrong.className = "fc-playerName";
 				senderStrong.setAttribute("data-sender", data.username.replaceAll(" ", "_"));
 				messageContainer.appendChild(senderStrong);
 
-				if(this.config.watchedPlayers.includes(data.username) && !data.channel.startsWith("private_")) {
+				if(this.config.watchedPlayers.includes(data.username) && !isPm) {
 					messageContainer.className = "fc-pingMessages";
 				}
 			} else {
@@ -1973,10 +1963,11 @@
 				const pingElement = messageContainer.cloneNode(true);
 				pingElement.className = ""; //Every message is a ping, there is no reason to highlight them
 
-				pingElement.onclick = function() {
-					FlatMMOPlus.plugins.flatChat.switchChannel(data.channel.slice(8), data.channel.startsWith("private_"))
-					messageContainer.scrollIntoView();
-				}
+				const mid = Date.now();
+				messageContainer.setAttribute("data-omid", mid);
+				pingElement.setAttribute("data-mid", mid);
+				pingElement.setAttribute("data-channelname", data.channel);
+
 				document.querySelector(`.flatChatChannel[data-channel=channel_pings]`).appendChild(pingElement);
 				
 				//Update the unread messages number if needed
@@ -1999,9 +1990,11 @@
 		}
 
 		createLevelTooltip(element, skill, level, xp) {
+			const ixp = parseInt(xp.replaceAll(",",""));
+			level = parseInt(level);
 			let nextLvl = "";
-			if(skill !== "Global") {
-				const value = format_number(FlatMMOPlus.level[level + 1] - parseInt(xp.replaceAll(",","")));
+			if(skill !== "Global" && level !== 100) {
+				const value = format_number(FlatMMOPlus.level[level + 1] - ixp);
 				nextLvl = `<div>XP to Level Up: ${value}</div>`
 			}
 			element.innerHTML = `<span class="flatChatLevelSpan">Lvl ${level} ${skill}</span>
