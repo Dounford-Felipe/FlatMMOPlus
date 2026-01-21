@@ -46,8 +46,8 @@
             /*Channels*/
             oddMessageBackground: "#191b24",
             evenMessageBackground: "#191b24",
-            messageTimeColor: "#E1E1E1",
-            messageSenderUsernameColor: "#E1E1E1",
+            messageTimeColor: "#ffffff",
+            messageSenderUsernameColor: "#ffffff",
             regularMessageColor: "#E1E1E1",
             serverMessageColor: "#6495ED",
             milestoneMessageColor: "#FF1493",
@@ -55,8 +55,8 @@
             restMessageColor: "#00FF00",
             lvlUpMessageColor: "#008000",
             areaChangeMessageColor: "#00FFFF",
-            pmReceivedMessageColor: "#FFA500",
-            pmSentMessageColor: "#e88f4f",
+            pmReceivedMessageColor: "#ffdea1",
+            pmSentMessageColor: "#78ffb5",
             pingBackground: "#3F51B5",
             pingTextColor: "#ffffff",
             /*Bottom bar*/
@@ -69,8 +69,8 @@
             contextMenuBackground: "#191b24",
             contextMenuUsernameColor: "#C0C0C0",
             contextMenuButtonBackground: "#000090",
-            contextMenuWarningButtonBackground: "red",
-            contextMenuTextColor: "#C0C0C0",
+            contextMenuWarningButtonBackground: "#ff0000",
+            contextMenuTextColor: "#ffffff",
             /*Misc*/
             hyperlinkTextColor: "#00FFFF",
             visitedHyperlinkTextColor: "#00FFFF",
@@ -158,8 +158,8 @@
 		/*Channels*/
 		oddMessageBackground: "Odd Messages Background",
 		evenMessageBackground: "Even Messages Background",
-		messageTimeColor: "Message Time Color",
-		messageSenderUsernameColor: "Sender Color",
+		messageTimeColor: "Message Time Color (#fff = unset)",
+		messageSenderUsernameColor: "Sender Color (#fff = unset)",
 		regularMessageColor: "Regular Message Color",
 		serverMessageColor: "Server Message",
 		milestoneMessageColor: "Milestone Message",
@@ -175,8 +175,6 @@
 		chatBarBackground: "Chat Bar Background",
 		usernameBottomBar: "Username Color",
 		chatBarTextColor: "Chat Text",
-		sendButtonBackground: "Send Button Background",
-		sendButtonTextColor: "Send Button Text",
 		buttonsBackground: "Buttons Background",
 		buttonsTextColor: "Buttons Text",
 		/*Context Menu*/
@@ -436,6 +434,12 @@
 						default: false
 					},
 					{
+						id: "hideCloseBtn",
+						label: "Hide Close Button",
+						type: "boolean",
+						default: false
+					},
+					{
 						id: "defaultPmChat",
 						label: "Default PM Chat Tab",
 						type: "select",
@@ -616,7 +620,7 @@
 					if(this.config.ignoredPlayers.includes(data.username)) {
 						return
 					}
-					if(this.config["alwaysTabsPM"]) {
+					if(this.config["alwaysTabsPM"] && !this.channels["private_" + data.username]) {
 						this.newChannel(data.username, true)
 					}
 					data.channel = this.channels["private_" + data.username] ? "private_" + data.username : "channel_" + this.config.defaultPmChat;
@@ -681,6 +685,10 @@
 						const flatChat = document.getElementById("flatChat");
 						flatChat.style.inset = chatInset[this.config.chatPosition];
 					} break;
+					case "hideCloseBtn": {
+						const closeBtn = document.getElementById("flatChatCloseBtn");
+						closeBtn.style.display = this.config.hideCloseBtn ? "none" : "";
+					} break;
 				}
 			})
 		}
@@ -712,6 +720,7 @@
 				width: var(--fc-chatWidth, 50%);
 				background-color: var(--fc-chatBackground);
 				border-radius: 0 0 3% 3%;
+				user-select: text;
 			}
 			#flatChatExpandBtn{
 				width: 2rem;
@@ -756,15 +765,7 @@
 			.flatChatTopBarCollapsed {
 				transform: rotate(180deg);
 			}
-			#flatChatMainArea {
-				transition: all 1s ease-in-out;
-				transition-behavior: allow-discrete;
-				@starting-style {
-					height: 0px;
-				}
-			}
 			#flatChatMainArea[closed] {
-				height: 0 !important;
 				display: none;
 			}
 			#flatChatChannels {
@@ -800,6 +801,12 @@
 			}
 			.flatChatChannel div:nth-child(odd) {
 				background-color: var(--fc-oddMessageBackground, var(--fc-chatBackground));
+			}
+			.fc-timestamp {
+				color: var(--fc-messageTimeColor);
+			}
+			.fc-playerName {
+				color: var(--fc-messageSenderUsernameColor);
 			}
 			.fc-serverMessages {
 				color: var(--fc-serverMessageColor) !important;
@@ -861,6 +868,7 @@
 			#flatChatCloseBtn {
 				height: 100%;
 				display: flex;
+				align-self: center;
 				align-items: center;
 				margin-left: 3px;
 			}
@@ -889,6 +897,7 @@
 				width: 80%;
 				color: var(--fc-contextMenuTextColor) !important;
 				cursor: pointer;
+				font-size: var(--fc-messageFontSize);
 				&:hover {
 					filter: brightness(0.8);
 				}
@@ -896,6 +905,7 @@
 			#flatChatContextUsername {
 				color: var(--fc-contextMenuUsernameColor);
 				cursor: text;
+				font-size: var(--fc-messageFontSize);
 			}
 			.flatChatContextBtn {
 				background-color: var(--fc-contextMenuButtonBackground) !important;
@@ -911,6 +921,7 @@
 				border-radius: 5px;
 				background-color: var(--fc-contextMenuBackground);
 				color: var(--fc-contextMenuTextColor);
+				font-size: var(--fc-messageFontSize);
 			}`
 			document.head.append(style);
 
@@ -946,18 +957,18 @@
 				</div>
 			</div>
 			<div id="flatChatMainArea">
-				<div id="flatChatChannels" style="height: var(--fc-chatHeight, 190px);--fc-messageFontSize: ${this.config.fontSize}rem;"></div>
+				<div id="flatChatChannels" style="height: var(--fc-chatHeight, 190px);"></div>
 				<div id="flatChatBottomBar">
-					<button type="text" id="flatChatCloseBtn" class="buttonsBackground">
+					<button type="text" id="flatChatCloseBtn" class="flatChatBtn">
 						<img src="https://cdn.idle-pixel.com/images/x.png" alt="" style="height: 25px;">
 					</button>
 					<div id="flatChatInputDiv">
 						<input type="text" id="flatChatInput" autocomplete="off" placeholder="">
 						<button type="text" id="flatChatSendBtn" class="flatChatBtn">Send</button>
 					</div>
-					<button type="button" id="flatChatAutoScrollBtn" class="buttonsBackground">
-						<img src="https://cdn.idle-pixel.com/images/x.png" id="flatChatAutoScrollFalse" alt="" class="displaynone">
-						<img src="https://cdn.idle-pixel.com/images/check.png" id="flatChatAutoScrollTrue" alt="">
+					<button type="button" id="flatChatAutoScrollBtn" class="flatChatBtn">
+						<img src="https://cdn.idle-pixel.com/images/x.png" id="flatChatAutoScrollfalse" alt="" class="displaynone">
+						<img src="https://cdn.idle-pixel.com/images/check.png" id="flatChatAutoScrolltrue" alt="">
 					</button>
 				</div>
 				<div id="flatChatContextMenu" style="visibility:hidden">
@@ -972,6 +983,9 @@
 				<div id="flatChatCopyUsername" style="visibility:hidden">USERNAME COPIED</div>`
 			chatDiv.id = "flatChat";
 			chatDiv.style.inset = "auto 0 0 auto";
+			chatDiv.style.setProperty("--fc-messageFontSize", this.config.fontSize + "rem")
+			chatDiv.style.setProperty("--fc-chatWidth", this.config.chatWidth + "%")
+			chatDiv.style.setProperty("--fc-chatHeight", this.config.chatHeight + "px")
 			let currentTheme = this.config.theme
 			if(this.themes[currentTheme]) {
 				chatDiv.classList = "flatChat flatChatTheme-" + this.config.theme;
@@ -991,8 +1005,10 @@
 			document.getElementById("flatChatInput").placeholder = Globals.local_username;
 
 			const closeBtn = document.getElementById("flatChatCloseBtn");
-			closeBtn.style.display = this.config.showCloseBtn ? "" : "none";
+			closeBtn.style.display = this.config.hideCloseBtn ? "none" : "";
 			closeBtn.onclick = () => this.closeChannel();
+
+			document.getElementById("flatChatAutoScrollBtn").onclick = () => this.toggleAutoScroll();
 
 			const channelsDiv = document.getElementById("flatChatChannels");
 
@@ -1188,7 +1204,11 @@
 			}
 
 			for (let option in this.themes.dark) {
-				this.themes[themeName][option] = document.getElementById("fc-" + option + "-editor").value
+				const value = document.getElementById("fc-" + option + "-editor").value;
+				this.themes[themeName][option] = value;
+				if((option === "messageTimeColor" || option === "messageSenderUsernameColor") && value == "#ffffff") {
+					this.themes[themeName][option] = "unset";
+				}
 			}
 
 
@@ -1267,6 +1287,10 @@
 		}
 
 		defineCommands() {
+			window.FlatMMOPlus.registerCustomChatCommand("ohelp", (command, data='') => {
+				Globals.websocket.send(`CHAT=/help`);
+			}, `Shows the original vanilla /help`);
+
 			window.FlatMMOPlus.registerCustomChatCommand(["players","who"], (command, data='') => {
 				if (this.currentChannel === "channel_global") {
 					Globals.websocket.send('CHAT=/players');
@@ -1597,6 +1621,11 @@
 			const unreadDiv = document.querySelector(`.flatChatTab[data-channel=${this.currentChannel}] .flatChatUnread`);
 			unreadDiv.style.visibility = "hidden";
 
+			//Change auto scroll icon
+			const autoScroll = this.channels[this.currentChannel].autoScroll;
+			document.getElementById("flatChatAutoScroll" + autoScroll).className = "";
+			document.getElementById("flatChatAutoScroll" + !autoScroll).className = "displaynone";
+
 			//shows the new chat
 			document.querySelector(`.flatChatTab[data-channel=${this.currentChannel}]`).classList.add("flatChatTabActive");
 			const messageArea = document.querySelector(`.flatChatChannel[data-channel=${this.currentChannel}]`);
@@ -1612,18 +1641,24 @@
 		scrollChannel(e) {
 			//Zoom in/out chat messages
 			if (e.shiftKey) {
-				let channels = document.getElementById("flatChatChannels");
+				let chat = document.getElementById("flatChat");
 				let size = this.config.fontSize || 1
 				if (e.deltaY < 0) {
 					size = parseFloat((size + 0.1).toFixed(1));
 				} else {
 					size = parseFloat((size - 0.1).toFixed(1));
 				}
-				channels.style.setProperty("--fc-messageFontSize", size + "rem")
+				chat.style.setProperty("--fc-messageFontSize", size + "rem")
 				this.config.fontSize = size;
 				this.saveConfig();
 				return;
 			}
+		}
+
+		toggleAutoScroll() {
+			this.channels[this.currentChannel].autoScroll = !this.channels[this.currentChannel].autoScroll;
+			document.getElementById("flatChatAutoScrolltrue").classList.toggle("displaynone");
+			document.getElementById("flatChatAutoScrollfalse").classList.toggle("displaynone");
 		}
 
 		watchIgnorePlayersWords(type, word) {
@@ -1879,7 +1914,7 @@
 				let username = data.username.replaceAll("_", " ");
 				username = this.config.nicknames[username] || username;
 				senderStrong.innerText = username + ":";
-				senderStrong.className = "flatChat-player";
+				senderStrong.className = "fc-playerName";
 				senderStrong.setAttribute("data-sender", data.username.replaceAll(" ", "_"));
 				messageContainer.appendChild(senderStrong);
 
