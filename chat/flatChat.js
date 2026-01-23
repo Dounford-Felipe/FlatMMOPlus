@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         FlatChat+
 // @namespace    com.dounford.flatmmo.flatChat
-// @version      2.1
+// @version      2.1.1
 // @description  Better chat for FlatMMO
 // @author       Dounford
 // @license      MIT
@@ -860,6 +860,9 @@
 				&::placeholder {
 					color: var(--fc-usernameBottomBar);
 				}
+				&::-webkit-search-cancel-button {
+					display: none;
+				}
 			}
 			.flatChatBtn {
 				background-color: var(--fc-buttonsBackground) !important;
@@ -989,7 +992,7 @@
 						<img src="https://cdn.idle-pixel.com/images/x.png">
 					</button>
 					<div id="flatChatInputDiv">
-						<input type="text" id="flatChatInput" autocomplete="off" placeholder="">
+						<input type="search" id="flatChatInput" autocomplete="off" data-1p-ignore data-lpignore="true" data-form-type="other" placeholder="">
 						<button type="text" id="flatChatSendBtn" class="flatChatBtn">Send</button>
 					</div>
 					<button type="button" id="flatChatAutoScrollBtn" class="flatChatBtn">
