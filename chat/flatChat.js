@@ -794,13 +794,8 @@
 			.flatChatTopBarCollapsed {
 				transform: rotate(180deg);
 			}
-			#flatChatMainArea {
-				max-height: 1000px;
-				overflow: hidden;
-				transition: max-height 0.3s ease;
-			}
-			#flatChatMainArea.flatChatCollapsed {
-				max-height: 0;
+			#flatChatMainArea[closed] {
+				display: none;
 			}
 			#flatChatChannels {
 				height: var(--fc-chatHeight, 150px);
@@ -993,19 +988,6 @@
 			#flatChat.flatChatDimmed:focus-within {
 				opacity: 1 !important;
 			}
-			.flatChatTabClose {
-				display: none;
-				margin-left: 4px;
-				font-size: 0.7em;
-				opacity: 0.6;
-				cursor: pointer;
-				&:hover {
-					opacity: 1;
-				}
-			}
-			.flatChatTab:hover .flatChatTabClose {
-				display: inline;
-			}
 			#flatChatResizeHandle {
 				height: 6px;
 				cursor: ns-resize;
@@ -1106,7 +1088,7 @@
 
 			document.getElementById("flatChatExpandBtn").addEventListener("click", function(){
 				this.classList.toggle("flatChatTopBarCollapsed")
-				document.getElementById("flatChatMainArea").classList.toggle("flatChatCollapsed");
+				document.getElementById("flatChatMainArea").toggleAttribute("closed");
 			})
 
 			document.getElementById("flatChatInput").placeholder = Globals.local_username;
@@ -1672,15 +1654,11 @@
 			const tabBtn = document.createElement("div");
 			tabBtn.className = "flatChatTab";
 			tabBtn.setAttribute("data-channel", channelName);
-			tabBtn.innerHTML = `<span class="flatChatTabName">${channel.replaceAll("_", " ")}</span>${isPrivate ? '<span class="flatChatTabClose">✕</span>' : ''}
+			tabBtn.innerHTML = `<span class="flatChatTabName">${channel.replaceAll("_", " ")}</span>
 				<div class="flatChatUnread"></div>`
 			document.getElementById("flatChatTabs").appendChild(tabBtn);
 
-			tabBtn.onclick = (e) => {
-				if(e.target.classList.contains("flatChatTabClose")) {
-					this.closeChannel(channelName);
-					return;
-				}
+			tabBtn.onclick = () => {
 				this.switchChannel(channel, isPrivate);
 			}
 
