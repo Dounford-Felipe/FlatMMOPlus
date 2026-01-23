@@ -854,6 +854,7 @@
 				border: 0;
 				padding: 0;
 				margin: 5px;
+				font-size: 18px;
 				background-color: transparent;
 				color: var(--fc-chatBarTextColor);
 				outline: transparent;
