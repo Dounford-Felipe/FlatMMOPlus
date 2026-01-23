@@ -393,6 +393,24 @@
 						default: 190
 					},
 					{
+						id: "chatOpacity",
+						label: "Chat Opacity (%)",
+						type: "range",
+						min: 10,
+						max: 100,
+						step: 5,
+						default: 100,
+					},
+					{
+						id: "maxMessages",
+						label: "Max Messages Per Channel",
+						type: "number",
+						min: 50,
+						max: 5000,
+						step: 50,
+						default: 200
+					},
+					{
 						id: "chatPosition",
 						label: "Chat Position",
 						type: "select",
@@ -691,6 +709,15 @@
 						const closeBtn = document.getElementById("flatChatCloseBtn");
 						closeBtn.style.display = this.config.hideCloseBtn ? "none" : "";
 					} break;
+					case "chatOpacity": {
+						const flatChat = document.getElementById("flatChat");
+						flatChat.style.setProperty("--fc-chatOpacity", this.config.chatOpacity / 100);
+						if(this.config.chatOpacity < 100) {
+							flatChat.classList.add("flatChatDimmed");
+						} else {
+							flatChat.classList.remove("flatChatDimmed");
+						}
+					} break;
 				}
 			})
 		}
@@ -767,8 +794,13 @@
 			.flatChatTopBarCollapsed {
 				transform: rotate(180deg);
 			}
-			#flatChatMainArea[closed] {
-				display: none;
+			#flatChatMainArea {
+				max-height: 1000px;
+				overflow: hidden;
+				transition: max-height 0.3s ease;
+			}
+			#flatChatMainArea.flatChatCollapsed {
+				max-height: 0;
 			}
 			#flatChatChannels {
 				height: var(--fc-chatHeight, 150px);
@@ -952,6 +984,46 @@
 				background-color: var(--fc-contextMenuBackground);
 				color: var(--fc-contextMenuTextColor);
 				font-size: var(--fc-messageFontSize);
+			}
+			#flatChat.flatChatDimmed {
+				opacity: var(--fc-chatOpacity, 1);
+				transition: opacity 0.2s ease;
+			}
+			#flatChat.flatChatDimmed:hover,
+			#flatChat.flatChatDimmed:focus-within {
+				opacity: 1 !important;
+			}
+			.flatChatTabClose {
+				display: none;
+				margin-left: 4px;
+				font-size: 0.7em;
+				opacity: 0.6;
+				cursor: pointer;
+				&:hover {
+					opacity: 1;
+				}
+			}
+			.flatChatTab:hover .flatChatTabClose {
+				display: inline;
+			}
+			#flatChatResizeHandle {
+				height: 6px;
+				cursor: ns-resize;
+				display: flex;
+				justify-content: center;
+				align-items: center;
+				opacity: 0;
+				transition: opacity 0.2s ease;
+				background-color: var(--fc-topBarBackground);
+			}
+			#flatChatResizeHandle:hover {
+				opacity: 1;
+			}
+			#flatChatResizeHandle::after {
+				content: "···";
+				font-size: 10px;
+				color: var(--fc-tabsTextColor, #aaa);
+				letter-spacing: 2px;
 			}`
 			document.head.append(style);
 
@@ -987,6 +1059,7 @@
 				</div>
 			</div>
 			<div id="flatChatMainArea">
+				<div id="flatChatResizeHandle"></div>
 				<div id="flatChatChannels" style="height: var(--fc-chatHeight, 190px);"></div>
 				<div id="flatChatBottomBar">
 					<button type="text" id="flatChatCloseBtn" class="flatChatBtn">
@@ -1016,6 +1089,7 @@
 			chatDiv.style.setProperty("--fc-messageFontSize", this.config.fontSize + "rem")
 			chatDiv.style.setProperty("--fc-chatWidth", this.config.chatWidth + "%")
 			chatDiv.style.setProperty("--fc-chatHeight", this.config.chatHeight + "px")
+			chatDiv.style.setProperty("--fc-chatOpacity", this.config.chatOpacity / 100)
 			let currentTheme = this.config.theme
 			if(this.themes[currentTheme]) {
 				chatDiv.classList = "flatChat flatChatTheme-" + this.config.theme;
@@ -1024,12 +1098,15 @@
 				chatDiv.classList = "flatChat flatChatTheme-dark";
 				this.saveConfig();
 			}
+			if(this.config.chatOpacity < 100) {
+				chatDiv.classList.add("flatChatDimmed");
+			}
 
 			document.getElementById("chat").insertAdjacentElement("beforebegin", chatDiv);
 
 			document.getElementById("flatChatExpandBtn").addEventListener("click", function(){
 				this.classList.toggle("flatChatTopBarCollapsed")
-				document.getElementById("flatChatMainArea").toggleAttribute("closed");
+				document.getElementById("flatChatMainArea").classList.toggle("flatChatCollapsed");
 			})
 
 			document.getElementById("flatChatInput").placeholder = Globals.local_username;
@@ -1039,6 +1116,28 @@
 			closeBtn.onclick = () => this.closeChannel();
 
 			document.getElementById("flatChatAutoScrollBtn").onclick = () => this.toggleAutoScroll();
+
+			// Resize handle drag logic
+			const resizeHandle = document.getElementById("flatChatResizeHandle");
+			resizeHandle.addEventListener("mousedown", (e) => {
+				e.preventDefault();
+				const startY = e.clientY;
+				const startHeight = document.getElementById("flatChatChannels").offsetHeight;
+				const onMouseMove = (e) => {
+					const delta = startY - e.clientY;
+					const newHeight = Math.max(50, startHeight + delta);
+					chatDiv.style.setProperty("--fc-chatHeight", newHeight + "px");
+				};
+				const onMouseUp = () => {
+					document.removeEventListener("mousemove", onMouseMove);
+					document.removeEventListener("mouseup", onMouseUp);
+					const finalHeight = document.getElementById("flatChatChannels").offsetHeight;
+					this.config.chatHeight = finalHeight;
+					this.saveConfig();
+				};
+				document.addEventListener("mousemove", onMouseMove);
+				document.addEventListener("mouseup", onMouseUp);
+			});
 
 			const channelsDiv = document.getElementById("flatChatChannels");
 
@@ -1573,11 +1672,15 @@
 			const tabBtn = document.createElement("div");
 			tabBtn.className = "flatChatTab";
 			tabBtn.setAttribute("data-channel", channelName);
-			tabBtn.innerHTML = `<span class="flatChatTabName">${channel.replaceAll("_", " ")}</span>
+			tabBtn.innerHTML = `<span class="flatChatTabName">${channel.replaceAll("_", " ")}</span>${isPrivate ? '<span class="flatChatTabClose">✕</span>' : ''}
 				<div class="flatChatUnread"></div>`
 			document.getElementById("flatChatTabs").appendChild(tabBtn);
 
-			tabBtn.onclick = () => {
+			tabBtn.onclick = (e) => {
+				if(e.target.classList.contains("flatChatTabClose")) {
+					this.closeChannel(channelName);
+					return;
+				}
 				this.switchChannel(channel, isPrivate);
 			}
 
@@ -1863,6 +1966,11 @@
 			const messageArea = document.querySelector(`#flatChatChannels [data-channel=${data.channel}]`);
 			messageArea.appendChild(messageContainer);
 
+			//Trim old messages if over the limit
+			while(messageArea.children.length > this.config.maxMessages) {
+				messageArea.removeChild(messageArea.firstElementChild);
+			}
+
 			//Update the unread messages number if needed
 			this.updateUnread(data.channel);
 
@@ -2032,14 +2140,23 @@
 				pingElement.setAttribute("data-mid", mid);
 				pingElement.setAttribute("data-channelname", data.channel);
 
-				document.querySelector(`.flatChatChannel[data-channel=channel_pings]`).appendChild(pingElement);
-				
+				const pingsArea = document.querySelector(`.flatChatChannel[data-channel=channel_pings]`);
+				pingsArea.appendChild(pingElement);
+				while(pingsArea.children.length > this.config.maxMessages) {
+					pingsArea.removeChild(pingsArea.firstElementChild);
+				}
+
 				//Update the unread messages number if needed
 				if(this.currentChannel !== "channel_pings") {
 					this.updateUnread("channel_pings");
 				}
 			}
-			
+
+			//Trim old messages if over the limit
+			while(messageArea.children.length > this.config.maxMessages) {
+				messageArea.removeChild(messageArea.firstElementChild);
+			}
+
 			if(data.channel !== this.currentChannel) {
 				//Update the unread messages number if needed
 				this.updateUnread(data.channel);
