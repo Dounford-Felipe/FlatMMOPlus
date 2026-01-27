@@ -7,7 +7,7 @@
 // @license      MIT
 // @match        *://flatmmo.com/play.php*
 // @grant        none
-// @require      https://update.greasyfork.org/scripts/544062/FlatMMOPlus.js
+// @require      https://openuserjs.org/install/Dounford/FlatMMOPlus.user.js
 // @require      https://cdnjs.cloudflare.com/ajax/libs/anchorme/2.1.2/anchorme.min.js
 // ==/UserScript==
 
