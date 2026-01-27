@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name         FlatChat+
+// @name         FlatChat
 // @namespace    com.dounford.flatmmo.flatChat
 // @version      2.2.0
 // @description  Better chat for FlatMMO
