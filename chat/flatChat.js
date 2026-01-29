@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         FlatChat
 // @namespace    com.dounford.flatmmo.flatChat
-// @version      2.2.0
+// @version      2.3.0
 // @description  Better chat for FlatMMO
 // @author       Dounford
 // @license      MIT
@@ -123,6 +123,51 @@
 			hyperlinkTextColor: "#2980B9",
 			visitedHyperlinkTextColor: "#8E44AD",
 		},
+		mocha: {
+			chatBackground: "#1e1e2e",
+			/*Top bar*/
+			topBarBackground: "#181825",
+			tabsBackground: "#1e1e2e",
+			activeTabBackground: "#45475a",
+			hoverTabBackground: "#313244",
+			tabsTextColor: "#cdd6f4",
+			unreadMessagesBackground: "#313244",
+			unreadMessagesTextColor: "#cdd6f4",
+			/*Channels*/
+			oddMessageBackground: "#1e1e2e",
+			evenMessageBackground: "#1e1e2e",
+			messageTimeColor: "#cdd6f4",
+			messageSenderUsernameColor: "#cdd6f4",
+			regularMessageColor: "#cdd6f4",
+			serverMessageColor: "#b4befe",
+			milestoneMessageColor: "#f5c2e7",
+			warningMessageColor: "#f38ba8",
+			restMessageColor: "#a6e3a1",
+			lvlUpMessageColor: "#94e2d5",
+			areaChangeMessageColor: "#89dceb",
+			pmReceivedMessageColor: "#fab387",
+			pmSentMessageColor: "#f9e2af",
+			pingBackground: "#313244",
+			pingTextColor: "#cdd6f4",
+			tooltipBorder: "#11111b",
+			tooltipBackground: "#313244",
+			tooltipTextColor: "#cdd6f4",
+			/*Bottom bar*/
+			chatBarBackground: "#11111b",
+			usernameBottomBar: "#cdd6f4",
+			chatBarTextColor: "#cdd6f4",
+			buttonsBackground: "#1e1e2e",
+			buttonsTextColor: "#c0c0c0",
+			/*Context Menu*/
+			contextMenuBackground: "#191b24",
+			contextMenuUsernameColor: "#cdd6f4",
+			contextMenuButtonBackground: "#191b24",
+			contextMenuWarningButtonBackground: "#f38ba8",
+			contextMenuTextColor: "#cdd6f4",
+			/*Misc*/
+			hyperlinkTextColor: "#cba6f7",
+			visitedHyperlinkTextColor: "#cba6f7"
+		}
 	}
 	const themesText = {
 		chatBackground: "Chat Background",
@@ -373,6 +418,7 @@
 						options: [
 							{value: "light", label: "Light"},
 							{value: "dark", label: "Dark"},
+							{value: "mocha", label: "Mocha by Mae"}
 						],
 						default: "dark"
 					},
@@ -403,24 +449,25 @@
 					},
 					{
 						id: "maxMessages",
-						label: "Max Messages Per Channel",
+						label: "Max Messages Per Channel (0 = unlimited)",
 						type: "number",
-						min: 50,
+						min: 0,
 						max: 5000,
 						step: 50,
-						default: 200
+						default: 0
 					},
 					{
 						id: "chatPosition",
 						label: "Chat Position",
 						type: "select",
 						options: [
+							{value: "detached", label: "Own Window (Detached)"},
 							{value: "bottomRight", label: "Bottom Right"},
 							{value: "bottomLeft", label: "Bottom Left"},
 							{value: "topRight", label: "Top Right"},
 							{value: "topLeft", label: "Top Left"},
-							{value: "outside", label: "Outside"},
-							{value: "outsideSideTab", label: "Outside (Side Tabs)"},
+							{value: "outside", label: "Outside Canvas"},
+							{value: "outsideSideTab", label: "Outside Canvas (Side Tabs)"},
 						],
 						default: "bottomRight"
 					},
@@ -525,6 +572,9 @@
 					}
 				]
 			});
+
+			this.fcElement = null;
+			this.detachedChat = null;
 
 			this.defaultChannels = new Set(["channel_local","channel_global","channel_pings","channel_whisper"])
 			this.channels = {};
@@ -669,53 +719,49 @@
 						ding.volume = this.config.pingVolume / 100;
 					} break;
 					case "fontSize": {
-						document.getElementById("flatChatChannels").style.setProperty("--fc-messageFontSize", this.config.fontSize + "rem");
+						this.fcElement.querySelector("#flatChatChannels").style.setProperty("--fc-messageFontSize", this.config.fontSize + "rem");
 					} break;
 					case "theme": {
-						const flatChat = document.getElementById("flatChat");
-						flatChat.classList.forEach(className => {
+						this.fcElement.classList.forEach(className => {
 							if(className.startsWith("flatChatTheme-")) {
-								flatChat.classList.remove(className);
+								this.fcElement.classList.remove(className);
 							}
 						})
-						flatChat.classList.add("flatChatTheme-" + this.config.theme);
+						this.fcElement.classList.add("flatChatTheme-" + this.config.theme);
 					} break;
 					case "pingChat": {
 						if(this.config.pingChat) {
-							document.querySelector(".flatChatTab[data-channel='channel_pings']").classList.remove("displaynone")
+							this.fcElement.querySelector(".flatChatTab[data-channel='channel_pings']").classList.remove("displaynone")
 						} else {
-							document.querySelector(".flatChatTab[data-channel='channel_pings']").classList.add("displaynone")
+							this.fcElement.querySelector(".flatChatTab[data-channel='channel_pings']").classList.add("displaynone")
 						}
 					} break;
 					case "defaultPmChat": {
 						if(this.config.defaultPmChat === "whisper") {
-							document.querySelector(".flatChatTab[data-channel='channel_whisper']").classList.remove("displaynone")
+							this.fcElement.querySelector(".flatChatTab[data-channel='channel_whisper']").classList.remove("displaynone")
 						} else {
-							document.querySelector(".flatChatTab[data-channel='channel_whisper']").classList.add("displaynone")
+							this.fcElement.querySelector(".flatChatTab[data-channel='channel_whisper']").classList.add("displaynone")
 						}
 					} break;
 					case "chatWidth": {
-						const flatChat = document.getElementById("flatChat");
-						flatChat.style.setProperty("--fc-chatWidth", this.config.chatWidth + "%");
+						this.fcElement.style.setProperty("--fc-chatWidth", this.config.chatWidth + "%");
 					} break;
 					case "chatHeight": {
-						const flatChat = document.getElementById("flatChat");
-						flatChat.style.setProperty("--fc-chatHeight", this.config.chatHeight + "px");
+						this.fcElement.style.setProperty("--fc-chatHeight", this.config.chatHeight + "px");
 					} break;
 					case "chatPosition": {
 						this.configurePosition()
 					} break;
 					case "hideCloseBtn": {
-						const closeBtn = document.getElementById("flatChatCloseBtn");
+						const closeBtn = this.fcElement.querySelector("#flatChatCloseBtn");
 						closeBtn.style.display = this.config.hideCloseBtn ? "none" : "";
 					} break;
 					case "chatOpacity": {
-						const flatChat = document.getElementById("flatChat");
-						flatChat.style.setProperty("--fc-chatOpacity", this.config.chatOpacity / 100);
+						this.fcElement.style.setProperty("--fc-chatOpacity", this.config.chatOpacity / 100);
 						if(this.config.chatOpacity < 100) {
-							flatChat.classList.add("flatChatDimmed");
+							this.fcElement.classList.add("flatChatDimmed");
 						} else {
-							flatChat.classList.remove("flatChatDimmed");
+							this.fcElement.classList.remove("flatChatDimmed");
 						}
 					} break;
 				}
@@ -734,7 +780,7 @@
 			document.querySelector(".chat-input").style.display = "none"
 
 			window.FlatMMOPlus.registerCustomChatCommand(["clear","clean"], (command, data='') => {
-				document.querySelector(`#flatChatChannels [data-channel=${FlatMMOPlus.plugins.flatChat.currentChannel}]`).innerHTML = "";
+				this.fcElement.querySelector(`#flatChatChannels [data-channel=${FlatMMOPlus.plugins.flatChat.currentChannel}]`).innerHTML = "";
 			}, `Clears all messages in chat.`);
 		}
 
@@ -932,6 +978,12 @@
 					width: var(--fc-chatWidth, 50%);
 				}
 			}
+			.flatChatPopup {
+				border-radius: 0;
+				#flatChatChannels {
+					height: calc(100vh - 86px) !important;
+				}
+			}
 			.flatChatLevelTooltip {
 				background-color: var(--fc-tooltipBorder, gray) !important;
 				div {
@@ -1029,8 +1081,8 @@
 		}
 
 		addUI() {
-			const chatDiv = document.createElement("div");
-			chatDiv.innerHTML = `<div id="flatChatTopBar">
+			this.fcElement = document.createElement("div");
+			this.fcElement.innerHTML = `<div id="flatChatTopBar">
 				<div id="flatChatTabs"></div>
 				<div id="flatChatExpandBtn" style="fill:var(--fc-tabsTextColor, white)">
 					<svg id="Layer_1" version="1.1" viewBox="0 0 512 512" xml:space="preserve" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" style="
@@ -1066,78 +1118,69 @@
 					<button data-action="ignore" class="flatChatContextWarningBtn">Ignore</button>
 				</div>
 				<div id="flatChatCopyUsername" style="visibility:hidden">USERNAME COPIED</div>`
-			chatDiv.id = "flatChat";
-			chatDiv.style.inset = "auto 0 0 auto";
-			chatDiv.style.setProperty("--fc-messageFontSize", this.config.fontSize + "rem")
-			chatDiv.style.setProperty("--fc-chatWidth", this.config.chatWidth + "%")
-			chatDiv.style.setProperty("--fc-chatHeight", this.config.chatHeight + "px")
-			chatDiv.style.setProperty("--fc-chatOpacity", this.config.chatOpacity / 100)
+			this.fcElement.id = "flatChat";
+			this.fcElement.style.inset = "auto 0 0 auto";
+			this.fcElement.style.setProperty("--fc-messageFontSize", this.config.fontSize + "rem")
+			this.fcElement.style.setProperty("--fc-chatWidth", this.config.chatWidth + "%")
+			this.fcElement.style.setProperty("--fc-chatHeight", this.config.chatHeight + "px")
+			this.fcElement.style.setProperty("--fc-chatOpacity", this.config.chatOpacity / 100)
 			let currentTheme = this.config.theme
 			if(this.themes[currentTheme]) {
-				chatDiv.classList = "flatChat flatChatTheme-" + this.config.theme;
+				this.fcElement.classList = "flatChat flatChatTheme-" + this.config.theme;
 			} else {
 				this.config.theme = "dark";
-				chatDiv.classList = "flatChat flatChatTheme-dark";
+				this.fcElement.classList = "flatChat flatChatTheme-dark";
 				this.saveConfig();
 			}
 			if(this.config.chatOpacity < 100) {
-				chatDiv.classList.add("flatChatDimmed");
+				this.fcElement.classList.add("flatChatDimmed");
 			}
 
-			document.getElementById("chat").insertAdjacentElement("beforebegin", chatDiv);
+			document.getElementById("chat").insertAdjacentElement("beforebegin", this.fcElement);
 
-			document.getElementById("flatChatExpandBtn").addEventListener("click", function(){
-				this.classList.toggle("flatChatTopBarCollapsed")
-				document.getElementById("flatChatMainArea").toggleAttribute("closed");
+			this.fcElement.querySelector("#flatChatExpandBtn").addEventListener("click", ()=>{
+				this.fcElement.querySelector("#flatChatExpandBtn").classList.toggle("flatChatTopBarCollapsed");
+				this.fcElement.querySelector("#flatChatMainArea").toggleAttribute("closed");
 			})
 
-			document.getElementById("flatChatInput").placeholder = Globals.local_username;
+			this.fcElement.querySelector("#flatChatInput").placeholder = Globals.local_username;
 
-			const closeBtn = document.getElementById("flatChatCloseBtn");
+			const closeBtn = this.fcElement.querySelector("#flatChatCloseBtn");
 			closeBtn.style.display = this.config.hideCloseBtn ? "none" : "";
 			closeBtn.onclick = () => this.closeChannel();
 
-			document.getElementById("flatChatAutoScrollBtn").onclick = () => this.toggleAutoScroll();
+			const sendBtn = this.fcElement.querySelector("#flatChatSendBtn");
+			sendBtn.onclick = () => this.sendMessage();
+
+			this.fcElement.querySelector("#flatChatAutoScrollBtn").onclick = () => this.toggleAutoScroll();
 
 			// Resize handle drag logic
-			const resizeHandle = document.getElementById("flatChatResizeHandle");
+			const resizeHandle = this.fcElement.querySelector("#flatChatResizeHandle");
 			resizeHandle.addEventListener("mousedown", (e) => {
 				e.preventDefault();
 				const startY = e.clientY;
-				const startHeight = document.getElementById("flatChatChannels").offsetHeight;
+				const startHeight = this.fcElement.querySelector("#flatChatChannels").offsetHeight;
 				const onMouseMove = (e) => {
 					const delta = startY - e.clientY;
 					const newHeight = Math.max(50, startHeight + delta);
-					chatDiv.style.setProperty("--fc-chatHeight", newHeight + "px");
+					this.fcElement.style.setProperty("--fc-chatHeight", newHeight + "px");
 				};
 				const onMouseUp = () => {
-					document.removeEventListener("mousemove", onMouseMove);
-					document.removeEventListener("mouseup", onMouseUp);
-					const finalHeight = document.getElementById("flatChatChannels").offsetHeight;
+					this.fcElement.removeEventListener("mousemove", onMouseMove);
+					this.fcElement.removeEventListener("mouseup", onMouseUp);
+					const finalHeight = this.fcElement.querySelector("#flatChatChannels").offsetHeight;
 					this.config.chatHeight = finalHeight;
 					this.saveConfig();
 				};
-				document.addEventListener("mousemove", onMouseMove);
-				document.addEventListener("mouseup", onMouseUp);
+				this.fcElement.addEventListener("mousemove", onMouseMove);
+				this.fcElement.addEventListener("mouseup", onMouseUp);
 			});
 
-			const channelsDiv = document.getElementById("flatChatChannels");
+			const channelsDiv = this.fcElement.querySelector("#flatChatChannels");
 
 			channelsDiv.onwheel = (event)=>{
 				this.scrollChannel(event);
 			}
-
-			channelsDiv.addEventListener("click", async (e) => {
-				const sender = e.target.closest("[data-sender]");
-				if (sender) {
-					const username = sender.dataset.sender;
-					await navigator.clipboard.writeText(username.replaceAll("_", " "));
-
-					const copyMessage = document.getElementById("flatChatCopyUsername");
-					copyMessage.style.visibility = "visible"
-					setTimeout(()=>{copyMessage.style.visibility = "hidden"}, 1000);
-				}
-			});
 
 			//Shows custom context menu on right click
 			channelsDiv.addEventListener("contextmenu", (e) => {
@@ -1146,35 +1189,49 @@
 					e.preventDefault()
 					const username = sender.dataset.sender;
 
-					const contestUser = document.getElementById("flatChatContextUsername");					
+					const contestUser = this.fcElement.querySelector("#flatChatContextUsername");					
 					contestUser.setAttribute("data-user", username);
 					contestUser.innerText = username;
 					
-					const contextMenu = document.getElementById("flatChatContextMenu");
+					const contextMenu = this.fcElement.querySelector("#flatChatContextMenu");
 					contextMenu.style.visibility = "visible";
 				}
 			});
 
-			document.getElementById("flatChatContextMenu").addEventListener("click", (e) => {this.contextMenu(e)})
+			this.fcElement.querySelector("#flatChatContextMenu").addEventListener("click", (e) => {this.contextMenu(e)})
 
+			this.addDocumentEvents(document);
+
+			this.fcElement.querySelector("#flatChatInput").addEventListener("blur", function(){
+				setTimeout(function() {
+					if(FlatMMOPlus.plugins.flatChat.config["alwaysOnFocus"] && document.activeElement.tagName !== "INPUT" && document.activeElement.contentEditable !== "true"){
+						this.fcElement.querySelector("#flatChatInput").focus({
+							preventScroll: true
+						})
+					}
+				}, 1)
+			})
+		}
+
+		addDocumentEvents(documentElement) {
 			//Context menu should close if you click outside
-			document.addEventListener("click", (e) => {
-				const contextMenu = document.getElementById("flatChatContextMenu");
+			documentElement.addEventListener("click", (e) => {
+				const contextMenu = this.fcElement.querySelector("#flatChatContextMenu");
 				if (!contextMenu.contains(e.target)) {
 					contextMenu.style.visibility = "hidden";
 				}
 			});
 
-			document.addEventListener("keydown", (e) => {
+			documentElement.addEventListener("keydown", (e) => {
 				if (e.key === "F4") {
 					e.preventDefault();
 					this.ignoreClick = !this.ignoreClick;
 					if(this.ignoreClick) {
-						chatDiv.style.opacity = "0.2";
-						chatDiv.style.pointerEvents = "none";
+						this.fcElement.style.opacity = "0.2";
+						this.fcElement.style.pointerEvents = "none";
 					} else {
-						chatDiv.style.opacity = "1";
-						chatDiv.style.pointerEvents = "unset";
+						this.fcElement.style.opacity = "1";
+						this.fcElement.style.pointerEvents = "unset";
 					}
 				}
 				//Switch back and forth between channels with tab and shift+tab
@@ -1182,9 +1239,9 @@
 					e.preventDefault();
 					let sibling = null;
 					if(e.shiftKey) {
-						sibling = document.querySelector(".flatChatTabActive").previousElementSibling || document.querySelector("#flatChatTabs").lastElementChild;
+						sibling = this.fcElement.querySelector(".flatChatTabActive").previousElementSibling || this.fcElement.querySelector("#flatChatTabs").lastElementChild;
 					} else {
-						sibling = document.querySelector(".flatChatTabActive").nextElementSibling || document.querySelector("#flatChatTabs").firstElementChild;
+						sibling = this.fcElement.querySelector(".flatChatTabActive").nextElementSibling || this.fcElement.querySelector("#flatChatTabs").firstElementChild;
 					}
 					const channel = sibling.dataset.channel
 					const match = channel.match(/(.*?)_(.*)/);
@@ -1195,13 +1252,12 @@
 					}
 					return;
 				}
-				if(document.activeElement === document.getElementById("flatChatInput")) {
+				const input = this.fcElement.querySelector("#flatChatInput");
+				if(documentElement.activeElement === input) {
 					if(e.key === "Enter") {
 						if(has_modal_open()) return;
 						this.sendMessage();
 					}
-
-					const input = document.getElementById("flatChatInput");
 
 					//Navigate between sent messages
 					if (e.key === "ArrowUp" && input.selectionStart === 0) {
@@ -1215,25 +1271,39 @@
 					}
 				} else if(e.key === "Enter") {
 					if(has_modal_open()) return;
-					document.getElementById("flatChatInput").focus({
+					input.focus({
 						preventScroll: true
 					})
 				}
 			}, true)
 
-			document.getElementById("flatChatInput").addEventListener("blur", function(){
-				setTimeout(function() {
-					if(FlatMMOPlus.plugins.flatChat.config["alwaysOnFocus"] && document.activeElement.tagName !== "INPUT" && document.activeElement.contentEditable !== "true"){
-						document.getElementById("flatChatInput").focus({
-							preventScroll: true
-						})
+
+			documentElement.querySelector("#flatChatChannels").addEventListener("click", async (e) => {
+				const sender = e.target.closest("[data-sender]");
+				if (sender) {
+					const username = sender.dataset.sender;
+					//It will try to copy with navigator.clipboard, but it doesn't work if the window is not focused
+					try {
+						await documentElement.defaultView.navigator.clipboard.writeText(username.replaceAll("_", " "));
+					} catch (error) {
+						
 					}
-				}, 1)
-			})
+
+					const copyMessage = this.fcElement.querySelector("#flatChatCopyUsername");
+					copyMessage.style.visibility = "visible"
+					setTimeout(()=>{copyMessage.style.visibility = "hidden"}, 1000);
+				}
+			});
 		}
 
 		configurePosition() {
-			const flatChat = document.getElementById("flatChat");
+			if(this.config.chatPosition === "detached") {
+				this.detach();
+				return;
+			} else if(this.detachedChat) {
+				this.reattach();
+			}
+
 			if(this.config.chatPosition === "outsideSideTab") {
 				flatChat.classList.add("flatChatSideTabs");
 				flatChat.style.position = "unset";
@@ -1248,11 +1318,55 @@
 			}
 		}
 
+		detach() {
+			if(this.detachedChat && !this.detachedChat.closed) {
+				this.detachedChat.focus();
+				return;
+			}
+			this.detachedChat = window.open(
+				"",
+				"chatPopup",
+				"width=600,height=800,resizable=yes"
+			);
+
+			this.fcElement.classList.add("flatChatPopup");
+			this.detachedChat.document.head.insertAdjacentHTML("beforeend","<title>Flat Chat</title>")
+			document.head.querySelectorAll("style").forEach(style => {
+				this.detachedChat.document.head.appendChild(style.cloneNode(true));
+			})
+			document.head.querySelectorAll("link").forEach(link => {
+				this.detachedChat.document.head.appendChild(link.cloneNode(true));
+			})
+			this.detachedChat.document.body.appendChild(this.fcElement);
+			this.addDocumentEvents(this.detachedChat.document);
+
+			this.detachedChat.onbeforeunload = () => {
+				this.config.chatPosition = "bottomRight";
+				this.saveConfig();
+				this.reattach();
+			}
+
+			window.onbeforeunload = () => {
+				if(this.detachedChat && !this.detachedChat.closed) {
+					this.detachedChat.close();
+					this.config.chatPosition = "detached";
+					this.saveConfig();
+				}
+			}
+		}
+
+		reattach() {
+			this.detachedChat?.close();
+			this.detachedChat = null;
+			document.getElementById("chat").insertAdjacentElement("beforebegin", this.fcElement)
+			this.fcElement.classList.remove("flatChatPopup");
+		}
+
 		addTheme(theme) {
 			if(!this.themes[theme]) {return};
 			let themeSyle;
-			if(document.getElementById("fc-themeStyle-" + theme)) {
-				themeSyle = document.getElementById("fc-themeStyle-" + theme)
+			if(document.querySelector("#fc-themeStyle-" + theme)) {
+				themeSyle = document.querySelector("#fc-themeStyle-" + theme)
 				themeSyle.innerHTML = "";
 			} else {
 				themeSyle = document.createElement("style");
@@ -1439,6 +1553,18 @@
 					this.showWarning(`${this.currentChannel.slice(8)} & ${Globals.local_username}`, "white");
 				}
 			}, `Show all players in room or global.`);
+
+			window.FlatMMOPlus.registerCustomChatCommand("detach", (command, data='') => {
+				if(this.config.chatPosition === "detached") {
+					this.config.chatPosition = "bottomRight";
+					this.saveConfig();
+					this.reattach();
+				} else {
+					this.config.chatPosition = "detached";
+					this.saveConfig();
+					this.detach();
+				}
+			}, "Detach/Reattach the chat from the window");
 
 			//Pm will only open a tab if a message is not specified
 			window.FlatMMOPlus.registerCustomChatCommand("pm", (command, data='') => {
@@ -1639,7 +1765,6 @@
 		}
 
 		newChannel(channel, isPrivate) {
-			console.log(channel, isPrivate)
 			const channelName = (isPrivate ? "private_" : "channel_") + channel;
 			if(this.channels[channelName]) {return};
 			this.channels[channelName] = {
@@ -1656,18 +1781,18 @@
 			tabBtn.setAttribute("data-channel", channelName);
 			tabBtn.innerHTML = `<span class="flatChatTabName">${channel.replaceAll("_", " ")}</span>
 				<div class="flatChatUnread"></div>`
-			document.getElementById("flatChatTabs").appendChild(tabBtn);
+			this.fcElement.querySelector("#flatChatTabs").appendChild(tabBtn);
 
 			tabBtn.onclick = () => {
 				this.switchChannel(channel, isPrivate);
 			}
 
-			document.getElementById("flatChatChannels").insertAdjacentHTML("beforeend",`<div class="flatChatChannel" data-channel="${channelName}" style="display:none"></div>`);
+			this.fcElement.querySelector("#flatChatChannels").insertAdjacentHTML("beforeend",`<div class="flatChatChannel" data-channel="${channelName}" style="display:none"></div>`);
 			if(isPrivate) {
-				const privateChannel = document.querySelector(`#flatChatChannels [data-channel=${channelName}]`);
+				const privateChannel = this.fcElement.querySelector(`#flatChatChannels [data-channel=${channelName}]`);
 				privateChannel.insertAdjacentHTML("beforeend",`
 				<div class="fc-lvlUpMessages"><strong>${this.getDateStr()}</strong><span>New chat with ${channel}</span></div>`)
-				document.querySelectorAll(`[data-channel=${this.config.defaultPmChat}] .fc-pmReceivedMessages,.fc-pmSentMessages`).forEach(el => {
+				this.fcElement.querySelectorAll(`[data-channel=${this.config.defaultPmChat}] .fc-pmReceivedMessages,.fc-pmSentMessages`).forEach(el => {
 				const match = el.innerText.match(/(?:>|<) (?:\[[0-9][0-9]:[0-9][0-9]])?(.*?):/)
 					if(match && match[1] === channel) {
 						privateChannel.appendChild(el);
@@ -1686,8 +1811,8 @@
 			this.switchChannel("local", false);
 
 			delete this.channels[oldChannel];
-			document.querySelector(`#flatChatTabs [data-channel=${oldChannel}]`).remove();
-			document.querySelector(`#flatChatChannels [data-channel=${oldChannel}]`).remove();
+			this.fcElement.querySelector(`#flatChatTabs [data-channel=${oldChannel}]`).remove();
+			this.fcElement.querySelector(`#flatChatChannels [data-channel=${oldChannel}]`).remove();
 
 			this.saveChannels();
 		}
@@ -1716,17 +1841,17 @@
 			})
 
 			if(this.config.pingChat) {
-				document.querySelector(".flatChatTab[data-channel='channel_pings']")?.classList.remove("displaynone")
+				this.fcElement.querySelector(".flatChatTab[data-channel='channel_pings']")?.classList.remove("displaynone")
 			} else {
-				document.querySelector(".flatChatTab[data-channel='channel_pings']")?.classList.add("displaynone")
+				this.fcElement.querySelector(".flatChatTab[data-channel='channel_pings']")?.classList.add("displaynone")
 			}
 			if(this.config.defaultPmChat === "whisper") {
-				document.querySelector(".flatChatTab[data-channel='channel_whisper']")?.classList.remove("displaynone")
+				this.fcElement.querySelector(".flatChatTab[data-channel='channel_whisper']")?.classList.remove("displaynone")
 			} else {
-				document.querySelector(".flatChatTab[data-channel='channel_whisper']")?.classList.add("displaynone")
+				this.fcElement.querySelector(".flatChatTab[data-channel='channel_whisper']")?.classList.add("displaynone")
 			}
 
-			document.querySelector(`.flatChatChannel[data-channel=channel_pings]`).addEventListener("click", async (e) => {
+			this.fcElement.querySelector(`.flatChatChannel[data-channel=channel_pings]`).addEventListener("click", async (e) => {
 				const message = e.target.closest("[data-mid]");
 				if (message) {
 					const id = message.dataset.mid;
@@ -1735,16 +1860,16 @@
 					const channel = channelName.slice(8);
 
 					this.switchChannel(channel, isPrivate)
-					document.querySelector(`[data-omid="${id}"]`)?.scrollIntoView();
+					this.fcElement.querySelector(`[data-omid="${id}"]`)?.scrollIntoView();
 				}
 			});
 		}
 
 		switchChannel(channel, isPrivate) {
-			const input = document.getElementById("flatChatInput");
+			const input = this.fcElement.querySelector("#flatChatInput");
 			//remove old
-			document.querySelector(`.flatChatTab[data-channel=${this.currentChannel}]`).classList.remove("flatChatTabActive");
-			document.querySelector(`.flatChatChannel[data-channel=${this.currentChannel}]`).style.display = "none";
+			this.fcElement.querySelector(`.flatChatTab[data-channel=${this.currentChannel}]`).classList.remove("flatChatTabActive");
+			this.fcElement.querySelector(`.flatChatChannel[data-channel=${this.currentChannel}]`).style.display = "none";
 			this.channels[this.currentChannel].inputText = input.value;
 
 			//update current chat
@@ -1757,17 +1882,17 @@
 
 			//Removes unreadMessages number
 			this.channels[this.currentChannel].unreadMessages = 0;
-			const unreadDiv = document.querySelector(`.flatChatTab[data-channel=${this.currentChannel}] .flatChatUnread`);
+			const unreadDiv = this.fcElement.querySelector(`.flatChatTab[data-channel=${this.currentChannel}] .flatChatUnread`);
 			unreadDiv.style.visibility = "hidden";
 
 			//Change auto scroll icon
 			const autoScroll = this.channels[this.currentChannel].autoScroll;
-			document.getElementById("flatChatAutoScroll" + autoScroll).className = "";
-			document.getElementById("flatChatAutoScroll" + !autoScroll).className = "displaynone";
+			this.fcElement.querySelector("#flatChatAutoScroll" + autoScroll).className = "";
+			this.fcElement.querySelector("#flatChatAutoScroll" + !autoScroll).className = "displaynone";
 
 			//shows the new chat
-			document.querySelector(`.flatChatTab[data-channel=${this.currentChannel}]`).classList.add("flatChatTabActive");
-			const messageArea = document.querySelector(`.flatChatChannel[data-channel=${this.currentChannel}]`);
+			this.fcElement.querySelector(`.flatChatTab[data-channel=${this.currentChannel}]`).classList.add("flatChatTabActive");
+			const messageArea = this.fcElement.querySelector(`.flatChatChannel[data-channel=${this.currentChannel}]`);
 			messageArea.style.display = "block";
 			input.value = this.channels[this.currentChannel].inputText;
 
@@ -1780,14 +1905,13 @@
 		scrollChannel(e) {
 			//Zoom in/out chat messages
 			if (e.shiftKey) {
-				let chat = document.getElementById("flatChat");
 				let size = this.config.fontSize || 1
 				if (e.deltaY < 0) {
 					size = parseFloat((size + 0.1).toFixed(1));
 				} else {
 					size = parseFloat((size - 0.1).toFixed(1));
 				}
-				chat.style.setProperty("--fc-messageFontSize", size + "rem")
+				this.fcElement.style.setProperty("--fc-messageFontSize", size + "rem")
 				this.config.fontSize = size;
 				this.saveConfig();
 				return;
@@ -1796,8 +1920,8 @@
 
 		toggleAutoScroll() {
 			this.channels[this.currentChannel].autoScroll = !this.channels[this.currentChannel].autoScroll;
-			document.getElementById("flatChatAutoScrolltrue").classList.toggle("displaynone");
-			document.getElementById("flatChatAutoScrollfalse").classList.toggle("displaynone");
+			this.fcElement.querySelector("#flatChatAutoScrolltrue").classList.toggle("displaynone");
+			this.fcElement.querySelector("#flatChatAutoScrollfalse").classList.toggle("displaynone");
 		}
 
 		watchIgnorePlayersWords(type, word) {
@@ -1811,9 +1935,9 @@
 		contextMenu(e) {
 			const data = e.target.closest("[data-action]");
 			if (data) {
-				const username = document.getElementById("flatChatContextUsername").dataset.user;
+				const username = this.fcElement.querySelector("#flatChatContextUsername").dataset.user;
 				const action = data.dataset.action;
-				const input = document.getElementById("flatChatInput");
+				const input = this.fcElement.querySelector("#flatChatInput");
 				switch (action) {
 					case "message": {
 						input.value = "/pm " + username + " ";
@@ -1847,7 +1971,7 @@
 					} break;
 				}
 
-				const contextMenu = document.getElementById("flatChatContextMenu");
+				const contextMenu = this.fcElement.querySelector("#flatChatContextMenu");
 				contextMenu.style.visibility = "hidden";
 			}
 		}
@@ -1855,7 +1979,7 @@
 		updateUnread(channel) {
 			if(channel !== this.currentChannel) {
 				const unreadMessages = ++this.channels[channel].unreadMessages;
-				const unreadDiv = document.querySelector(`.flatChatTab[data-channel=${channel}] .flatChatUnread`);
+				const unreadDiv = this.fcElement.querySelector(`.flatChatTab[data-channel=${channel}] .flatChatUnread`);
 				unreadDiv.innerText = unreadMessages
 				unreadDiv.style.visibility = "visible";
 			}
@@ -1941,11 +2065,11 @@
 
 			messageContainer.appendChild(messageSpan);
 
-			const messageArea = document.querySelector(`#flatChatChannels [data-channel=${data.channel}]`);
+			const messageArea = this.fcElement.querySelector(`#flatChatChannels [data-channel=${data.channel}]`);
 			messageArea.appendChild(messageContainer);
 
 			//Trim old messages if over the limit
-			while(messageArea.children.length > this.config.maxMessages) {
+			while(messageArea.children.length > this.config.maxMessages && this.config.maxMessages !== 0) {
 				messageArea.removeChild(messageArea.firstElementChild);
 			}
 
@@ -2106,7 +2230,7 @@
 			}
 			messageContainer.appendChild(messageSpan);
 
-			const messageArea = document.querySelector(`#flatChatChannels [data-channel=${data.channel}]`);
+			const messageArea = this.fcElement.querySelector(`#flatChatChannels [data-channel=${data.channel}]`);
 			messageArea.appendChild(messageContainer);
 			//Clones the message on the ping channel
 			if(isPing) {
@@ -2118,9 +2242,9 @@
 				pingElement.setAttribute("data-mid", mid);
 				pingElement.setAttribute("data-channelname", data.channel);
 
-				const pingsArea = document.querySelector(`.flatChatChannel[data-channel=channel_pings]`);
+				const pingsArea = this.fcElement.querySelector(`.flatChatChannel[data-channel=channel_pings]`);
 				pingsArea.appendChild(pingElement);
-				while(pingsArea.children.length > this.config.maxMessages) {
+				while(pingsArea.children.length > this.config.maxMessages && this.config.maxMessages !== 0) {
 					pingsArea.removeChild(pingsArea.firstElementChild);
 				}
 
@@ -2218,7 +2342,8 @@
 		}
 
 		sendMessage() {
-			let message = document.getElementById("flatChatInput").value.trim();
+			const input = this.fcElement.querySelector("#flatChatInput");
+			let message = input.value.trim();
 			if (!message) {return};
 
 			//[here] can't be modified, it will always use the current_map id
@@ -2226,7 +2351,7 @@
 			//This replaces all [shortcuts]
 			Object.keys(this.config.shortcuts).forEach(shortcut => message = message.replaceAll(`[${shortcut}]`, this.config.shortcuts[shortcut]));
 
-			document.getElementById("flatChatInput").value = "";
+			input.value = "";
 			this.channels[this.currentChannel].inputText = "";
 
 			if(message !== this.chatHistory[0]) {
