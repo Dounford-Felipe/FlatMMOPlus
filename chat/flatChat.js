@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         FlatChat
 // @namespace    com.dounford.flatmmo.flatChat
-// @version      2.3.0
+// @version      2.3.1
 // @description  Better chat for FlatMMO
 // @author       Dounford
 // @license      MIT
@@ -451,7 +451,6 @@
 						id: "maxMessages",
 						label: "Max Messages Per Channel (0 = unlimited)",
 						type: "number",
-						min: 0,
 						max: 5000,
 						step: 50,
 						default: 0
@@ -2069,8 +2068,12 @@
 			messageArea.appendChild(messageContainer);
 
 			//Trim old messages if over the limit
-			while(messageArea.children.length > this.config.maxMessages && this.config.maxMessages !== 0) {
-				messageArea.removeChild(messageArea.firstElementChild);
+			if(this.config.maxMessages > 0) {
+					console.log(this.config.maxMessages)
+
+				while(messageArea.children.length > this.config.maxMessages) {
+					messageArea.removeChild(messageArea.firstElementChild);
+				}
 			}
 
 			//Update the unread messages number if needed
@@ -2244,8 +2247,11 @@
 
 				const pingsArea = this.fcElement.querySelector(`.flatChatChannel[data-channel=channel_pings]`);
 				pingsArea.appendChild(pingElement);
-				while(pingsArea.children.length > this.config.maxMessages && this.config.maxMessages !== 0) {
-					pingsArea.removeChild(pingsArea.firstElementChild);
+				if(this.config.maxMessages > 0) {
+					console.log(this.config.maxMessages)
+					while(pingsArea.children.length > this.config.maxMessages) {
+						pingsArea.removeChild(pingsArea.firstElementChild);
+					}
 				}
 
 				//Update the unread messages number if needed
@@ -2255,8 +2261,10 @@
 			}
 
 			//Trim old messages if over the limit
-			while(messageArea.children.length > this.config.maxMessages) {
-				messageArea.removeChild(messageArea.firstElementChild);
+			if(this.config.maxMessages > 0) {
+				while(messageArea.children.length > this.config.maxMessages) {
+					messageArea.removeChild(messageArea.firstElementChild);
+				}
 			}
 
 			if(data.channel !== this.currentChannel) {
