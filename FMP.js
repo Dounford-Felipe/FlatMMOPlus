@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         FlatMMOPlus
 // @namespace    com.dounford.flatmmo
-// @version      1.4
+// @version      1.5
 // @description  FlatMMO plugin framework
 // @author       Dounford adapted from Anwinity IPP
 // @match        *://flatmmo.com/play.php*
@@ -10,7 +10,7 @@
 
 (function() {
 	'use strict';
-	const VERSION = "1.4";
+	const VERSION = "1.5";
 
     Set.prototype.some = function(predicate) {
         for (const item of this) {
@@ -611,9 +611,9 @@
         if(typeof id !== "string" || typeof title !== "string" || (typeof content !== "string" && typeof content !== "function") ) {
             throw new TypeError("FlatMMOPlus.addPanel takes the following arguments: (id:string, title:string, content:string|function)");
         }
-        const lastPanel = document.querySelector("#ui-panel-worship");
+        const lastPanel = document.querySelector("#settings-modal-mutes-panel");
         lastPanel.insertAdjacentHTML("afterend",`
-        <div id="ui-panel-${id}" style="display: none" class="ui-panel">
+        <div id="settings-modal-${id}-panel" style="display: none" class="ui-panel">
             <div class="ui-panel-title">${title}</div>
             <hr>
             <div id="ui-panel-${id}-content"></div>
@@ -627,6 +627,33 @@
         this.refreshPanel(id);
     }
 
+    FlatMMOPlus.prototype.refreshSettingsPanel = function(id) {
+        if(typeof id !== "string") {
+            throw new TypeError("FlatMMOPlus.refreshSettingsPanel takes the following arguments: (id:string)");
+        }
+        const panel = this.panels[id];
+        if(!panel) {
+            throw new TypeError(`Error rendering panel with id="${id}" - panel has not be added.`);
+        }
+        let content = panel.content;
+        if(!["string", "function"].includes(typeof content)) {
+            throw new TypeError(`Error rendering panel with id="${id}" - panel.content must be a string or a function returning a string.`);
+        }
+        if(typeof content === "function") {
+            content = content();
+            if(typeof content !== "string") {
+                throw new TypeError(`Error rendering panel with id="${id}" - panel.content must be a string or a function returning a string.`);
+            }
+        }
+        const panelContent = document.getElementById(`ui-panel-${id}-content`);
+        panelContent.innerHTML = content;
+        if(id === "plugins") {
+            this.forEachPlugin(plugin => {
+                this.loadPluginConfigs(plugin.id);
+            });
+        }
+    }
+    
     FlatMMOPlus.prototype.refreshPanel = function(id) {
         if(typeof id !== "string") {
             throw new TypeError("FlatMMOPlus.refreshPanel takes the following arguments: (id:string)");
@@ -647,7 +674,7 @@
         }
         const panelContent = document.getElementById(`ui-panel-${id}-content`);
         panelContent.innerHTML = content;
-        if(id === "flatmmoplus") {
+        if(id === "plugins") {
             this.forEachPlugin(plugin => {
                 this.loadPluginConfigs(plugin.id);
             });
@@ -746,7 +773,7 @@
                 const split = data.substring("YELL=".length).split("~");
 
                 const chatData = {
-                    username: split[0].split("yelled")[0].trim(),
+                    username: split[0].slice(0, -7).trim(),
                     tag: split[1],
                     sigil: split[2],
                     color: split[3],
@@ -1005,16 +1032,27 @@
         if(this.debug) {
             console.log(`FM+ onPanelChanged "${panelBefore}" -> "${panelAfter}"`);
         }
-        if(panelAfter === "flatmmoplus") {
-            this.refreshPanel("flatmmoplus");
-        }
         this.forEachPlugin((plugin) => {
             if(typeof plugin.onPanelChanged === "function") {
                 plugin.onPanelChanged(panelBefore, panelAfter);
             }
         });
     }
-
+    
+    FlatMMOPlus.prototype.onSettingsPanelChanged = function(panelBefore, panelAfter) {
+        if(this.debug) {
+            console.log(`FM+ onSettingsPanelChanged "${panelBefore}" -> "${panelAfter}"`);
+        }
+        if(panelAfter === "plugins") {
+            this.refreshSettingsPanel("plugins");
+        }
+        this.forEachPlugin((plugin) => {
+            if(typeof plugin.onSettingsPanelChanged === "function") {
+                plugin.onSettingsPanelChanged(panelBefore, panelAfter);
+            }
+        });
+    }
+    
     FlatMMOPlus.prototype.onMapChanged = function(mapBefore, mapAfter) {
         if(this.debug) {
             console.log(`FMMO+ onMapChanged "${mapBefore}" -> "${mapAfter}"`);
@@ -1149,10 +1187,8 @@
         }
 
         // create plugin menu item and panel
-        const settingsBody = document.querySelector(".settings-ui tbody")
-        settingsBody.insertAdjacentHTML("beforeend",`<tr onclick="FlatMMOPlus.setPanel('flatmmoplus')">
-            <td colspan="2" style="cursor: pointer;text-align: center;font-size: 2rem;font-weight: bold;">PLUGINS</td>
-        </tr>`)
+        const settingsBody = document.querySelector("#settings-modal-mutes-panel-btn")
+        settingsBody.insertAdjacentHTML("afterend",`<div class="settings-modal-panel-btn hover" onclick="settings_modal_tab('plugins')" id="settings-modal-plugins-panel-btn" style="margin-left: 10px;">Plugins</div>`)
 
         this.addPanel("flatmmoplus", "FlatMMO+ Plugins", () => {
             let content = `<style>
@@ -1387,8 +1423,9 @@
 
     FlatMMOPlus.prototype.upDateSelf = async function(){
         try {
+            return
             let script;
-            await fetch('https://scripts.dounford.tech/scripts/fmp').then(async (response) => {
+            await fetch('dounford.qd.je').then(async (response) => {
                 script = await response.text()
                 script = JSON.parse(script);
             })

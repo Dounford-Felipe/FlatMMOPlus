@@ -285,6 +285,15 @@
 			ticks: 600,
 			color: "white"
 		},
+		feedingTheDead: {
+			blocked: "Feeding the Dead",
+			name: "feedingTheDead",
+			image: "https://flatmmo.com/images/items/bones.png",
+			title: "Bones",
+			text: "Burried 0 bones",
+			ticks: 600,
+			color: "white"
+		},
 		lowEnergy: {
 			blocked: "too tired",
 			name: "lowEnergy",
@@ -357,6 +366,24 @@
 			ticks: 0,
 			color: "white"
 		},
+		dodge: {
+            blocked: "No Dodges Available.",
+            name: "dodge",
+            image: "https://flatmmo.com/images/worship/run.png",
+            title: "",
+            text: "",
+            ticks: 0,
+            color: "white"
+        },
+		agility: {
+            blocked: "You dodge the attack and gain",
+            name: "agility",
+            image: "https://flatmmo.com/images/worship/run.png",
+            title: "",
+            text: "",
+            ticks: 0,
+            color: "white"
+        },
 	}
 
 	class flatChatPlugin extends FlatMMOPlusPlugin {
@@ -557,13 +584,6 @@
 						default: []
 					},
 					{
-						id: "scriptsToLoad",
-						label: "Scripts to Load",
-						type: "list",
-						unique: true,
-						default: []
-					},
-					{
 						id: "themeEditor",
 						label: "THEME EDITOR",
 						panel: "flatChat-ThemeEditor",
@@ -591,52 +611,6 @@
 			this.lastPM = ""; //Used for /r
 
 			this.themes = {};
-
-			//This is for the /load feature
-			this.loadedScripts = new Set();
-			this.loadedDependencies = new Set();
-
-			//Versions after 1.0.8 will always auto update
-			if(FlatMMOPlus.version < "1.0.8") {
-				this.loadScript("fmp");
-			}
-		}
-
-		async loadScript(id) {
-			try {
-				if(this.loadedScripts.has(id)) {
-					this.showWarning(id + " is already loaded", "red");
-					return false;
-				}
-				let script;
-				await fetch('https://scripts.dounford.tech/scripts/' + id).then(async (response) => {
-					script = await response.text()
-					script = JSON.parse(script);
-				})
-				for (let dependency in script.dependencies) {
-
-					//Don't load the same dependency more than once
-					if(this.loadedDependencies.has(dependency)) {
-						break;
-					}
-
-					this.createScript(script.dependencies[dependency]);
-					this.loadedDependencies.add(dependency);
-				}
-
-				this.createScript(script.code);
-				this.loadedScripts.add(id);
-				return true;
-			} catch(err) {
-				console.error(id + " was not loaded");
-				return false;
-			}
-		}
-
-		createScript(code) {
-			const script = document.createElement("script");
-			script.textContent = code;
-			document.head.appendChild(script);
 		}
 
 		onLogin() {
@@ -660,10 +634,6 @@
 			this.showWarning(document.querySelectorAll("#chat span")[1].innerHTML, "white");
 			this.showWarning(`<span><strong style="color:cyan">FYI: </strong> Use the /help command to see information on available chat commands.</span>`, "white");
 			this.configurePosition();
-
-			this.config.scriptsToLoad.forEach(async script => {
-				await this.loadScript(script)
-			})
 		}
 
 		onChat(data) {
@@ -781,6 +751,12 @@
 			window.FlatMMOPlus.registerCustomChatCommand(["clear","clean"], (command, data='') => {
 				this.fcElement.querySelector(`#flatChatChannels [data-channel=${FlatMMOPlus.plugins.flatChat.currentChannel}]`).innerHTML = "";
 			}, `Clears all messages in chat.`);
+
+			const oldLocalMute = add_local_mute;
+			add_local_mute = (user) => {
+				oldLocalMute(user);
+				this.watchIgnorePlayersWords("ignoredPlayers", user);
+			}
 		}
 
 		addStyle() {
@@ -2309,6 +2285,14 @@
 						textToNotification[blocked].text = match[1];
 					} else {
 						textToNotification[blocked].text = "0/0";
+					}
+				} break;
+				case "feedingTheDead": {
+					const match = message.match(/\((.*)\)/)
+					if (match) {
+						textToNotification[blocked].text = match[1];
+					} else {
+						textToNotification[blocked].text = "+0 xp";
 					}
 				} break;
 				case "bondfirePoints": {
