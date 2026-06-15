@@ -46,6 +46,7 @@
 	const CHAT_COMMAND_NO_OVERRIDE = ["help"];
 
     //This is used for hot updates
+    let config = {};
     let plugins = {};
     let panels = {};
     let nextUniqueId = 1;
@@ -56,88 +57,33 @@
     }
     let customChatHelp = {};
     let currentPanel = "inventory";
+    let currentSettingsPanel = "sound";
     let loggedIn = false;
     let isFighting = false;
     let original_onmessage;
     let original_sendmessage;
     let original_switch_panels;
+    let original_settings_modal_tab;
     let flatnotifications = {};
 
 	if (window.FlatMMOPlus) {
         if(window.FlatMMOPlus.version >= VERSION) {
             return
         }
+        config = window.FlatMMOPlus.config;
         plugins = window.FlatMMOPlus.plugins;
         panels = window.FlatMMOPlus.panels;
         nextUniqueId = window.FlatMMOPlus.nextUniqueId;
         customChatCommands = window.FlatMMOPlus.customChatCommands;
         customChatHelp = window.FlatMMOPlus.customChatHelp;
         currentPanel = window.FlatMMOPlus.currentPanel;
+        currentSettingsPanel = window.FlatMMOPlus.currentSettingsPanel;
         loggedIn = window.FlatMMOPlus.loggedIn;
         isFighting = window.FlatMMOPlus.isFighting;
-        original_onmessage = window.FlatMMOPlus.original_onmessage || null;
-        original_sendmessage = window.FlatMMOPlus.original_sendmessage || null;
-        original_switch_panels = window.FlatMMOPlus.original_switch_panels || null;
-        //This is required for users that have a FMP version lower than 1.0.0
-        if (original_onmessage === null) {
-            original_onmessage = function(event) {
-                if(!event.data.includes("=")) {
-                    server_command(event.data, "none");
-                    return;
-                }
-                let array = event.data.split("=");
-                let values = array[1].split("~");
-
-                // if(array[0] == "REFRESH_PLAYER" || array[0] == "START_CLIENTSIDE_MOVEMENT") {} else console.log("FROM SERVER: " + event.data);
-                server_command(array[0], values)
-            }
-        }
-        if (original_switch_panels === null) {
-            original_switch_panels = (id) => {
-                //reset btns
-                document.getElementById('ui-button-inventory').style.backgroundColor = "";
-                document.getElementById('ui-button-skills').style.backgroundColor = "";
-                document.getElementById('ui-button-quests').style.backgroundColor = "";
-                document.getElementById('ui-button-achievements').style.backgroundColor = "";
-                document.getElementById('ui-button-settings').style.backgroundColor = "";
-                document.getElementById('ui-button-equipement_stats').style.backgroundColor = "";
-                document.getElementById('ui-button-monster_log').style.backgroundColor = "";
-                document.getElementById('ui-button-worship').style.backgroundColor = "";
-                document.getElementById('ui-button-donor-shop').style.backgroundColor = "";
-                document.getElementById('ui-button-database').style.backgroundColor = "";
-                
-
-                //hide panels
-                document.getElementById('ui-panel-inventory').style.display = "none";
-                document.getElementById('ui-panel-skills').style.display = "none";
-                document.getElementById('ui-panel-quests').style.display = "none";
-                document.getElementById('ui-panel-achievements').style.display = "none";
-                document.getElementById('ui-panel-settings').style.display = "none";
-                document.getElementById('ui-panel-equipement_stats').style.display = "none";
-                document.getElementById('ui-panel-monster_log').style.display = "none";
-                document.getElementById('ui-panel-worship').style.display = "none";
-                document.getElementById('ui-panel-database').style.display = "none";
-                document.getElementById('ui-panel-donor-shop').style.display = "none";
-                document.getElementById('ui-panel-hunting').style.display = "none";
-
-                //do what you need
-                document.getElementById('ui-panel-' + id).style.display = "";
-                if(document.getElementById('ui-button-' + id) != null) {
-                    document.getElementById('ui-button-' + id).style.backgroundColor = "pink";
-                }
-                
-                switch(id) {
-                    case "settings":
-                        refresh_sound_ui_image();
-                        refresh_music_ui_image();
-                    break;
-                }
-                Globals.websocket.send('SWITCH_UI_PANEL=' + id);
-
-                play_sound("sounds/menu1.wav");
-            }
-        }
-        
+        original_onmessage = window.FlatMMOPlus.original_onmessage || Globals.websocket.onmessage;
+        original_sendmessage = window.FlatMMOPlus.original_sendmessage || Globals.websocket.send;
+        original_switch_panels = window.FlatMMOPlus.original_switch_panels || window.switch_panels;
+        original_settings_modal_tab = window.FlatMMOPlus.original_settings_modal_tab || window.settings_modal_tab;
         flatnotifications = window.FlatMMOPlus.notifications || {};
         window.removeEventListener("keypress", window.FlatMMOPlus.fmpKeyPress, false);
         document.getElementById("ui-panel-flatmmoplus").remove();
@@ -154,6 +100,7 @@
         original_onmessage = Globals.websocket.onmessage;
         original_sendmessage = Globals.websocket.send;
         original_switch_panels = window.switch_panels;
+        original_settings_modal_tab = window.settings_modal_tab;
     }
 
 	function logFancy(s, color="#00f7ff") {
@@ -235,6 +182,7 @@
     class FlatMMOPlus {
 		constructor() {
 			this.version = VERSION;
+            this.config = {};
 			this.plugins = plugins;
 			this.panels = panels;
 			this.debug = false;
@@ -242,6 +190,7 @@
 			this.customChatCommands = customChatCommands
 			this.customChatHelp = customChatHelp;
 			this.currentPanel = currentPanel;
+			this.currentSettingsPanel = currentSettingsPanel;
 			this.loggedIn = loggedIn;
             this.isFighting = isFighting;
             this.in_combat_ticker = 0;
@@ -249,6 +198,7 @@
             this.original_onmessage = original_onmessage;
             this.original_sendmessage = original_sendmessage;
             this.original_switch_panels = original_switch_panels;
+            this.original_settings_modal_tab = original_settings_modal_tab;
             this.notifications = flatnotifications;
             this.level = [
                 0,0,108,177,265,380,527,717,956,1254,1622,2068,2605,3245,4000,4885,5913,7100,8464,10022,11794,13799,16060,18599,21442,24614,28145,32063,36400,41191,46470,52277,58652,65637,73279,81625,90728,100642,111424,123135,135841,149611,164516,180634,198047,216840,237105,258938,282440,307721,334893,364077,395399,428994,465003,503577,544871,589054,636300,686794,740732,798320,859775,925326,995213,1069691,1149027,1233503,1323417,1419081,1520824,1628993,1743952,1866086,1995798,2133515,2279683,2434772,2599278,2773721,2958649,3154637,3362289,3582243,3815166,4061762,4322767,4598959,4891153,5200203,5527011,5872521,6237725,6623665,7031436,7462185,7917120,8397507,8904674,9440017,10004999,10601158,11230106,11893534,12593217,13331018,14108890,14928883,15793144,16703929,17663602,18674641,19739647,20861344,22042590,23286382,24595860,25974317,27425202,28952134,30558903,32249481,34028033,35898920,37866713,39936202,42112405,44400579,46806231,49335129,51993317,54787124,57723179,60808425,64050133,67455918,71033752,74791986,78739361,82885031,87238578,91810037,96609909,101649191,106939392,112492559,118321304,124438823,130858933,137596089,144665421,152082764,159864685,168028523,176592418,185575354,194997190,204878707,215241643,226108743,237503800,249451703,261978489,275111393,288878903,303310817,318438300,334293948,350911852,368327667,386578678,405703877,425744040,446741808,468741765,491790534,515936862,541231719,567728396,595482609,624552610,654999299,686886341,720280294,755250734,791870395,830215305,870364937,912402361,956414404,1002491823,1050729473,1101226494,1154086502,1209417785,1267333518,1327951974,1391396753,1457797021,1527287754,1600009999
@@ -607,15 +557,17 @@
         plugin.changedConfigs.clear();
     }
 
-    FlatMMOPlus.prototype.addPanel = function(id, title, content) {
+    FlatMMOPlus.prototype.addPanel = function(id, title, content, hasTabButton) {
         if(typeof id !== "string" || typeof title !== "string" || (typeof content !== "string" && typeof content !== "function") ) {
             throw new TypeError("FlatMMOPlus.addPanel takes the following arguments: (id:string, title:string, content:string|function)");
         }
+        if(hasTabButton) {
+            const firstPanel = document.querySelector("#settings-modal-sound-panel");
+            firstPanel.insertAdjacentHTML("beforebegin", `<div class="settings-modal-panel-btn hover" onclick="settings_modal_tab('${id}')" id="settings-modal-${id}-panel-btn">${title}</div>`)
+        }
         const lastPanel = document.querySelector("#settings-modal-mutes-panel");
         lastPanel.insertAdjacentHTML("afterend",`
-        <div id="settings-modal-${id}-panel" style="display: none" class="ui-panel">
-            <div class="ui-panel-title">${title}</div>
-            <hr>
+        <div class="settings-modal-panel" style="display: none" id="settings-modal-${id}-panel">
             <div id="ui-panel-${id}-content"></div>
         </div>
         `);
@@ -627,33 +579,6 @@
         this.refreshPanel(id);
     }
 
-    FlatMMOPlus.prototype.refreshSettingsPanel = function(id) {
-        if(typeof id !== "string") {
-            throw new TypeError("FlatMMOPlus.refreshSettingsPanel takes the following arguments: (id:string)");
-        }
-        const panel = this.panels[id];
-        if(!panel) {
-            throw new TypeError(`Error rendering panel with id="${id}" - panel has not be added.`);
-        }
-        let content = panel.content;
-        if(!["string", "function"].includes(typeof content)) {
-            throw new TypeError(`Error rendering panel with id="${id}" - panel.content must be a string or a function returning a string.`);
-        }
-        if(typeof content === "function") {
-            content = content();
-            if(typeof content !== "string") {
-                throw new TypeError(`Error rendering panel with id="${id}" - panel.content must be a string or a function returning a string.`);
-            }
-        }
-        const panelContent = document.getElementById(`ui-panel-${id}-content`);
-        panelContent.innerHTML = content;
-        if(id === "plugins") {
-            this.forEachPlugin(plugin => {
-                this.loadPluginConfigs(plugin.id);
-            });
-        }
-    }
-    
     FlatMMOPlus.prototype.refreshPanel = function(id) {
         if(typeof id !== "string") {
             throw new TypeError("FlatMMOPlus.refreshPanel takes the following arguments: (id:string)");
@@ -719,7 +644,7 @@
         if(typeof panel !== "string") {
             throw new TypeError("FlatMMOPlus.setPanel takes the following arguments: (panel:string)");
         }
-        window.switch_panels(panel);
+        window.settings_modal_tab(panel);
     }
 
     FlatMMOPlus.prototype.sendMessage = function(message) {
@@ -733,7 +658,7 @@
 
     FlatMMOPlus.prototype.hideCustomPanels = function() {
         Object.values(this.panels).forEach((panel) => {
-            const el = document.getElementById(`ui-panel-${panel.id}`);
+            const el = document.getElementById(`settings-modal-${panel.id}-panel`);
             if(el) {
                 el.style.display = "none";
             }
@@ -959,12 +884,74 @@
                 title,
                 text,
                 color,
+                ticksFull: ticks,
                 ticks
             }
         }
     }
 
     FlatMMOPlus.prototype.paintNotifications = function() {
+        // if(this.config[hoverNotifications]) {
+             this.paintHoverNotifications();
+        // } else {
+            //this.paintBlockNotifications();
+        //}
+    }
+
+    //TBD
+    FlatMMOPlus.prototype.paintHoverNotifications = function() {
+        const PADDING = 10;
+        let yOffset = 0;
+        let y = 13 * TILE_SIZE;
+        for (let notification in this.notifications) {
+            const not = this.notifications[notification];
+            if(not.ticks <= 0) {
+                delete this.notifications[notification];
+                continue;
+            }
+            not.ticks--;
+
+            const circleX = 21 * TILE_SIZE + 25;
+            const circleY = y + 25 - yOffset;
+            const radius = 20;
+
+            ctx.beginPath();
+            ctx.arc(circleX, circleY, radius, 0, 2 * Math.PI);
+
+            const isHovered = ctx.isPointInPath(mouse_over_now.x, mouse_over_now.y);
+
+            ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+            ctx.fill();
+
+            const progress = not.ticks / not.ticksFull;
+            
+            ctx.arc(circleX, circleY, radius, -Math.PI / 2, (-Math.PI / 2) + (3 * Math.PI * progress));
+            ctx.strokeStyle = not.color;
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            ctx.drawImage(not.image, circleX - 12, circleY - 12, 24, 24);
+
+            if (isHovered) {
+                const seconds = Math.ceil(not.ticks / FPS);
+
+                const tooltipX = circleX - 220;
+                const tooltipY = circleY - 25;
+
+                ctx.fillStyle = "rgba(255, 255, 255, 0.2)";
+                ctx.fillRect(tooltipX, tooltipY, 200, 50);
+
+                ctx.fillStyle = "white";
+                ctx.font = "14px serif";
+                ctx.fillText(`${not.title} (${seconds})`, tooltipX + 10, tooltipY + 20);
+                ctx.font = "12px serif";
+                ctx.fillText(not.text, tooltipX + 10, tooltipY + 40);
+            }
+            yOffset += TILE_SIZE;
+        }
+    }
+
+    FlatMMOPlus.prototype.paintBlockNotifications = function() {
         const PADDING = 10;
         let yOffset = 0;
         let y = 13 * TILE_SIZE;
@@ -1044,7 +1031,7 @@
             console.log(`FM+ onSettingsPanelChanged "${panelBefore}" -> "${panelAfter}"`);
         }
         if(panelAfter === "plugins") {
-            this.refreshSettingsPanel("plugins");
+            this.refreshPanel("plugins");
         }
         this.forEachPlugin((plugin) => {
             if(typeof plugin.onSettingsPanelChanged === "function") {
@@ -1176,21 +1163,40 @@
 
         window.addEventListener("keypress", this.fmpKeyPress, false);
 
+        document.getElementById("canvas").insertAdjacentHTML("beforeend",'<div id="FMPNotifications"></div>')
+
         // hook into switch_panels, which is called when the main panel is changed. This is used for custom panels.
         window.switch_panels = (id) => {
             let panelBefore = this.currentPanel;
-            this.hideCustomPanels();
             this.original_switch_panels(id);
             this.currentPanel = id;
             let panelAfter = id;
             this.onPanelChanged(panelBefore, panelAfter);
+        }
+        
+        window.settings_modal_tab = (id) => {
+            let panelBefore = this.currentSettingsPanel;
+            this.hideCustomPanels();
+            //I'm using links because some panels don't have a button
+            if(document.getElementById(`settings-modal-${id}-panel-btn`)) {
+                this.original_settings_modal_tab(id);
+            } else {
+                this.original_settings_modal_tab("links");
+                document.getElementById('settings-modal-links-panel-btn').style.backgroundColor = '';
+                document.getElementById('settings-modal-links-panel').style.display = 'none'
+                document.getElementById(`settings-modal-${id}-panel`).style.display = '';
+            }
+
+            this.currentSettingsPanel = id;
+            let panelAfter = id;
+            this.onSettingsPanelChanged(panelBefore, panelAfter);
         }
 
         // create plugin menu item and panel
         const settingsBody = document.querySelector("#settings-modal-mutes-panel-btn")
         settingsBody.insertAdjacentHTML("afterend",`<div class="settings-modal-panel-btn hover" onclick="settings_modal_tab('plugins')" id="settings-modal-plugins-panel-btn" style="margin-left: 10px;">Plugins</div>`)
 
-        this.addPanel("flatmmoplus", "FlatMMO+ Plugins", () => {
+        this.addPanel("plugins", "FlatMMO+ Plugins", () => {
             let content = `<style>
                 #ui-panel-flatmmoplus {
                     height: 550px;
@@ -1250,6 +1256,7 @@
                 .fmp-list-div {
                     max-height: calc(5em + 60px);
                     overflow-y: auto;
+                    text-align: center;
                 }
                 .fmp-list-item {
                     display: flex;
@@ -1266,12 +1273,13 @@
                 }
                 .fmp-list-close {
                     cursor: pointer;
-                    float: right;
+                    font-size: 2rem;
                 }
                 .fmp-objectLabel {
                     display: grid;
                     grid-template-columns: auto auto;
                     justify-items: center;
+                    font-weight: bold;
                 }
             </style>`;
             this.forEachPlugin(plugin => {
@@ -1287,9 +1295,9 @@
                 }
                 content += `
                 <div id="flatmmoplus-plugin-box-${id}" class="flatmmoplus-plugin-box">
-                    <div style="display:flex" align-items:center;>
+                    <div style="display:flex;justify-content: space-between; align-items:center;">
                         <div>
-                            <strong><u>${name||id}</u></strong><br>(by ${author})<br />
+                            <strong style="font-size: large;"><u>${name||id}</u></strong>(by ${author})<br />
                             <span>${description}</span><br />
                         </div>
                         ${plugin.opts.config ? `<div class="flatmmoplus-plugin-settings-button">
@@ -1490,5 +1498,5 @@
     }, "Show all players online.");
 
 	window.FlatMMOPlus.init();
-	window.FlatMMOPlus.upDateSelf();
+	//window.FlatMMOPlus.upDateSelf();
 })();

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         FlatChat
 // @namespace    com.dounford.flatmmo.flatChat
-// @version      2.3.1
+// @version      2.4
 // @description  Better chat for FlatMMO
 // @author       Dounford
 // @license      MIT
@@ -611,12 +611,15 @@
 			this.lastPM = ""; //Used for /r
 
 			this.themes = {};
+
+			this.contextActions = {};
 		}
 
 		onLogin() {
 			this.removeOriginalChat();
 			this.addStyle();
 			this.addUI();
+			this.addContextBtns();
 			this.loadChannels();
 			this.switchChannel("local", false);
 			this.messagesWaiting.forEach((message)=>{
@@ -1085,12 +1088,6 @@
 				</div>
 				<div id="flatChatContextMenu" style="visibility:hidden">
 					<span id="flatChatContextUsername" data-user="" class="flatChatContextUsername"></span>
-					<button data-action="message" class="flatChatContextBtn">Message</button>
-					<button data-action="tabMessage" class="flatChatContextBtn">Message (Tab)</button>
-					<button data-action="profile" class="flatChatContextBtn">Profile</button>
-					<button data-action="trade" class="flatChatContextBtn">Trade</button>
-					<button data-action="stalk" class="flatChatContextWarningBtn">Stalk</button>
-					<button data-action="ignore" class="flatChatContextWarningBtn">Ignore</button>
 				</div>
 				<div id="flatChatCopyUsername" style="visibility:hidden">USERNAME COPIED</div>`
 			this.fcElement.id = "flatChat";
@@ -1198,17 +1195,6 @@
 			});
 
 			documentElement.addEventListener("keydown", (e) => {
-				if (e.key === "F4") {
-					e.preventDefault();
-					this.ignoreClick = !this.ignoreClick;
-					if(this.ignoreClick) {
-						this.fcElement.style.opacity = "0.2";
-						this.fcElement.style.pointerEvents = "none";
-					} else {
-						this.fcElement.style.opacity = "1";
-						this.fcElement.style.pointerEvents = "unset";
-					}
-				}
 				//Switch back and forth between channels with tab and shift+tab
 				if (e.key === "Tab" && e.target.closest('#flatChat')) {
 					e.preventDefault();
@@ -1269,6 +1255,40 @@
 					setTimeout(()=>{copyMessage.style.visibility = "hidden"}, 1000);
 				}
 			});
+		}
+
+		addContextBtns() {
+			this.addContextButton("message", "Message", (username) => {
+				const input = this.fcElement.querySelector("#flatChatInput");
+				input.value = "/pm " + username + " ";
+				input.focus();
+			}, false);
+			this.addContextButton("tabMessage", "Message (Tab)", (username) => {
+				this.newChannel(username, true);
+				this.switchChannel(username, true);
+			}, false);
+			this.addContextButton("profile", "Profile", (username) => {
+				switch(this.config.profilePage) {
+					case "ingame": {
+						Globals.websocket.send("RIGHT_CLICKED_PLAYER=" + username.replaceAll("_", " "));
+					} break;
+					case "page": {
+						window.open(`https://flatmmo.com/profile/?user=${username.replaceAll("_", " ")}`, '_blank');
+					} break;
+					case "stats": {
+						window.open(`https://flatstats.ravenwoodsoftware.org/player/${username.replaceAll("_", " ")}`, '_blank');
+					} break;
+				}
+			}, false);
+			this.addContextButton("trade", "Trade", (username) => {
+				Globals.websocket.send("SEND_TRADE_REQUEST=" + username.replaceAll("_", " "));
+			}, false);
+			this.addContextButton("stalk", "Stalk", (username) => {
+				this.watchIgnorePlayersWords("watchedPlayers", username);
+			}, true);
+			this.addContextButton("ignore", "Ignore", (username) => {
+				this.watchIgnorePlayersWords("ignoredPlayers", username);
+			}, true);
 		}
 
 		configurePosition() {
@@ -1626,117 +1646,9 @@
 				};
 			}, `Closes a chat tab.<br><b>Usage:</b>/leave <channel (optional)>`);
 
-			window.FlatMMOPlus.registerCustomChatCommand("ignore", (command, data='') => {
-				if (data === "") {
-					this.showWarning("You need to specify the username", "red");
-					return;
-				}
-				this.watchIgnorePlayersWords("ignoredPlayers", data)
-			}, `Ignores all messages from user.<br><b>Usage:</b>/ignore [username] (use _ for names with space)`);
-
-			window.FlatMMOPlus.registerCustomChatCommand("unignore", (command, data='') => {
-				if (data === "") {
-					this.showWarning("You need to specify the username", "red");
-					return;
-				}
-				this.config.ignoredPlayers = this.config.ignoredPlayers.filter(player => player !== data);
-				this.saveConfig();
-				this.showWarning(data + " removed from Ignored List");
-			}, `Removes someone from the Ignored List.<br><b>Usage:</b>/unignore [username] (use _ for names with space)`);
-
-			window.FlatMMOPlus.registerCustomChatCommand("watch", (command, data='') => {
-				if (data === "") {
-					this.showWarning("You need to specify the username", "red");
-					return;
-				}
-				this.watchIgnorePlayersWords("watchedPlayers",data);
-			}, `Highlights all messages from user.<br><b>Usage:</b>/watch [username] (use _ for names with space)`);
-
-			window.FlatMMOPlus.registerCustomChatCommand("unwatch", (command, data='') => {
-				if (data === "") {
-					this.showWarning("You need to specify the username", "red");
-					return;
-				}
-				this.config.watchedPlayers = this.config.watchedPlayers.filter(player => player !== data);
-				this.saveConfig();
-				this.showWarning(data + " removed from Watched List");
-			}, `Removes someone from the Watched List.<br><b>Usage:</b>/unwatch [username] (use _ for names with space)`);
-
-			window.FlatMMOPlus.registerCustomChatCommand("ignoreword", (command, data='') => {
-				if (data === "") {
-					this.showWarning("You need to specify one term", "red");
-					return;
-				}
-				this.watchIgnorePlayersWords("ignoredWords",data);
-			}, `Ignores all messages that contains this term.<br><b>Usage:</b>/ignoreword [term]`);
-
-			window.FlatMMOPlus.registerCustomChatCommand("unignoreword", (command, data='') => {
-				if (data === "") {
-					this.showWarning("You need to specify the word", "red");
-					return;
-				}
-				this.config.ignoredWords = this.config.ignoredWords.filter(word => word !== data);
-				this.saveConfig();
-				this.showWarning(data + " removed from Ignored List");
-			}, `Removes a term from the Ignored List.<br><b>Usage:</b>/unignoreword [term]`);
-
-			window.FlatMMOPlus.registerCustomChatCommand("watchword", (command, data='') => {
-				if (data === "") {
-					this.showWarning("You need to specify at least one word", "red");
-					return;
-				}
-				this.watchIgnorePlayersWords("watchedWords",data);
-			}, `Ping you every time this word is sent.<br><b>Usage:</b>/watchword [word] (use _ for words with space)`);
-
-			window.FlatMMOPlus.registerCustomChatCommand("unwatchword", (command, data='') => {
-				if (data === "") {
-					this.showWarning("You need to specify the word", "red");
-					return;
-				}
-				this.config.watchedWords = this.config.watchedWords.filter(word => word !== data);
-				this.saveConfig();
-				this.showWarning(data + " removed from Watched List");
-			}, `Removes a term from the Watched List.<br><b>Usage:</b>/unwatchword [term]`);
-
 			window.FlatMMOPlus.registerCustomChatCommand("tick", (command, data='') => {
 				this.showWarning(`The current action takes ${progress_bar_target + 1} ticks (${(progress_bar_target + 1) / 2} seconds)`);
 			}, `Shows the time needed to complete the current action`);
-
-			window.FlatMMOPlus.registerCustomChatCommand("scripts", async (command, data='') => {
-				let scriptList;
-				await fetch('https://scripts.dounford.tech/scripts').then(async (response) => {
-					scriptList = await response.text()
-					scriptList = scriptList.slice(0,-1).split(";");
-				})
-
-				scriptList.forEach(item => this.showWarning(item, "cyan"));
-				this.showWarning("Use /load [name]", "cyan");
-			}, "List all scripts that can be loaded with /load [name]");
-
-			window.FlatMMOPlus.registerCustomChatCommand("load", (command, data='') => {
-				if (data === "") {
-					this.showWarning("You need to specify the script you want to load", "red");
-					return;
-				}
-
-				//Only adds to auto load if it exists
-				if (this.loadScript(data)) {
-					this.config.scriptsToLoad.push(data);
-					this.saveConfig();
-				}
-			}, "Loads a script");
-
-			window.FlatMMOPlus.registerCustomChatCommand("unload", (command, data='') => {
-				if (data === "") {
-					this.showWarning("You need to specify the script you want to unload", "red");
-					return;
-				}
-
-				this.config.scriptsToLoad = this.config.scriptsToLoad.filter(script=> script !== data);
-				this.saveConfig();
-				this.showWarning(data + " will not auto load anymore");
-			}, "Remove a script from auto load (it doesn't unload, you need to refresh the page)");
-
 		}
 
 		newChannel(channel, isPrivate) {
@@ -1907,45 +1819,17 @@
 			this.saveConfig();
 		}
 
+		addContextButton(action, text, func, isWarningBtn) {
+			this.contextActions[action] = func;
+			document.getElementById("flatChatContextMenu").insertAdjacentHTML("beforeend", `<button data-action="${action}" class="${isWarningBtn ? "flatChatContextWarningBtn" : "flatChatContextBtn"}">${text}</button>`)
+		}
+
 		contextMenu(e) {
 			const data = e.target.closest("[data-action]");
 			if (data) {
 				const username = this.fcElement.querySelector("#flatChatContextUsername").dataset.user;
 				const action = data.dataset.action;
-				const input = this.fcElement.querySelector("#flatChatInput");
-				switch (action) {
-					case "message": {
-						input.value = "/pm " + username + " ";
-						input.focus();
-					} break;
-					case "tabMessage": {
-						this.newChannel(username, true);
-						this.switchChannel(username, true);
-					} break;
-					case "profile": {
-						switch(this.config.profilePage) {
-							case "ingame": {
-								Globals.websocket.send("RIGHT_CLICKED_PLAYER=" + username.replaceAll("_", " "));
-							} break;
-							case "page": {
-								window.open(`https://flatmmo.com/profile/?user=${username.replaceAll("_", " ")}`, '_blank');
-							} break;
-							case "stats": {
-								window.open(`https://flatstats.ravenwoodsoftware.org/player/${username.replaceAll("_", " ")}`, '_blank');
-							} break;
-						}
-					} break;
-					case "trade": {
-						Globals.websocket.send("SEND_TRADE_REQUEST=" + username.replaceAll("_", " "));
-					} break;
-					case "stalk": {
-						this.watchIgnorePlayersWords("watchedPlayers", username);
-					} break;
-					case "ignore": {
-						this.watchIgnorePlayersWords("ignoredPlayers", username);
-					} break;
-				}
-
+				this.contextActions[action](username);
 				const contextMenu = this.fcElement.querySelector("#flatChatContextMenu");
 				contextMenu.style.visibility = "hidden";
 			}
