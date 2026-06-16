@@ -492,6 +492,9 @@
                             window.FlatMMOPlus.newObjectField(id, cfg.id, item, value[item]);
                         }
                     } 
+                    if(cfg.onChange) {
+                        el.onchange = cfg.onChange;
+                    }
                 }
             });
         }
