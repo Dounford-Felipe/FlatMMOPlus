@@ -878,7 +878,7 @@
         });
     }
 
-    FlatMMOPlus.prototype.addNotification = function(name, imageSrc, title = "", text = "", ticks = 900, color = "white") {
+    FlatMMOPlus.prototype.addNotification = function(name, imageSrc, title = "", text = "", ticks = 900, color = "white", bgColor = "black", titleColor, progressColor = "red") {
         const img = new Image();
         img.src = imageSrc;
         img.onload = () => {
@@ -887,6 +887,9 @@
                 title,
                 text,
                 color,
+                titleColor: titleColor || color,
+                bgColor,
+                progressColor,
                 ticksFull: ticks,
                 ticks
             }
@@ -894,63 +897,109 @@
     }
 
     FlatMMOPlus.prototype.paintNotifications = function() {
+        const nots = Object.keys(this.notifications);
+        if(nots.length === 0) return;
         // if(this.config[hoverNotifications]) {
-             this.paintHoverNotifications();
+             this.paintHoverNotifications(nots);
         // } else {
             //this.paintBlockNotifications();
         //}
     }
 
-    //TBD
-    FlatMMOPlus.prototype.paintHoverNotifications = function() {
-        const PADDING = 10;
-        let yOffset = 0;
-        let y = 13 * TILE_SIZE;
+    FlatMMOPlus.prototype.paintHoverNotifications = function(notifications) {
+        const CIRCLE_R   = 22;
+        const ARC_R      = 30;
+        const ARC_W      = 5;
+        const SPACING    = 12;
+        const WIDGET_W   = ARC_R * 2 + SPACING;
+        const FADE_TICKS = 60;
+
+        // Center the row of widgets horizontally and vertically
+        const totalW = notifications.length * WIDGET_W - SPACING;
+        let cx = canvasWidth / 2 - totalW / 2 + ARC_R;
+        const CY = ARC_R + ARC_W + 20;
+
+        const mx = mouse_over_now.x;
+        const my = mouse_over_now.y;
+        let tooltip = null; // {cx, text} — drawn last so it's always on top
+
         for (let notification in this.notifications) {
             const not = this.notifications[notification];
-            if(not.ticks <= 0) {
-                delete this.notifications[notification];
-                continue;
-            }
             not.ticks--;
 
-            const circleX = 21 * TILE_SIZE + 25;
-            const circleY = y + 25 - yOffset;
-            const radius = 20;
+            if(not.ticks <= 0) {
+                delete this.notifications[notification];
+                return;
+            }
 
+            const alpha = not.ticks < FADE_TICKS ? Math.max(0, not.ticks / FADE_TICKS) : 1.0;
+
+            ctx.save();
+            ctx.globalAlpha = alpha;
+
+            // Dark backing disc
             ctx.beginPath();
-            ctx.arc(circleX, circleY, radius, 0, 2 * Math.PI);
-
-            const isHovered = ctx.isPointInPath(mouse_over_now.x, mouse_over_now.y);
-
-            ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+            ctx.arc(cx, CY, ARC_R + ARC_W, 0, Math.PI * 2);
+            ctx.fillStyle = "rgba(0,0,0,0.6)";
             ctx.fill();
 
-            const progress = not.ticks / not.ticksFull;
-            
-            ctx.arc(circleX, circleY, radius, -Math.PI / 2, (-Math.PI / 2) + (3 * Math.PI * progress));
-            ctx.strokeStyle = not.color;
-            ctx.lineWidth = 3;
+            // Clip icon to inner circle
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(cx, CY, CIRCLE_R, 0, Math.PI * 2);
+            ctx.clip();
+            ctx.drawImage(not.image, cx - CIRCLE_R, CY - CIRCLE_R, CIRCLE_R * 2, CIRCLE_R * 2);
+            ctx.restore();
+
+            // Empty arc track
+            ctx.beginPath();
+            ctx.arc(cx, CY, ARC_R, -Math.PI / 2, Math.PI * 1.5);
+            ctx.strokeStyle = "rgba(255,255,255,0.15)";
+            ctx.lineWidth   = ARC_W;
+            ctx.lineCap     = "butt";
             ctx.stroke();
 
-            ctx.drawImage(not.image, circleX - 12, circleY - 12, 24, 24);
+            // Filled progress arc (clockwise from top)
+            const endAngle = -Math.PI / 2 + (not.ticks / not.ticksFull) * Math.PI * 2;
+            ctx.beginPath();
+            ctx.arc(cx, CY, ARC_R, -Math.PI / 2, endAngle);
+            ctx.strokeStyle = not.progressColor;
+            ctx.lineWidth   = ARC_W;
+            ctx.lineCap     = "round";
+            ctx.stroke();
 
-            if (isHovered) {
-                const seconds = Math.ceil(not.ticks / FPS);
+            ctx.restore();
 
-                const tooltipX = circleX - 220;
-                const tooltipY = circleY - 25;
-
-                ctx.fillStyle = "rgba(255, 255, 255, 0.2)";
-                ctx.fillRect(tooltipX, tooltipY, 200, 50);
-
-                ctx.fillStyle = "white";
-                ctx.font = "14px serif";
-                ctx.fillText(`${not.title} (${seconds})`, tooltipX + 10, tooltipY + 20);
-                ctx.font = "12px serif";
-                ctx.fillText(not.text, tooltipX + 10, tooltipY + 40);
+            // Queue tooltip if mouse is hovering this orb
+            const dx = mx - cx, dy = my - CY;
+            if (dx * dx + dy * dy <= (ARC_R + ARC_W) * (ARC_R + ARC_W)) {
+                tooltip = { cx, not };
             }
-            yOffset += TILE_SIZE;
+
+            cx += WIDGET_W;
+        }
+
+        // Draw tooltip on top of all orbs
+        if (tooltip) {
+            const tx   = tooltip.cx;
+            const ty   = CY + ARC_R + ARC_W + 14;
+            ctx.save();
+            const PAD = 16;
+            ctx.textAlign   = "center";
+            const tw = ctx.measureText(tooltip.not.title).width;
+            const txw = ctx.measureText(tooltip.not.text).width;
+            const rectW = tw > txw ? tw : txw;
+            const th = 16;
+            const txh = 13;
+            ctx.font        = "16px sans-serif";
+            ctx.fillStyle   = tooltip.not.bgColor;
+            ctx.fillRect(tx - rectW / 2 - PAD, ty - th - PAD / 2, rectW + PAD * 2, th + txh + PAD);
+            ctx.fillStyle   = tooltip.not.titleColor;
+            ctx.fillText(tooltip.not.title, tx, ty);
+            ctx.fillStyle   = tooltip.not.color;
+            ctx.font        = "13px sans-serif";
+            ctx.fillText(tooltip.not.text, tx, ty);
+            ctx.restore();
         }
     }
 
