@@ -390,10 +390,10 @@
 		constructor() {
 			super("flatChat", {
 				about: {
-					name: GM_info.script.name,
-					version: GM_info.script.version,
-					author: GM_info.script.author,
-					description: GM_info.script.description
+					name: "FlatChat",
+					version: "2.4",
+					author: "Liam",
+					description: "Improved chat for FlatMMO"
 				},
 				config: [
 					{
@@ -761,7 +761,7 @@
 				this.watchIgnorePlayersWords("ignoredPlayers", user);
 			}
 
-			FlatMMOPlus.prototype.showWarning = function(message, color = "aquamarine") {
+			FlatMMOPlus.__proto__.showWarning = function(message, color = "aquamarine") {
 				const data = {
 					username: "",
 					tag: "none",
@@ -769,7 +769,7 @@
 					color: color,
 					message: message,
 					yell: false,
-					channel: this.currentChannel
+					channel: FlatMMOPlus.plugins.flatChat.currentChannel
 				}
 				FlatMMOPlus.plugins.flatChat.showMessage(data, true);
 			}

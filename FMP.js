@@ -46,10 +46,6 @@
 	const CHAT_COMMAND_NO_OVERRIDE = ["help"];
 
     //This is used for hot updates
-    let config = {
-        hoverNotificationHeight: 10,
-        hoverNotifications: true
-    };
     let plugins = {};
     let panels = {};
     let nextUniqueId = 1;
@@ -73,7 +69,6 @@
         if(window.FlatMMOPlus.version >= VERSION) {
             return
         }
-        config = window.FlatMMOPlus.config;
         plugins = window.FlatMMOPlus.plugins;
         panels = window.FlatMMOPlus.panels;
         nextUniqueId = window.FlatMMOPlus.nextUniqueId;
@@ -89,7 +84,9 @@
         original_settings_modal_tab = window.FlatMMOPlus.original_settings_modal_tab || window.settings_modal_tab;
         flatnotifications = window.FlatMMOPlus.notifications || {};
         window.removeEventListener("keypress", window.FlatMMOPlus.fmpKeyPress, false);
-        document.getElementById("ui-panel-flatmmoplus").remove();
+        document.getElementById("ui-panel-flatmmoplus")?.remove();
+        document.getElementById("settings-modal-plugins-panel-btn")?.remove();
+        document.getElementById("settings-modal-plugins-panel")?.remove();
         document.querySelector(".settings-ui tbody tr:last-child").remove()
 	} else {
         document.head.insertAdjacentHTML("beforeend", `<style>
@@ -185,7 +182,6 @@
     class FlatMMOPlus {
 		constructor() {
 			this.version = VERSION;
-            this.config = config;
 			this.plugins = plugins;
 			this.panels = panels;
 			this.debug = false;
@@ -563,7 +559,7 @@
         plugin.changedConfigs.clear();
     }
     
-    FlatMMOPlus.prototype.showWarning = function(message, color = "aquamarine") {
+    FlatMMOPlus.prototype.showWarning = function(message, color = "orange") {
         add_to_chat("none", "none", "none", color, message);
     }
 
@@ -906,7 +902,7 @@
     FlatMMOPlus.prototype.paintNotifications = function() {
         const nots = Object.keys(this.notifications);
         if(nots.length === 0) return;
-        if(this.config.hoverNotifications) {
+        if(this.handler.config.hoverNotifications) {
              this.paintHoverNotifications(nots);
         } else {
             this.paintBlockNotifications();
@@ -924,7 +920,7 @@
         // Center the row of widgets horizontally and vertically
         const totalW = notifications.length * WIDGET_W - SPACING;
         let cx = canvasWidth / 2 - totalW / 2 + ARC_R;
-        const CY = this.config.hoverNotificationHeight * TILE_SIZE - (ARC_R + ARC_W + 20);
+        const CY = this.handler.config.hoverNotificationHeight * TILE_SIZE - (ARC_R + ARC_W + 20);
 
         const mx = mouse_over_now.x;
         const my = mouse_over_now.y;
@@ -955,7 +951,8 @@
             ctx.beginPath();
             ctx.arc(cx, CY, CIRCLE_R, 0, Math.PI * 2);
             ctx.clip();
-            ctx.drawImage(not.image, cx - CIRCLE_R, CY - CIRCLE_R, CIRCLE_R * 2, CIRCLE_R * 2);
+            const imgWidth = CIRCLE_R * 2;
+            ctx.drawImage(not.image, cx - CIRCLE_R, CY - CIRCLE_R, imgWidth, imgWidth * (not.image.naturalHeight / not.image.naturalWidth));
             ctx.restore();
 
             // Empty arc track
@@ -1481,6 +1478,34 @@
 
             return content;
         });
+
+        this.handler = new FlatMMOPlusPlugin("handler", {
+            about: {
+                name: "Plugin Handler",
+                version: VERSION,
+                author: "Liam",
+                description: "FlatMMO+ Configs"
+            },
+            config: [
+                {
+                    id: "hoverNotifications",
+                    label: "Plugin Notifications Orbs",
+                    type: "boolean",
+                    default: false
+                },
+                {
+                    id: "hoverNotificationHeight",
+                    label: "Notification Orbs Height",
+                    type: "range",
+                    min: 2,
+                    max: 14,
+                    step: 1,
+                    default: 10,
+                }
+            ]
+        })
+
+        this.registerPlugin(this.handler);
         
         logFancy(`(v${this.version}) initialized.`);
         if(this.loggedIn === false && Object.keys(item_sell_prices).length !== 0) {
