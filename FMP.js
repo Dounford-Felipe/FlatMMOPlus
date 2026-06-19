@@ -46,7 +46,10 @@
 	const CHAT_COMMAND_NO_OVERRIDE = ["help"];
 
     //This is used for hot updates
-    let config = {};
+    let config = {
+        hoverNotificationHeight: 10,
+        hoverNotifications: true
+    };
     let plugins = {};
     let panels = {};
     let nextUniqueId = 1;
@@ -182,7 +185,7 @@
     class FlatMMOPlus {
 		constructor() {
 			this.version = VERSION;
-            this.config = {};
+            this.config = config;
 			this.plugins = plugins;
 			this.panels = panels;
 			this.debug = false;
@@ -559,6 +562,10 @@
         }
         plugin.changedConfigs.clear();
     }
+    
+    FlatMMOPlus.prototype.showWarning = function(message, color = "aquamarine") {
+        add_to_chat("none", "none", "none", color, message);
+    }
 
     FlatMMOPlus.prototype.addPanel = function(id, title, content, hasTabButton) {
         if(typeof id !== "string" || typeof title !== "string" || (typeof content !== "string" && typeof content !== "function") ) {
@@ -899,11 +906,11 @@
     FlatMMOPlus.prototype.paintNotifications = function() {
         const nots = Object.keys(this.notifications);
         if(nots.length === 0) return;
-        // if(this.config[hoverNotifications]) {
+        if(this.config.hoverNotifications) {
              this.paintHoverNotifications(nots);
-        // } else {
-            //this.paintBlockNotifications();
-        //}
+        } else {
+            this.paintBlockNotifications();
+        }
     }
 
     FlatMMOPlus.prototype.paintHoverNotifications = function(notifications) {
@@ -917,7 +924,7 @@
         // Center the row of widgets horizontally and vertically
         const totalW = notifications.length * WIDGET_W - SPACING;
         let cx = canvasWidth / 2 - totalW / 2 + ARC_R;
-        const CY = ARC_R + ARC_W + 20;
+        const CY = this.config.hoverNotificationHeight * TILE_SIZE - (ARC_R + ARC_W + 20);
 
         const mx = mouse_over_now.x;
         const my = mouse_over_now.y;
@@ -982,7 +989,7 @@
         // Draw tooltip on top of all orbs
         if (tooltip) {
             const tx   = tooltip.cx;
-            const ty   = CY + ARC_R + ARC_W + 14;
+            const ty   = CY - (ARC_R + ARC_W + 14);
             ctx.save();
             const PAD = 16;
             ctx.textAlign   = "center";
@@ -998,7 +1005,7 @@
             ctx.fillText(tooltip.not.title, tx, ty);
             ctx.fillStyle   = tooltip.not.color;
             ctx.font        = "13px sans-serif";
-            ctx.fillText(tooltip.not.text, tx, ty);
+            ctx.fillText(tooltip.not.text, tx, ty + th);
             ctx.restore();
         }
     }
@@ -1548,6 +1555,31 @@
     window.FlatMMOPlus.registerCustomChatCommand(["players","who"], (command, data='') => {
         Globals.websocket.send('CHAT=/players');
     }, "Show all players online.");
+
+    window.FlatMMOPlus.registerCustomChatCommand("ohelp", (command, data='') => {
+        Globals.websocket.send(`CHAT=/help`);
+    }, `Shows the original vanilla /help`);
+
+    window.FlatMMOPlus.registerCustomChatCommand("collections", (command, data='') => {
+        Globals.websocket.send(`CHAT=/collections`);
+    }, `Access to your collection log`);
+
+    window.FlatMMOPlus.registerCustomChatCommand("detach", (command, data="on") => {
+        Globals.websocket.send(`CHAT=/detach`);
+    }, `Detach the chat from the window`);
+
+    window.FlatMMOPlus.registerCustomChatCommand("tick", (command, data='') => {
+        this.showWarning(`The current action takes ${progress_bar_target + 1} ticks (${(progress_bar_target + 1) / 2} seconds)`);
+    }, `Shows the time needed to complete the current action`);
+
+    window.FlatMMOPlus.registerCustomChatCommand("trade", (command, data='') => {
+        if (data === "") {
+            FlatMMOPlus.showWarning("You need to specify the username", "red");
+            return;
+        }
+        Globals.websocket.send("SEND_TRADE_REQUEST=" + data.replaceAll("_", " "));
+    }, `Send a trade request if the player is in the same map.<br><b>Usage:</b>/trade [username]`);
+    
 
 	window.FlatMMOPlus.init();
 	//window.FlatMMOPlus.upDateSelf();

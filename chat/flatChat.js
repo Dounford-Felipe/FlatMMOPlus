@@ -633,9 +633,9 @@
 			ding.volume = this.config.pingVolume / 100;
 			this.addThemeEditor();
 			this.changeThemeEditor();
-			this.showWarning("Welcome to flatmmo.com", "orange");
-			this.showWarning(document.querySelectorAll("#chat span")[1].innerHTML, "white");
-			this.showWarning(`<span><strong style="color:cyan">FYI: </strong> Use the /help command to see information on available chat commands.</span>`, "white");
+			FlatMMOPlus.showWarning("Welcome to flatmmo.com", "orange");
+			FlatMMOPlus.showWarning(document.querySelectorAll("#chat span")[1].innerHTML, "white");
+			FlatMMOPlus.showWarning(`<span><strong style="color:cyan">FYI: </strong> Use the /help command to see information on available chat commands.</span>`, "white");
 			this.configurePosition();
 		}
 
@@ -759,6 +759,19 @@
 			add_local_mute = (user) => {
 				oldLocalMute(user);
 				this.watchIgnorePlayersWords("ignoredPlayers", user);
+			}
+
+			FlatMMOPlus.prototype.showWarning = function(message, color = "aquamarine") {
+				const data = {
+					username: "",
+					tag: "none",
+					sigil: "none",
+					color: color,
+					message: message,
+					yell: false,
+					channel: this.currentChannel
+				}
+				FlatMMOPlus.plugins.flatChat.showMessage(data, true);
 			}
 		}
 
@@ -1535,17 +1548,13 @@
 		}
 
 		defineCommands() {
-			window.FlatMMOPlus.registerCustomChatCommand("ohelp", (command, data='') => {
-				Globals.websocket.send(`CHAT=/help`);
-			}, `Shows the original vanilla /help`);
-
 			window.FlatMMOPlus.registerCustomChatCommand(["players","who"], (command, data='') => {
 				if (this.currentChannel === "channel_global") {
 					Globals.websocket.send('CHAT=/players');
 				} else if (this.currentChannel === "channel_local") {
-					this.showWarning(Object.keys(players).join(", "), "white");
+					FlatMMOPlus.showWarning(Object.keys(players).join(", "), "white");
 				} else if (this.currentChannel.startsWith("private_")) {
-					this.showWarning(`${this.currentChannel.slice(8)} & ${Globals.local_username}`, "white");
+					FlatMMOPlus.showWarning(`${this.currentChannel.slice(8)} & ${Globals.local_username}`, "white");
 				}
 			}, `Show all players in room or global.`);
 
@@ -1564,7 +1573,7 @@
 			//Pm will only open a tab if a message is not specified
 			window.FlatMMOPlus.registerCustomChatCommand("pm", (command, data='') => {
 				if (data === "") {
-					this.showWarning("You need to specify the username", "red");
+					FlatMMOPlus.showWarning("You need to specify the username", "red");
 					return;
 				}
 				const space = data.indexOf(" ");
@@ -1596,7 +1605,7 @@
 			//pm* will always open a new tab
 			window.FlatMMOPlus.registerCustomChatCommand("pm*", (command, data='') => {
 				if (data === "") {
-					this.showWarning("You need to specify the username", "red");
+					FlatMMOPlus.showWarning("You need to specify the username", "red");
 					return;
 				}
 				const space = data.indexOf(" ");
@@ -1622,19 +1631,11 @@
 
 			window.FlatMMOPlus.registerCustomChatCommand("profile", (command, data='') => {
 				if (data === "") {
-					this.showWarning("You need to specify the username", "red");
+					FlatMMOPlus.showWarning("You need to specify the username", "red");
 					return;
 				}
 				Globals.websocket.send("RIGHT_CLICKED_PLAYER=" + data.replaceAll("_", " "));
 			}, `Opens the player profile.<br><b>Usage:</b>/profile [username]`);
-
-			window.FlatMMOPlus.registerCustomChatCommand("trade", (command, data='') => {
-				if (data === "") {
-					this.showWarning("You need to specify the username", "red");
-					return;
-				}
-				Globals.websocket.send("SEND_TRADE_REQUEST=" + data.replaceAll("_", " "));
-			}, `Send a trade request if the player is in the same map.<br><b>Usage:</b>/trade [username]`);
 
 			window.FlatMMOPlus.registerCustomChatCommand("leave", (command, data='') => {
 				if (data === "") {
@@ -1645,10 +1646,6 @@
 					this.closeChannel(data);
 				};
 			}, `Closes a chat tab.<br><b>Usage:</b>/leave <channel (optional)>`);
-
-			window.FlatMMOPlus.registerCustomChatCommand("tick", (command, data='') => {
-				this.showWarning(`The current action takes ${progress_bar_target + 1} ticks (${(progress_bar_target + 1) / 2} seconds)`);
-			}, `Shows the time needed to complete the current action`);
 		}
 
 		newChannel(channel, isPrivate) {
@@ -1814,7 +1811,7 @@
 		watchIgnorePlayersWords(type, word) {
 			//type can be watchedWords, ignoredWords, watchedPlayers, ignoredPlayers
 			//Warning first because of the ignoredWord list
-			this.showWarning(word + " added to " + type + " list");
+			FlatMMOPlus.showWarning(word + " added to " + type + " list");
 			this.config[type].push(word)
 			this.saveConfig();
 		}
@@ -2204,18 +2201,7 @@
 			FlatMMOPlus.addNotification(not.name, not.image, not.title, not.text, not.ticks, not.color);
 		}
 
-		showWarning(message, color = "aquamarine") {
-			const data = {
-				username: "",
-				tag: "none",
-				sigil: "none",
-				color: color,
-				message: message,
-				yell: false,
-				channel: this.currentChannel
-			}
-			this.showMessage(data, true);
-		}
+		
 
 		sendMessage() {
 			const input = this.fcElement.querySelector("#flatChatInput");
