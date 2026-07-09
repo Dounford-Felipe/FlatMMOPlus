@@ -42,6 +42,8 @@
     const CONFIG_TYPES_COLOR = ["color"];
     const CONFIG_TYPES_LIST = ["list", "array"];
     const CONFIG_TYPES_RELATION = ["relation", "key", "object"];
+    const CONFIG_TYPES_BUTTON = ["button", "btn"];
+
 
 	const CHAT_COMMAND_NO_OVERRIDE = ["help"];
 
@@ -1487,6 +1489,19 @@
                 description: "FlatMMO+ Configs"
             },
             config: [
+                {
+                    id: "globalSettings",
+                    label: "Share settings across all profiles",
+                    type: "boolean",
+                    default: false
+                },
+                {
+                    id: "turnSettingsGlobal",
+                    label: "Copy this profile's options to all",
+                    text: "Copy",
+                    type: "button",
+                    func: () => FlatMMOPlus.handler.shareThisSettings(),
+                },
                 {
                     id: "hoverNotifications",
                     label: "Plugin Notifications Orbs",
