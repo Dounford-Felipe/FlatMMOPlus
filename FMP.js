@@ -438,15 +438,35 @@
         if (typeof id !== "string") {
             throw new TypeError("FlatMMOPlus.reloadPluginConfigs takes the following arguments: (id:string)");
         }
+        let value;
+        const globalValue = localStorage.getItem(`flatmmoplus.${id}.config`) || "{}";
+        const accountValue = localStorage.getItem(`flatmmoplus.${id}.${Globals.local_username}.config`);
+        if(id !== "handler") {
+            const usesGlobal = this.handler.config.globalSettings;
+            
+            if(usesGlobal) {
+                value = globalValue;
+            } else if (accountValue == null) {
+                value = globalValue;
+                //Make sure it exists next time
+                localStorage.setItem(`flatmmoplus.${id}.${Globals.local_username}.config`, globalValue);
+            } else {
+                value = accountValue;
+            }
+        } else {
+            value = globalValue;
+        }
+
         const plugin = this.plugins[id];
         const config = {};
         let stored;
         try {
-            stored = JSON.parse(localStorage.getItem(`flatmmoplus.${id}.config`) || "{}");
+            stored = JSON.parse(value || "{}");
         } catch(err) {
             console.error(`Failed to load configs for plugin with id "${id} - will use defaults instead."`);
             stored = {};
         }
+
         if (plugin.opts.config && Array.isArray(plugin.opts.config)) {
             plugin.opts.config.forEach(cfg => {
                 const el = document.getElementById(`flatmmoplus-config-${plugin.id}-${cfg.id}`);
@@ -511,6 +531,12 @@
         if (typeof id !== "string") {
             throw new TypeError("FlatMMOPlus.savePluginConfigs takes the following arguments: (id:string)");
         }
+        let key;
+        if(id !== "handler") {
+            key = this.handler.config.globalSettings ? `flatmmoplus.${id}.config` : `flatmmoplus.${id}.${Globals.local_username}.config`;
+        } else {
+            key = `flatmmoplus.${id}.config`;
+        }
         const plugin = this.plugins[id];
         const config = {};
         if (plugin.opts.config && Array.isArray(plugin.opts.config)) {
@@ -553,7 +579,7 @@
             });
         }
         plugin.config = config;
-        localStorage.setItem(`flatmmoplus.${id}.config`, JSON.stringify(config));
+        localStorage.setItem(key, JSON.stringify(config));
         this.setPluginConfigUIDirty(id, false);
         if (typeof plugin.onConfigsChanged === "function") {
             plugin.onConfigsChanged();
@@ -937,7 +963,7 @@
                 return;
             }
 
-            const alpha = not.ticks < FADE_TICKS ? Math.max(0, not.ticks / FADE_TICKS) : 1.0;
+            const alpha = this.handler.config.hoverNotificationAlpha === 100 ? not.ticks < FADE_TICKS ? Math.max(0, not.ticks / FADE_TICKS) : 1.0 : this.handler.config.hoverNotificationAlpha;
 
             ctx.save();
             ctx.globalAlpha = alpha;
@@ -1466,6 +1492,14 @@
                                     </div>
                                 </div>`;
                         }
+                        else if (CONFIG_TYPES_BUTTON.includes(cfg.type)) {
+                            content += `
+                                <div>
+                                    <label>${cfg.label || cfg.id}</label>
+                                    <button onclick="${cfg.func}()" style="cursor: pointer;" class="${cfg.class || "fmpConfigBtn"}" style="text-align: center;">${cfg.text}</button>
+                                </div>
+                            `;
+                        }
                     });
                     content += `
                     <div style="grid-column: span 2">
@@ -1497,10 +1531,11 @@
                 },
                 {
                     id: "turnSettingsGlobal",
-                    label: "Copy this profile's options to all",
+                    label: "Copy this profile's options to all profiles",
                     text: "Copy",
                     type: "button",
-                    func: () => FlatMMOPlus.handler.shareThisSettings(),
+                    func: "FlatMMOPlus.handler.shareThisSettings",
+                    //class: "btnClass"
                 },
                 {
                     id: "hoverNotifications",
@@ -1516,11 +1551,49 @@
                     max: 14,
                     step: 1,
                     default: 10,
+                },
+                {
+                    id: "hoverNotificationAlpha",
+                    label: "Notification Orbs Transparency",
+                    type: "range",
+                    min: 0,
+                    max: 100,
+                    default: 100
                 }
             ]
         })
 
         this.registerPlugin(this.handler);
+
+        this.handler.shareThisSettings = function() {
+            let keys = {
+                main: Globals.local_username,
+                scripts: new Set(),
+                alts: new Set(),
+            }
+
+            for (const key in localStorage) {
+                const match = key.match(/flatmmoplus\.(.*?)(?:\.(.*?))?\.config/);
+                if(match === null) continue;
+
+                const id = match[1];
+
+                keys.scripts.add(id);
+
+                const username = match[2];
+                if(username && username !== Globals.local_username) {
+                    keys.alts.add(username);
+                }
+            }
+
+            keys.scripts.forEach(script => {
+                const value = localStorage.getItem(`flatmmoplus.${script}.${keys.main}.config`) || '{}';
+
+                keys.alts.forEach(profile => {
+                    localStorage.setItem(`flatmmoplus.${script}.${profile}.config`)
+                })
+            })
+        }
         
         logFancy(`(v${this.version}) initialized.`);
         if(this.loggedIn === false && Object.keys(item_sell_prices).length !== 0) {
@@ -1530,9 +1603,8 @@
 
     FlatMMOPlus.prototype.upDateSelf = async function(){
         try {
-            return
             let script;
-            await fetch('dounford.qd.je').then(async (response) => {
+            await fetch('http://flat.dounford.qd.je/scripts/1').then(async (response) => {
                 script = await response.text()
                 script = JSON.parse(script);
             })
