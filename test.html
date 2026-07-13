@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+#sortable-list {
+  list-style: none;
+  padding: 0;
+}
+.sortable-item {
+  padding: 12px;
+  margin-bottom: 8px;
+  background-color: #fff;
+  border: 1px solid #ccc;
+  cursor: grab;
+}
+/* Visual cue for the item currently being dragged */
+.sortable-item.dragging {
+  opacity: 0.5;
+  background-color: #e0e0e0;
+}
+
+    </style>
+</head>
+<body>
+    <ul id="sortable-list">
+  <li class="sortable-item" draggable="true">Item 1</li>
+  <li class="sortable-item" draggable="true">Item 2</li>
+  <li class="sortable-item" draggable="true">Item 3</li>
+  <li class="sortable-item" draggable="true">Item 4</li>
+</ul>
+
+    <ul id="sortable-list">
+  <li class="sortable-item" draggable="true">Item 1</li>
+  <li class="sortable-item" draggable="true">Item 2</li>
+  <li class="sortable-item" draggable="true">Item 3</li>
+  <li class="sortable-item" draggable="true">Item 4</li>
+</ul>
+
+
+    <script>
+        
+const list = document.getElementById('sortable-list');
+
+// 1. Attach drag events to items
+list.addEventListener('dragstart', (e) => {
+  if (e.target.classList.contains('sortable-item')) {
+    e.target.classList.add('dragging');
+  }
+});
+
+list.addEventListener('dragend', (e) => {
+  if (e.target.classList.contains('sortable-item')) {
+    e.target.classList.remove('dragging');
+  }
+});
+
+// 2. Handle the sorting logic when dragging over the container
+list.addEventListener('dragover', (e) => {
+  e.preventDefault(); // Necessary to allow dropping
+  
+  const draggingItem = document.querySelector('.dragging');
+  if (!draggingItem) return;
+
+  // Get all items except the one currently dragging
+  const siblings = [...list.querySelectorAll('.sortable-item:not(.dragging)')];
+
+  // Find the sibling element that the cursor is directly above
+  const nextSibling = siblings.find(sibling => {
+    const box = sibling.getBoundingClientRect();
+    // Calculate if the cursor is past the vertical midpoint of the sibling
+    return e.clientY <= box.top + box.height / 2;
+  });
+
+  // Insert the dragging item before the identified sibling
+  if (nextSibling) {
+    list.insertBefore(draggingItem, nextSibling);
+  } else {
+    // If cursor is at the bottom, append to the end of the list
+    list.appendChild(draggingItem);
+  }
+});
+
+    </script>
+</body>
+</html>

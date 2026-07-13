@@ -43,6 +43,7 @@
     const CONFIG_TYPES_LIST = ["list", "array"];
     const CONFIG_TYPES_RELATION = ["relation", "key", "object"];
     const CONFIG_TYPES_BUTTON = ["button", "btn"];
+    const CONFIG_TYPES_SORT = ["sort", "priority"];
 
 
 	const CHAT_COMMAND_NO_OVERRIDE = ["help"];
@@ -94,6 +95,21 @@
         document.head.insertAdjacentHTML("beforeend", `<style>
             .displaynone {
                 display: none !important;
+            }
+            .fmp-sortable-list {
+                list-style: none;
+                padding: 0;
+            }
+            .fmp-sortable-item {
+                padding: 12px;
+                margin-bottom: 8px;
+                background-color: #fff;
+                border: 1px solid #ccc;
+                cursor: grab;
+            }
+            .fmp-sortable-item.dragging {
+                opacity: 0.5;
+                background-color: #e0e0e0;
             }
         </style>`);
         //For some reason I was unable to change the original function, so I just deleted and added a new one
@@ -1594,6 +1610,43 @@
                 })
             })
         }
+
+        this.originList = null;
+
+        /** Priority Config Type */
+        document.addEventListener('dragstart', (e) => {
+            if (e.target.classList.contains('fmp-sortable-item')) {
+                e.target.classList.add('dragging');
+            }
+        });
+        document.addEventListener('dragend', (e) => {
+            if (e.target.classList.contains('fmp-sortable-item')) {
+                e.target.classList.remove('dragging');
+            }
+        });
+        document.addEventListener('dragover', (e) => {
+            // Encontra se o cursor está em cima de uma lista válida
+            const currentList = e.target.closest('.sortable-list');
+            if (!currentList) return;
+
+            e.preventDefault();
+
+            const draggingItem = document.querySelector('.dragging');
+            if (!draggingItem) return;
+
+            const siblings = [...currentList.querySelectorAll('.sortable-item:not(.dragging)')];
+
+            const nextSibling = siblings.find(sibling => {
+                const box = sibling.getBoundingClientRect();
+                return e.clientY <= box.top + box.height / 2;
+            });
+
+            if (nextSibling) {
+                currentList.insertBefore(draggingItem, nextSibling);
+            } else {
+                currentList.appendChild(draggingItem);
+            }
+        });
         
         logFancy(`(v${this.version}) initialized.`);
         if(this.loggedIn === false && Object.keys(item_sell_prices).length !== 0) {
