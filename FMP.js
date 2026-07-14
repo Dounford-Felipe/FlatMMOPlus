@@ -47,6 +47,108 @@
 
 
 	const CHAT_COMMAND_NO_OVERRIDE = ["help"];
+    const defaultHotkeys = [
+        {
+            key: "F1",
+            shift: false,
+            alt: false,
+            ctrl: false,
+            name: "RUN!",
+            description: "Toggle Run",
+            func: () => {}
+        },
+        {
+            key: "F2",
+            shift: false,
+            alt: false,
+            ctrl: false,
+            name: "Eat",
+            description: "Consumes a piece of food",
+            func: () => {}
+        },
+        {
+            key: "F3",
+            shift: false,
+            alt: false,
+            ctrl: false,
+            name: "Fire",
+            description: "Lights a fire",
+            func: () => {}
+        },
+        {
+            key: "F4",
+            shift: false,
+            alt: false,
+            ctrl: false,
+            name: "Dodge",
+            description: "Activates dodge ability",
+            func: () => {}
+        },
+        {
+            key: "F6",
+            shift: false,
+            alt: false,
+            ctrl: false,
+            name: "Preset 1",
+            description: "Activates dodge ability",
+            func: () => {}
+        },
+        {
+            key: "F7",
+            shift: false,
+            alt: false,
+            ctrl: false,
+            name: "Preset 2",
+            description: "Activates dodge ability",
+            func: () => {}
+        },
+        {
+            key: "F8",
+            shift: false,
+            alt: false,
+            ctrl: false,
+            name: "Preset 3",
+            description: "Activates dodge ability",
+            func: () => {}
+        },
+        {
+            key: "F9",
+            shift: false,
+            alt: false,
+            ctrl: false,
+            name: "Badge 1",
+            description: "Activates dodge ability",
+            func: () => {}
+        },
+        {
+            key: "F10",
+            shift: false,
+            alt: false,
+            ctrl: false,
+            name: "Badge 2",
+            description: "Activates dodge ability",
+            func: () => {}
+        },
+        {
+            key: "F11",
+            shift: false,
+            alt: false,
+            ctrl: false,
+            name: "Badge 3",
+            description: "Activates dodge ability",
+            func: () => {}
+        },
+        {
+            key: "F12",
+            shift: false,
+            alt: false,
+            ctrl: false,
+            name: "Badge 4",
+            description: "Activates dodge ability",
+            func: () => {}
+        }
+    ]
+    let hotkeyOverride = {};
 
     //This is used for hot updates
     let plugins = {};
@@ -57,6 +159,7 @@
             console.log("help", command, data);
         }
     }
+    let hotkeys = {};
     let customChatHelp = {};
     let currentPanel = "inventory";
     let currentSettingsPanel = "sound";
@@ -72,6 +175,7 @@
         if(window.FlatMMOPlus.version >= VERSION) {
             return
         }
+        hotkeys = window.FlatMMOPlus.hotkey;
         plugins = window.FlatMMOPlus.plugins;
         panels = window.FlatMMOPlus.panels;
         nextUniqueId = window.FlatMMOPlus.nextUniqueId;
@@ -280,6 +384,7 @@
     class FlatMMOPlus {
 		constructor() {
 			this.version = VERSION;
+            this.hotkeys = hotkeys;
 			this.plugins = plugins;
 			this.panels = panels;
 			this.debug = false;
@@ -342,6 +447,12 @@
             }
         } else {
             keypress_listener(e);
+        }
+    }
+
+    FlatMMOPlus.prototype.registerHotkey = function(hotkey) {
+        if(hotkeyOverride.hasOwnProperty(hotkey.name)) {
+            hotkey = hotkeyOverride;
         }
     }
     
@@ -1800,6 +1911,10 @@
             window.FlatMMOPlus.setPluginConfigUIDirty(pluginId, true, configId);
         });
 
+        hotkeyOverride = JSON.parse(localStorage.getItem("FMP-hotkeys") || '{}');
+
+        defaultHotkeys.forEach(hotkey => window.FlatMMOPlus.registerHotkey(hotkey));
+
         
         logFancy(`(v${this.version}) initialized.`);
         if(this.loggedIn === false && Object.keys(item_sell_prices).length !== 0) {
@@ -1897,7 +2012,6 @@
         }
         Globals.websocket.send("SEND_TRADE_REQUEST=" + data.replaceAll("_", " "));
     }, `Send a trade request if the player is in the same map.<br><b>Usage:</b>/trade [username]`);
-    
 
 	window.FlatMMOPlus.init();
 	//window.FlatMMOPlus.upDateSelf();
