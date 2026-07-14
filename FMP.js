@@ -43,7 +43,7 @@
     const CONFIG_TYPES_LIST = ["list", "array"];
     const CONFIG_TYPES_RELATION = ["relation", "key", "object"];
     const CONFIG_TYPES_BUTTON = ["button", "btn"];
-    const CONFIG_TYPES_SORT = ["sort", "priority"];
+    const CONFIG_TYPES_PRIORITY = ["sort", "priority"];
 
 
 	const CHAT_COMMAND_NO_OVERRIDE = ["help"];
@@ -96,20 +96,100 @@
             .displaynone {
                 display: none !important;
             }
-            .fmp-sortable-list {
+            .fmp-priority-div {
                 list-style: none;
                 padding: 0;
             }
-            .fmp-sortable-item {
-                padding: 12px;
-                margin-bottom: 8px;
+            .fmp-priority-item {
                 background-color: #fff;
-                border: 1px solid #ccc;
                 cursor: grab;
             }
-            .fmp-sortable-item.dragging {
+            .fmp-priority-item.dragging {
                 opacity: 0.5;
                 background-color: #e0e0e0;
+            }
+            #ui-panel-flatmmoplus {
+                height: 550px;
+                overflow-y: scroll;
+                scrollbar-width: thin;
+                text-align: justify;
+
+                textarea {
+                    width: -webkit-fill-available;
+                    width: -moz-available;
+                    width: stretch;
+                    resize: none;
+                }
+
+                input[type=checkbox] {
+                    -webkit-appearance: none;
+                    appearance: none;
+                    position: relative;
+                    width: 20px;
+                    height: 10px;
+                    border-radius: 15px;
+                    background-color: #ccc;
+                    outline: none;
+                    cursor: pointer;
+                    transition: background-color 0.3s;
+                    top: 0.5rem
+                }
+
+                input[type=checkbox]::before {
+                    content: '';
+                    position: absolute;
+                    top: 1px;
+                    left: 1px;
+                    width: 8px;
+                    height: 8px;
+                    background-color: #fff;
+                    border-radius: 50%;
+                    transition: transform 0.3s;
+                }
+
+                input[type=checkbox]:checked {
+                    background-color: #4CAF50;
+                }
+
+                input[type=checkbox]:checked::before {
+                    transform: translateX(10px);
+                }
+
+                label {
+                    font-size: 1.17em;
+                    font-weight: bold;
+                }
+            }
+            .flatmmoplus-plugin-config-section >div {
+                margin: 5px 0;
+            }
+            .fmp-list-div {
+                max-height: calc(5em + 60px);
+                overflow-y: auto;
+                text-align: center;
+            }
+            .fmp-list-item {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+
+                div {
+                    width: 100%;
+                    padding: 5px;
+                }
+            }
+            .fmp-list-item:nth-child(odd) {
+                background-color: rgba(0, 0, 0, 0.3);
+            }
+            .fmp-list-close {
+                cursor: pointer;
+                font-size: 2rem;
+            }
+            .fmp-objectLabel {
+                display: grid;
+                grid-template-columns: auto auto;
+                justify-items: center;
+                font-weight: bold;
             }
         </style>`);
         //For some reason I was unable to change the original function, so I just deleted and added a new one
@@ -450,6 +530,66 @@
         }
     }
 
+    FlatMMOPlus.prototype.newPriorityField = function(pluginId, configId, value = "New Item") {
+        if(typeof pluginId !== "string" || typeof configId !== "string" || typeof value !== "string") {
+            throw new TypeError("FlatMMOPlus.newPriorityField takes the following arguments: (pluginId: string, configId:string, value: string)");
+        }
+
+        const plugin = this.plugins[pluginId];
+        const config = plugin.opts.config.find(c => c.id == configId);
+        const parentDiv = document.getElementById(`flatmmoplus-config-${pluginId}-${configId}`);
+
+        const item = document.createElement("div");
+        const textDiv = document.createElement("div");
+
+        item.className = "fmp-priority-item fmp-list-item";
+        item.setAttribute("draggable", true);
+
+
+        textDiv.innerText = value;
+        textDiv.spellcheck = false;
+        textDiv.autocorrect = false;
+
+
+        item.appendChild(textDiv);
+        parentDiv.appendChild(item);
+
+        //Some lists may let users add/remove/edit items
+        if(config.canAddNew) {
+            const closeSpan = document.createElement("span");
+
+            closeSpan.innerText = "×";
+            closeSpan.className = "fmp-list-close";
+            closeSpan.addEventListener("click", function(){
+                item.remove();
+                window.FlatMMOPlus.setPluginConfigUIDirty(pluginId, true, configId)
+            })
+            item.appendChild(closeSpan);
+
+            item.addEventListener("contextmenu", function(e) {
+                e.preventDefault();
+                textDiv.contentEditable = true;
+                textDiv.focus();
+            });
+
+            textDiv.addEventListener("focusout", function(e) {
+                this.contentEditable = false;
+                plugin.changedConfigs.add(configId);
+                window.FlatMMOPlus.setPluginConfigUIDirty(pluginId, true, configId)
+            });
+
+            if(value = "New Item") {
+                textDiv.contentEditable = true;
+                textDiv.focus();
+            }
+        }
+
+        parentDiv.scrollTop = parentDiv.scrollHeight;
+
+        plugin.changedConfigs.add(configId);
+        window.FlatMMOPlus.setPluginConfigUIDirty(pluginId, true, configId)
+    }
+
     FlatMMOPlus.prototype.loadPluginConfigs = function(id) {
         if (typeof id !== "string") {
             throw new TypeError("FlatMMOPlus.reloadPluginConfigs takes the following arguments: (id:string)");
@@ -523,6 +663,18 @@
                         value.forEach(item => {
                             window.FlatMMOPlus.newListField(id, cfg.id, item);
                         })
+                    } else if (CONFIG_TYPES_PRIORITY.includes(cfg.type)) {
+                        el.innerHTML = "";
+                        if (cfg.unique) {
+                            const valuesSet = new Set(value);
+                            value = Array.from(valuesSet);
+                        }
+
+                        console.log(value)
+
+                        value.forEach(item => {
+                            window.FlatMMOPlus.newPriorityField(id, cfg.id, item);
+                        })
                     } else if (CONFIG_TYPES_RELATION.includes(cfg.type)) {
                         el.innerHTML = "";
                         for(let item in value) {
@@ -573,6 +725,18 @@
                 } else if (CONFIG_TYPES_COLOR.includes(cfg.type)) {
                     config[cfg.id] = el.value;
                 } else if (CONFIG_TYPES_LIST.includes(cfg.type)) {
+                    let values = [];
+                    document.querySelectorAll(`#flatmmoplus-config-${plugin.id}-${cfg.id} div div`).forEach(el => {
+                        values.push(el.innerText)
+                    })
+
+                    //This will remove duplicates
+                    if(cfg.unique) {
+                        const valuesSet = new Set(values);
+                        values = Array.from(valuesSet);
+                    }
+                    config[cfg.id] = values;
+                } else if (CONFIG_TYPES_PRIORITY.includes(cfg.type)) {
                     let values = [];
                     document.querySelectorAll(`#flatmmoplus-config-${plugin.id}-${cfg.id} div div`).forEach(el => {
                         values.push(el.innerText)
@@ -1297,91 +1461,7 @@
         settingsBody.insertAdjacentHTML("afterend",`<div class="settings-modal-panel-btn hover" onclick="settings_modal_tab('plugins')" id="settings-modal-plugins-panel-btn" style="margin-left: 10px;">Plugins</div>`)
 
         this.addPanel("plugins", "FlatMMO+ Plugins", () => {
-            let content = `<style>
-                #ui-panel-flatmmoplus {
-                    height: 550px;
-                    overflow-y: scroll;
-                    scrollbar-width: thin;
-                    text-align: justify;
-
-                    textarea {
-                        width: -webkit-fill-available;
-                        width: -moz-available;
-                        width: stretch;
-                        resize: none;
-                    }
-
-                    input[type=checkbox] {
-                        -webkit-appearance: none;
-                        appearance: none;
-                        position: relative;
-                        width: 20px;
-                        height: 10px;
-                        border-radius: 15px;
-                        background-color: #ccc;
-                        outline: none;
-                        cursor: pointer;
-                        transition: background-color 0.3s;
-                        top: 0.5rem
-                    }
-
-                    input[type=checkbox]::before {
-                        content: '';
-                        position: absolute;
-                        top: 1px;
-                        left: 1px;
-                        width: 8px;
-                        height: 8px;
-                        background-color: #fff;
-                        border-radius: 50%;
-                        transition: transform 0.3s;
-                    }
-
-                    input[type=checkbox]:checked {
-                        background-color: #4CAF50;
-                    }
-
-                    input[type=checkbox]:checked::before {
-                        transform: translateX(10px);
-                    }
-
-                    label {
-                        font-size: 1.17em;
-                        font-weight: bold;
-                    }
-                }
-                .flatmmoplus-plugin-config-section >div {
-                    margin: 5px 0;
-                }
-                .fmp-list-div {
-                    max-height: calc(5em + 60px);
-                    overflow-y: auto;
-                    text-align: center;
-                }
-                .fmp-list-item {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-
-                    div {
-                        width: 100%;
-                        padding: 5px;
-                    }
-                }
-                .fmp-list-item:nth-child(odd) {
-                    background-color: rgba(0, 0, 0, 0.3);
-                }
-                .fmp-list-close {
-                    cursor: pointer;
-                    font-size: 2rem;
-                }
-                .fmp-objectLabel {
-                    display: grid;
-                    grid-template-columns: auto auto;
-                    justify-items: center;
-                    font-weight: bold;
-                }
-            </style>`;
+            let content = "";
             this.forEachPlugin(plugin => {
                 let id = plugin.id;
                 let name = "An FlatMMO+ Plugin!";
@@ -1485,6 +1565,15 @@
                                 </div>
                                 `;
                         }
+                        else if(CONFIG_TYPES_PRIORITY.includes(cfg.type)) {
+                            content += `
+                                <div>
+                                    <label>${cfg.label || cfg.id}</label>
+                                    <div class="fmp-priority-div" id="flatmmoplus-config-${plugin.id}-${cfg.id}" data-pluginid="${plugin.id}" data-configid="${cfg.id}"></div>
+                                    ${cfg.canAddNew ? `<button style="cursor:pointer;font-size: 1rem;" onclick="FlatMMOPlus.newPriorityField('${plugin.id}', '${cfg.id}')">Add new field</button>` : ""}
+                                </div>
+                                `;
+                        }
                         else if(CONFIG_TYPES_SELECT.includes(cfg.type)) {
                             content += `
                                 <div>
@@ -1539,6 +1628,16 @@
                 description: "FlatMMO+ Configs"
             },
             config: [
+                {
+                    id: "priorityTest",
+                    label: "Test",
+                    type: "priority",
+                    default: [
+                        "Dotted",
+                        "Lime",
+                        "Gold"
+                    ]
+                },
                 {
                     id: "globalSettings",
                     label: "Share settings across all profiles",
@@ -1611,30 +1710,78 @@
             })
         }
 
-        this.originList = null;
+        this.handler.turnLowEnd = function() {
+            this.islowEnd = true;
+
+            fps_interval = 166
+
+            //BG
+            window.bgCanvas = canvas.cloneNode();
+            bgCanvas.id = "bgCanvas";
+            window.bgCtx = bgCanvas.getContext("2d");
+            const canvasParent = document.createElement("div");
+            canvasParent.style.position = "relative";
+            canvas.style.position = "absolute";
+            canvas.insertAdjacentElement("beforebegin", canvasParent);
+            canvasParent.append(canvas, bgCanvas);
+            
+            //Map background doesn't change, so it doesn't need to be drawn every tick, once is enough
+            paint_layer_0 = function(){};
+            paint_layer_1 = function(){};
+            paint_layer_3 = function(){};
+            this.onMapChanged();
+
+            //Text calls are expensive
+            paint_chat_above_head = function(){};
+            paint_xp_drops = function(){};
+            paint_tooltip = function(){};
+            paint_level_drops = function(){};
+            paint_xp_progress_bar = function(){};
+            paint_hit_splats = function(){}; //Vanilla, optimazed or none
+            paint_effects = function(){}; //Vanilla, text (html - paint once with timeout), none
+        }
+
+        //Map background doesn't change, so it doesn't need to be drawn every tick, once is enough
+        this.handler.onMapChanged = function() {
+            if(this.islowEnd) {
+                let map = get_map(current_map);
+                
+                bgCtx.drawImage(map.image, 0, 0);
+                if(map.upper_image != null) {
+                    bgCtx.drawImage(map.upper_image, 0, 0);
+                }
+            }
+        }
+
+        this.handler.turnLowEnd();
 
         /** Priority Config Type */
         document.addEventListener('dragstart', (e) => {
-            if (e.target.classList.contains('fmp-sortable-item')) {
-                e.target.classList.add('dragging');
+            if (e.target.classList.contains('fmp-priority-item')) {
+                e.target.classList.add('fmp-priority-dragging');
             }
         });
         document.addEventListener('dragend', (e) => {
-            if (e.target.classList.contains('fmp-sortable-item')) {
-                e.target.classList.remove('dragging');
+            if (e.target.classList.contains('fmp-priority-item')) {
+                e.target.classList.remove('fmp-priority-dragging');
             }
         });
-        document.addEventListener('dragover', (e) => {
-            // Encontra se o cursor está em cima de uma lista válida
-            const currentList = e.target.closest('.sortable-list');
-            if (!currentList) return;
+        document.addEventListener("dragover", (e) => {
+            const currentItem = e.target.closest(".fmp-priority-item");
+            if (!currentItem) return;
 
-            e.preventDefault();
+            e.preventDefault()
 
-            const draggingItem = document.querySelector('.dragging');
-            if (!draggingItem) return;
+            const draggingItem = document.querySelector(".fmp-priority-dragging")
 
-            const siblings = [...currentList.querySelectorAll('.sortable-item:not(.dragging)')];
+            const list = currentItem.closest(".fmp-priority-div");
+            
+            if(!draggingItem || !list || list !== draggingItem.parentElement) {
+                return;
+            };
+
+
+            const siblings = [...list.querySelectorAll('.fmp-priority-item:not(.fmp-priority-dragging)')];
 
             const nextSibling = siblings.find(sibling => {
                 const box = sibling.getBoundingClientRect();
@@ -1642,11 +1789,17 @@
             });
 
             if (nextSibling) {
-                currentList.insertBefore(draggingItem, nextSibling);
+                list.insertBefore(draggingItem, nextSibling);
             } else {
-                currentList.appendChild(draggingItem);
+                list.appendChild(draggingItem);
             }
+
+            const pluginId = list.getAttribute("data-pluginid");
+            const configId = list.getAttribute("data-configid");
+            window.FlatMMOPlus.plugins[pluginId].changedConfigs.add(configId);
+            window.FlatMMOPlus.setPluginConfigUIDirty(pluginId, true, configId);
         });
+
         
         logFancy(`(v${this.version}) initialized.`);
         if(this.loggedIn === false && Object.keys(item_sell_prices).length !== 0) {
