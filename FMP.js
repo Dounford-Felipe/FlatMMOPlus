@@ -218,8 +218,7 @@
         help: (command, data) => {
             console.log("help", command, data);
         }
-    }
-    let hotkeys = {};
+    };
     let customChatHelp = {};
     let currentPanel = "inventory";
     let currentSettingsPanel = "sound";
@@ -235,7 +234,6 @@
         if(window.FlatMMOPlus.version >= VERSION) {
             return
         }
-        hotkeys = window.FlatMMOPlus.hotkey;
         plugins = window.FlatMMOPlus.plugins;
         panels = window.FlatMMOPlus.panels;
         nextUniqueId = window.FlatMMOPlus.nextUniqueId;
@@ -444,7 +442,6 @@
     class FlatMMOPlus {
 		constructor() {
 			this.version = VERSION;
-            this.hotkeys = hotkeys;
 			this.plugins = plugins;
 			this.panels = panels;
 			this.debug = false;
@@ -520,11 +517,13 @@
         <div class="fmpHotkeysCategory" id="${id}"></div>`
 
         document.getElementById("ui-panel-hotkeys-content").append(container);
+
+        this.handler.hotkeyCategories.add(category);
     }
 
     FlatMMOPlus.prototype.registerHotkey = function(hotkey) {
         if(hotkeyOverride.hasOwnProperty(hotkey.name)) {
-            hotkey = hotkeyOverride;
+            hotkey = {...hotkeyOverride[hotkey.name]};
         }
 
         //Modifiers are optional
@@ -535,10 +534,9 @@
 
         //Hotkey Panel has categories, if not specified or it doesn't exist it will be misc
         hotkey.category = hotkey.category || "misc";
-        if(!document.getElementById("fmp-hotkeys-category-" + hotkey.category)) {
+        if(!this.handler.hotkeyCategories.has(hotkey.category)) {
             hotkey.category = "misc";
         }
-        
     }
 
     FlatMMOPlus.prototype.formatHotkey = function(key) {
@@ -1578,6 +1576,75 @@
         });
     }
 
+    class handlerPlugin extends FlatMMOPlusPlugin {
+        constructor() {
+            super("handler", {
+                about: {
+                    name: "Plugin Handler",
+                    version: VERSION,
+                    author: "Liam",
+                    description: "FlatMMO+ Configs"
+                },
+                config: [
+                    {
+                        id: "priorityTest",
+                        label: "Test",
+                        type: "priority",
+                        default: [
+                            "Dotted",
+                            "Lime",
+                            "Gold"
+                        ]
+                    },
+                    {
+                        id: "globalSettings",
+                        label: "Share settings across all profiles",
+                        type: "boolean",
+                        default: false
+                    },
+                    {
+                        id: "turnSettingsGlobal",
+                        label: "Copy this profile's options to all profiles",
+                        text: "Copy",
+                        type: "button",
+                        func: "FlatMMOPlus.handler.shareThisSettings",
+                        //class: "btnClass"
+                    },
+                    {
+                        id: "hoverNotifications",
+                        label: "Plugin Notifications Orbs",
+                        type: "boolean",
+                        default: false
+                    },
+                    {
+                        id: "hoverNotificationHeight",
+                        label: "Notification Orbs Height",
+                        type: "range",
+                        min: 2,
+                        max: 14,
+                        step: 1,
+                        default: 10,
+                    },
+                    {
+                        id: "hoverNotificationAlpha",
+                        label: "Notification Orbs Transparency",
+                        type: "range",
+                        min: 0,
+                        max: 100,
+                        default: 100
+                    }
+                ]
+            })
+            this.hotkeyCategories = new Set();
+            this.hotkeys = {};
+            this.hotkeyElement = null;
+
+            window.addEventListener("keydown", e => {
+                
+            })
+        }
+    }
+
     FlatMMOPlus.prototype.init = function(){
         //Tries to hook into the websocket messages
         const hookIntoOnMessage = () => {
@@ -1668,12 +1735,12 @@
             <div class="fmpHotkeysCategory" id="fmp-hotkeys-category-actions"></div>
         </div>
         <div>
-            <h2>Equipment</h2>
-            <div class="fmpHotkeysCategory" id="fmp-hotkeys-category-equipment"></div>
+            <h2>Equipments</h2>
+            <div class="fmpHotkeysCategory" id="fmp-hotkeys-category-equipments"></div>
         </div>
         <div>
-            <h2>Badge</h2>
-            <div class="fmpHotkeysCategory" id="fmp-hotkeys-category-badge"></div>
+            <h2>Badges</h2>
+            <div class="fmpHotkeysCategory" id="fmp-hotkeys-category-badges"></div>
         </div>
         <div>
             <h2>Teleports</h2>
@@ -1849,63 +1916,7 @@
             return content;
         }, true);
 
-        this.handler = new FlatMMOPlusPlugin("handler", {
-            about: {
-                name: "Plugin Handler",
-                version: VERSION,
-                author: "Liam",
-                description: "FlatMMO+ Configs"
-            },
-            config: [
-                {
-                    id: "priorityTest",
-                    label: "Test",
-                    type: "priority",
-                    default: [
-                        "Dotted",
-                        "Lime",
-                        "Gold"
-                    ]
-                },
-                {
-                    id: "globalSettings",
-                    label: "Share settings across all profiles",
-                    type: "boolean",
-                    default: false
-                },
-                {
-                    id: "turnSettingsGlobal",
-                    label: "Copy this profile's options to all profiles",
-                    text: "Copy",
-                    type: "button",
-                    func: "FlatMMOPlus.handler.shareThisSettings",
-                    //class: "btnClass"
-                },
-                {
-                    id: "hoverNotifications",
-                    label: "Plugin Notifications Orbs",
-                    type: "boolean",
-                    default: false
-                },
-                {
-                    id: "hoverNotificationHeight",
-                    label: "Notification Orbs Height",
-                    type: "range",
-                    min: 2,
-                    max: 14,
-                    step: 1,
-                    default: 10,
-                },
-                {
-                    id: "hoverNotificationAlpha",
-                    label: "Notification Orbs Transparency",
-                    type: "range",
-                    min: 0,
-                    max: 100,
-                    default: 100
-                }
-            ]
-        })
+        this.handler = new handlerPlugin()
 
         this.registerPlugin(this.handler);
 
