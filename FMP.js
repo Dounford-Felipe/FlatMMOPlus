@@ -510,6 +510,18 @@
         }
     }
 
+    FlatMMOPlus.prototype.registerHotkeyCategory = function(category) {
+        const id = "fmp-hotkeys-category-" + category
+        if(document.getElementById(id)) return;
+
+        const container = document.createElement("div");
+
+        container.innerHTML = `<h2>${category}</h2>
+        <div class="fmpHotkeysCategory" id="${id}"></div>`
+
+        document.getElementById("ui-panel-hotkeys-content").append(container);
+    }
+
     FlatMMOPlus.prototype.registerHotkey = function(hotkey) {
         if(hotkeyOverride.hasOwnProperty(hotkey.name)) {
             hotkey = hotkeyOverride;
@@ -520,6 +532,12 @@
         hotkey.altKey = hotkey.altKey || false;
         hotkey.shiftKey = hotkey.shiftKey || false;
         hotkey.metaKey = hotkey.metaKey || false;
+
+        //Hotkey Panel has categories, if not specified or it doesn't exist it will be misc
+        hotkey.category = hotkey.category || "misc";
+        if(!document.getElementById("fmp-hotkeys-category-" + hotkey.category)) {
+            hotkey.category = "misc";
+        }
         
     }
 
@@ -1644,9 +1662,32 @@
             this.onSettingsPanelChanged(panelBefore, panelAfter);
         }
 
-        // create plugin menu item and panel
-        const settingsBody = document.querySelector("#settings-modal-mutes-panel-btn")
-        settingsBody.insertAdjacentHTML("afterend",`<div class="settings-modal-panel-btn hover" onclick="settings_modal_tab('plugins')" id="settings-modal-plugins-panel-btn" style="margin-left: 10px;">Plugins</div>`)
+        this.addPanel("hotkeys", "Hotkeys", `
+        <div>
+            <h2>Actions</h2>
+            <div class="fmpHotkeysCategory" id="fmp-hotkeys-category-actions"></div>
+        </div>
+        <div>
+            <h2>Equipment</h2>
+            <div class="fmpHotkeysCategory" id="fmp-hotkeys-category-equipment"></div>
+        </div>
+        <div>
+            <h2>Badge</h2>
+            <div class="fmpHotkeysCategory" id="fmp-hotkeys-category-badge"></div>
+        </div>
+        <div>
+            <h2>Teleports</h2>
+            <div class="fmpHotkeysCategory" id="fmp-hotkeys-category-teleports"></div>
+        </div>
+        <div>
+            <h2>Worship</h2>
+            <div class="fmpHotkeysCategory" id="fmp-hotkeys-category-Worship"></div>
+        </div>
+        <div>
+            <h2>Misc</h2>
+            <div class="fmpHotkeysCategory" id="fmp-hotkeys-category-misc"></div>
+        </div>
+        `, true);
 
         this.addPanel("plugins", "FlatMMO+ Plugins", () => {
             let content = "";
@@ -1806,7 +1847,7 @@
             });
 
             return content;
-        });
+        }, true);
 
         this.handler = new FlatMMOPlusPlugin("handler", {
             about: {
@@ -1988,8 +2029,8 @@
             window.FlatMMOPlus.setPluginConfigUIDirty(pluginId, true, configId);
         });
 
+        /*Hotkeys Setup*/
         hotkeyOverride = JSON.parse(localStorage.getItem("FMP-hotkeys") || '{}');
-
         defaultHotkeys.forEach(hotkey => window.FlatMMOPlus.registerHotkey(hotkey));
 
         
