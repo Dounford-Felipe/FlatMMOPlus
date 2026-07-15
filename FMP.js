@@ -507,6 +507,47 @@
         }
     }
 
+    //I'm not sure why Smitty has both keydown and the deprecated keypress, I will merge both codes here
+    FlatMMOPlus.prototype.fmpKeyDown = function(e) {
+        //TBD
+        if(has_npc_chat_options_modal_open() || has_npc_chat_message_modal_open()) {
+            keypress_listener(e);
+            return;
+        }
+
+        const stringKey = this.formatHotkey(hotkey);
+
+        if(this.handler.hotkeys.hasOwnProperty(stringKey)) {
+            this.handler.hotkeys[stringKey].forEach(h => h.func());
+        }
+
+        
+        if(e.key === "Enter"){
+            if (chat_ele.value.trim().startsWith("/")) {
+                const message = chat_ele.value.trim();
+                const space = message.indexOf(" ");
+                let command;
+                let data;
+                if (space <= 0) {
+                    command = message.substring(1);
+                    data = "";
+                } else {
+                    command = message.substring(1, space);
+                    data = message.substring(space + 1);
+                }
+
+                if(command in window.FlatMMOPlus.customChatCommands) {
+                    window.FlatMMOPlus.handleCustomChatCommand(command, data);
+                    chat_ele.value = "";
+                } else {
+                    enter_pressed(e);
+                }
+            } else {
+                enter_pressed(e);
+            }
+        }
+    }
+
     FlatMMOPlus.prototype.registerHotkeyCategory = function(category) {
         const id = "fmp-hotkeys-category-" + category
         if(document.getElementById(id)) return;
@@ -522,21 +563,48 @@
     }
 
     FlatMMOPlus.prototype.registerHotkey = function(hotkey) {
-        if(hotkeyOverride.hasOwnProperty(hotkey.name)) {
-            hotkey = {...hotkeyOverride[hotkey.name]};
+        if(typeof hotkey.func !== "function") {
+            console.error("You forgot the the hotkey.func or it is not a function")
         }
-
         //Modifiers are optional
         hotkey.ctrlKey = hotkey.ctrlKey || false;
         hotkey.altKey = hotkey.altKey || false;
         hotkey.shiftKey = hotkey.shiftKey || false;
         hotkey.metaKey = hotkey.metaKey || false;
 
+        let stringKey = this.formatHotkey(hotkey);
+
+        //Users can modify the key
+        if(hotkeyOverride.hasOwnProperty(hotkey.name)) {
+            stringKey = hotkeyOverride[hotkey.name];
+        }
+
         //Hotkey Panel has categories, if not specified or it doesn't exist it will be misc
         hotkey.category = hotkey.category || "misc";
         if(!this.handler.hotkeyCategories.has(hotkey.category)) {
             hotkey.category = "misc";
         }
+
+        //Plugins can override or redeclare keyboards
+        const oldEl = document.getElementById("fmp-hotkeysContainer-" + hotkey.name);
+        if(oldEl) {
+            oldEl.remove()
+        }
+
+        const categoryId = "fmp-hotkeys-category-" + hotkey.category;
+        document.getElementById(categoryId).insertAdjacentHTML("beforeend", `<div id="fmp-hotkeysContainer-${hotkey.name}">
+            <h3>${hotkey.name}</h3>
+            <h4>${hotkey.description}<h4>
+            <button class="fmp-hotkeys-buttons" id="fmp-hotkeys-${hotkey.name}">${stringKey}<button>
+        </div>`)
+
+        //Conflicts are fine
+        if(!this.handler.hotkeys.hasOwnProperty(stringKey)) {
+            this.handler.hotkeys[stringKey] = [];
+        }
+        this.handler.hotkeys[stringKey].push(hotkey);
+
+        this.checkHotkeyConflicts();
     }
 
     FlatMMOPlus.prototype.formatHotkey = function(key) {
@@ -548,6 +616,22 @@
         parts.push(key.key.toUpperCase());
         return parts.join(" + ");
     };
+
+    FlatMMOPlus.prototype.checkHotkeyConflicts = function() {
+        for(let key in this.handler.hotkeys) {
+            if(this.handler.hotkeys[key].length > 1) {
+                this.handler.hotkeys[key].forEach(h => {
+                    const el = document.getElementById("fmp-hotkeys-" + h.name);
+                    el.classList.add("fmpHotkeysConflict");
+                })
+            } else {
+                this.handler.hotkeys[key].forEach(h => {
+                    const el = document.getElementById("fmp-hotkeys-" + h.name);
+                    el.classList.remove("fmpHotkeysConflict");
+                })
+            }
+        }
+    }
     
 	FlatMMOPlus.prototype.registerCustomChatCommand = function(command, f, help) {
         if (Array.isArray(command)) {
@@ -1640,7 +1724,7 @@
             this.hotkeyElement = null;
 
             window.addEventListener("keydown", e => {
-                
+
             })
         }
     }
