@@ -48,104 +48,164 @@
 
 	const CHAT_COMMAND_NO_OVERRIDE = ["help"];
     const defaultHotkeys = [
+        //Default F keys
         {
             key: "F1",
-            shift: false,
-            alt: false,
-            ctrl: false,
             name: "RUN!",
             description: "Toggle Run",
-            func: () => {}
+            func: () => window.FlatMMOPlus.sendMessage("SHORTCUT_KEY=F1")
         },
         {
             key: "F2",
-            shift: false,
-            alt: false,
-            ctrl: false,
             name: "Eat",
             description: "Consumes a piece of food",
-            func: () => {}
+            func: () => window.FlatMMOPlus.sendMessage("SHORTCUT_KEY=F2")
         },
         {
             key: "F3",
-            shift: false,
-            alt: false,
-            ctrl: false,
             name: "Fire",
             description: "Lights a fire",
-            func: () => {}
+            func: () => window.FlatMMOPlus.sendMessage("SHORTCUT_KEY=F3")
         },
         {
             key: "F4",
-            shift: false,
-            alt: false,
-            ctrl: false,
             name: "Dodge",
             description: "Activates dodge ability",
-            func: () => {}
+            func: () => window.FlatMMOPlus.sendMessage("SHORTCUT_KEY=F4")
         },
         {
             key: "F6",
-            shift: false,
-            alt: false,
-            ctrl: false,
             name: "Preset 1",
             description: "Activates dodge ability",
-            func: () => {}
+            func: () => window.FlatMMOPlus.sendMessage("SHORTCUT_KEY=F6")
         },
         {
             key: "F7",
-            shift: false,
-            alt: false,
-            ctrl: false,
             name: "Preset 2",
             description: "Activates dodge ability",
-            func: () => {}
+            func: () => window.FlatMMOPlus.sendMessage("SHORTCUT_KEY=F7")
         },
         {
             key: "F8",
-            shift: false,
-            alt: false,
-            ctrl: false,
             name: "Preset 3",
             description: "Activates dodge ability",
-            func: () => {}
+            func: () => window.FlatMMOPlus.sendMessage("SHORTCUT_KEY=F8")
         },
         {
             key: "F9",
-            shift: false,
-            alt: false,
-            ctrl: false,
             name: "Badge 1",
             description: "Activates dodge ability",
-            func: () => {}
+            func: () => window.FlatMMOPlus.sendMessage("SHORTCUT_KEY=F9")
         },
         {
             key: "F10",
-            shift: false,
-            alt: false,
-            ctrl: false,
             name: "Badge 2",
             description: "Activates dodge ability",
-            func: () => {}
+            func: () => window.FlatMMOPlus.sendMessage("SHORTCUT_KEY=F10")
         },
         {
             key: "F11",
-            shift: false,
-            alt: false,
-            ctrl: false,
             name: "Badge 3",
             description: "Activates dodge ability",
-            func: () => {}
+            func: () => window.FlatMMOPlus.sendMessage("SHORTCUT_KEY=F11")
         },
         {
             key: "F12",
-            shift: false,
-            alt: false,
-            ctrl: false,
             name: "Badge 4",
             description: "Activates dodge ability",
-            func: () => {}
+            func: () => window.FlatMMOPlus.sendMessage("SHORTCUT_KEY=F12")
+        },
+        //Teleports
+        {
+            key: "N/A",
+            name: "Everbrook Teleport",
+            description: "Teleports to Everbrook",
+            func: () => window.FlatMMOPlus.sendMessage("USE_WORSHIP=teleport_everbrook")
+        },
+        {
+            key: "N/A",
+            name: "Mystic Vale Teleport",
+            description: "Teleports to Mystic Vale",
+            func: () => window.FlatMMOPlus.sendMessage("USE_WORSHIP=teleport_mysticvale")
+        },
+        {
+            key: "N/A",
+            name: "Omboko Teleport",
+            description: "Teleports to Omboko",
+            func: () => window.FlatMMOPlus.sendMessage("USE_WORSHIP=teleport_omboko")
+        },
+        {
+            key: "N/A",
+            name: "Dock Haven Teleport",
+            description: "Teleports to Dock Haven",
+            func: () => window.FlatMMOPlus.sendMessage("USE_WORSHIP=teleport_dock_haven")
+        },
+        {
+            key: "N/A",
+            name: "Jafa Teleport",
+            description: "Teleports to Jafa",
+            func: () => window.FlatMMOPlus.sendMessage("USE_WORSHIP=teleport_jafa_outpost")
+        },
+        {
+            key: "N/A",
+            name: "Frostvale Teleport",
+            description: "Teleports to Frostvale",
+            func: () => window.FlatMMOPlus.sendMessage("USE_WORSHIP=teleport_frostvale")
+        },
+        {
+            key: "N/A",
+            name: "Stuck",
+            description: "Teleports to /stuck",
+            func: () => window.FlatMMOPlus.sendMessage("CHAT=/stuck")
+        },
+        //Worship
+        {
+            key: "N/A",
+            name: "Remote Sell",
+            description: "Opens Sell Menu",
+            func: () => window.FlatMMOPlus.sendMessage("USE_WORSHIP=remote_sell")
+        },
+        {
+            key: "N/A",
+            name: "Dig",
+            description: "Dig",
+            func: () => window.FlatMMOPlus.sendMessage("USE_WORSHIP=dig")
+        },
+        {
+            key: "N/A",
+            name: "Timers",
+            description: "Opens Timers Menu",
+            func: () => window.FlatMMOPlus.sendMessage("USE_WORSHIP=timers")
+        },
+        {
+            key: "N/A",
+            name: "Hell Burrying",
+            description: "Burries your bones",
+            func: () => window.FlatMMOPlus.sendMessage("USE_WORSHIP=auto_hell_burying")
+        },
+        {
+            key: "N/A",
+            name: "Hunting Contact",
+            description: "Opens Hunting Perks Menu",
+            func: () => window.FlatMMOPlus.sendMessage("USE_WORSHIP=hunting_contact")
+        },
+        {
+            key: "N/A",
+            name: "Mass Pickup",
+            description: "Picks all your items",
+            func: () => window.FlatMMOPlus.sendMessage("USE_WORSHIP=mass_pickup")
+        },
+        {
+            key: "N/A",
+            name: "Focus",
+            description: "Increases Damage by 5 and Accuracy by 2",
+            func: () => window.FlatMMOPlus.sendMessage("USE_WORSHIP=focus")
+        },
+        {
+            key: "N/A",
+            name: "Clarity",
+            description: "Increases Damage by 15 and Accuracy by 5",
+            func: () => window.FlatMMOPlus.sendMessage("USE_WORSHIP=clarity")
         }
     ]
     let hotkeyOverride = {};
@@ -454,7 +514,24 @@
         if(hotkeyOverride.hasOwnProperty(hotkey.name)) {
             hotkey = hotkeyOverride;
         }
+
+        //Modifiers are optional
+        hotkey.ctrlKey = hotkey.ctrlKey || false;
+        hotkey.altKey = hotkey.altKey || false;
+        hotkey.shiftKey = hotkey.shiftKey || false;
+        hotkey.metaKey = hotkey.metaKey || false;
+        
     }
+
+    FlatMMOPlus.prototype.formatHotkey = function(key) {
+        const parts = [];
+        if (key.ctrlKey) parts.push("Ctrl");
+        if (key.altKey) parts.push("Alt");
+        if (key.shiftKey) parts.push("Shift");
+        if (key.metaKey) parts.push("Meta");
+        parts.push(key.key.toUpperCase());
+        return parts.join(" + ");
+    };
     
 	FlatMMOPlus.prototype.registerCustomChatCommand = function(command, f, help) {
         if (Array.isArray(command)) {
