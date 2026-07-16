@@ -509,6 +509,8 @@
 
     //I'm not sure why Smitty has both keydown and the deprecated keypress, I will merge both codes here
     FlatMMOPlus.prototype.fmpKeyDown = function(e) {
+        //
+        if(document.activeElement.nodeName === "INPUT" || document.activeElement.nodeName === "TEXTAREA" || document.activeElement.getAttribute("contenteditable") === "true") return;
         //TBD
         if(has_npc_chat_options_modal_open() || has_npc_chat_message_modal_open()) {
             keypress_listener(e);
