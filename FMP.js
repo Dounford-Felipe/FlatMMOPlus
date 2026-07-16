@@ -206,6 +206,46 @@
             name: "Clarity",
             description: "Increases Damage by 15 and Accuracy by 5",
             func: () => window.FlatMMOPlus.sendMessage("USE_WORSHIP=clarity")
+        },
+        //Gamehotkeys
+        {
+            key: "Enter",
+            name: "Enter",
+            description: "Enter",
+            private: true,
+            func: (e) => {
+                if (chat_ele.value.trim().startsWith("/")) {
+                    const message = chat_ele.value.trim();
+                    const space = message.indexOf(" ");
+                    let command;
+                    let data;
+                    if (space <= 0) {
+                        command = message.substring(1);
+                        data = "";
+                    } else {
+                        command = message.substring(1, space);
+                        data = message.substring(space + 1);
+                    }
+
+                    if(command in window.FlatMMOPlus.customChatCommands) {
+                        window.FlatMMOPlus.handleCustomChatCommand(command, data);
+                        chat_ele.value = "";
+                    } else {
+                        enter_pressed(e);
+                    }
+                } else {
+                    enter_pressed(e);
+                }
+            }
+        },
+        {
+            key: "Enter",
+            name: "Enter",
+            description: "Enter",
+            private: true,
+            func: (e) => {
+
+            }
         }
     ]
     let hotkeyOverride = {};
@@ -520,33 +560,7 @@
         const stringKey = this.formatHotkey(hotkey);
 
         if(this.handler.hotkeys.hasOwnProperty(stringKey)) {
-            this.handler.hotkeys[stringKey].forEach(h => h.func());
-        }
-
-        
-        if(e.key === "Enter"){
-            if (chat_ele.value.trim().startsWith("/")) {
-                const message = chat_ele.value.trim();
-                const space = message.indexOf(" ");
-                let command;
-                let data;
-                if (space <= 0) {
-                    command = message.substring(1);
-                    data = "";
-                } else {
-                    command = message.substring(1, space);
-                    data = message.substring(space + 1);
-                }
-
-                if(command in window.FlatMMOPlus.customChatCommands) {
-                    window.FlatMMOPlus.handleCustomChatCommand(command, data);
-                    chat_ele.value = "";
-                } else {
-                    enter_pressed(e);
-                }
-            } else {
-                enter_pressed(e);
-            }
+            this.handler.hotkeys[stringKey].forEach(h => h.func(e));
         }
     }
 
@@ -564,6 +578,7 @@
         this.handler.hotkeyCategories.add(category);
     }
 
+    //Hotkeys can be overwriten
     FlatMMOPlus.prototype.registerHotkey = function(hotkey) {
         if(typeof hotkey.func !== "function") {
             console.error("You forgot the the hotkey.func or it is not a function")
@@ -593,18 +608,39 @@
             oldEl.remove()
         }
 
-        const categoryId = "fmp-hotkeys-category-" + hotkey.category;
-        document.getElementById(categoryId).insertAdjacentHTML("beforeend", `<div id="fmp-hotkeysContainer-${hotkey.name}">
-            <h3>${hotkey.name}</h3>
-            <h4>${hotkey.description}<h4>
-            <button class="fmp-hotkeys-buttons" id="fmp-hotkeys-${hotkey.name}">${stringKey}<button>
-        </div>`)
+        //Some hotkeys should not show on hotkey menu
+        if(!hotkey.private) {
+            const categoryId = "fmp-hotkeys-category-" + hotkey.category;
+            document.getElementById(categoryId).insertAdjacentHTML("beforeend", `<div id="fmp-hotkeysContainer-${hotkey.name}">
+                <h3>${hotkey.name}</h3>
+                <h4>${hotkey.description}<h4>
+                <button class="fmp-hotkeys-buttons" id="fmp-hotkeys-${hotkey.name}">${stringKey}<button>
+            </div>`)
+        }
 
         //Conflicts are fine
         if(!this.handler.hotkeys.hasOwnProperty(stringKey)) {
             this.handler.hotkeys[stringKey] = [];
         }
         this.handler.hotkeys[stringKey].push(hotkey);
+
+        this.checkHotkeyConflicts();
+    }
+
+    //Some plugins may remove default hotkeys for some reason
+    FlatMMOPlus.prototype.deleteHotkey = function(hotkeyName) {
+        const el = document.getElementById("fmp-hotkeysContainer-" + hotkeyName);
+        if(el) {
+            el.remove()
+        }
+
+        //Remove it from hotkey map
+        this.handler.hotkeys = Object.fromEntries(
+            Object.entries(data).map(([key, array]) => [
+                key, 
+                array.filter(h => h.name !== hotkeyName)
+            ])
+        )
 
         this.checkHotkeyConflicts();
     }
@@ -620,18 +656,15 @@
     };
 
     FlatMMOPlus.prototype.checkHotkeyConflicts = function() {
-        for(let key in this.handler.hotkeys) {
-            if(this.handler.hotkeys[key].length > 1) {
-                this.handler.hotkeys[key].forEach(h => {
-                    const el = document.getElementById("fmp-hotkeys-" + h.name);
-                    el.classList.add("fmpHotkeysConflict");
-                })
-            } else {
-                this.handler.hotkeys[key].forEach(h => {
-                    const el = document.getElementById("fmp-hotkeys-" + h.name);
-                    el.classList.remove("fmpHotkeysConflict");
-                })
-            }
+        for (const list of Object.values(this.handler.hotkeys)) {
+            const hasConflict = list.length > 1;
+
+            list.forEach(h => {
+                const el = document.getElementById(`fmp-hotkeys-${h.name}`);
+                if (el) {
+                    el.classList.toggle("fmpHotkeysConflict", hasConflict);
+                }
+            });
         }
     }
     
@@ -1721,6 +1754,7 @@
                     }
                 ]
             })
+            this.chatInput = document.getElementById("chat-text-input") || null;
             this.hotkeyCategories = new Set();
             this.hotkeys = {};
             this.hotkeyElement = null;

@@ -773,6 +773,8 @@
 				}
 				FlatMMOPlus.plugins.flatChat.showMessage(data, true);
 			}
+
+			FlatMMOPlus.deleteHotkey("Enter")
 		}
 
 		addStyle() {
@@ -1128,7 +1130,9 @@
 				this.fcElement.querySelector("#flatChatMainArea").toggleAttribute("closed");
 			})
 
-			this.fcElement.querySelector("#flatChatInput").placeholder = Globals.local_username;
+			const input = this.fcElement.querySelector("#flatChatInput");
+			FlatMMOPlus.handler.chatInput = input;
+			input.placeholder = Globals.local_username;
 
 			const closeBtn = this.fcElement.querySelector("#flatChatCloseBtn");
 			closeBtn.style.display = this.config.hideCloseBtn ? "none" : "";
