@@ -2239,7 +2239,7 @@
 				}
 
 				if (window.FlatMMOPlus.handleCustomChatCommand(command, data)) {
-					return
+					return;
 				} else {
 					Globals.websocket.send('CHAT=' + message);
 					return;

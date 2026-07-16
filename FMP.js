@@ -214,8 +214,13 @@
             description: "Enter",
             private: true,
             func: (e) => {
-                if (chat_ele.value.trim().startsWith("/")) {
-                    const message = chat_ele.value.trim();
+                const message = chat_ele.value.trim();
+                if (message === "") return;
+
+                chat_ele.value = "";
+                request_unfocus_chatbox();
+
+                if(message.startsWith("/")) {
                     const space = message.indexOf(" ");
                     let command;
                     let data;
@@ -227,15 +232,13 @@
                         data = message.substring(space + 1);
                     }
 
-                    if(command in window.FlatMMOPlus.customChatCommands) {
-                        window.FlatMMOPlus.handleCustomChatCommand(command, data);
-                        chat_ele.value = "";
-                    } else {
-                        enter_pressed(e);
+                    //FMP only excutes if this is a valid command, so there is no reason to check if it exists
+                    if (window.FlatMMOPlus.handleCustomChatCommand(command, data)) {
+                        return;
                     }
-                } else {
-                    enter_pressed(e);
                 }
+                //If it is not a valid command or isn't a command at all it will send the message
+                Globals.websocket.send('CHAT=' + message);
             }
         },
         {
@@ -288,7 +291,7 @@
         original_switch_panels = window.FlatMMOPlus.original_switch_panels || window.switch_panels;
         original_settings_modal_tab = window.FlatMMOPlus.original_settings_modal_tab || window.settings_modal_tab;
         flatnotifications = window.FlatMMOPlus.notifications || {};
-        window.removeEventListener("keypress", window.FlatMMOPlus.fmpKeyPress, false);
+        window.removeEventListener("keydown", window.FlatMMOPlus.fmpKeyDown, false);
         document.getElementById("ui-panel-flatmmoplus")?.remove();
         document.getElementById("settings-modal-plugins-panel-btn")?.remove();
         document.getElementById("settings-modal-plugins-panel")?.remove();
@@ -479,6 +482,76 @@
         */
 	}
 
+    class handlerPlugin extends FlatMMOPlusPlugin {
+        constructor() {
+            super("handler", {
+                about: {
+                    name: "Plugin Handler",
+                    version: VERSION,
+                    author: "Liam",
+                    description: "FlatMMO+ Configs"
+                },
+                config: [
+                    {
+                        id: "priorityTest",
+                        label: "Test",
+                        type: "priority",
+                        default: [
+                            "Dotted",
+                            "Lime",
+                            "Gold"
+                        ]
+                    },
+                    {
+                        id: "globalSettings",
+                        label: "Share settings across all profiles",
+                        type: "boolean",
+                        default: false
+                    },
+                    {
+                        id: "turnSettingsGlobal",
+                        label: "Copy this profile's options to all profiles",
+                        text: "Copy",
+                        type: "button",
+                        func: "FlatMMOPlus.handler.shareThisSettings",
+                        //class: "btnClass"
+                    },
+                    {
+                        id: "hoverNotifications",
+                        label: "Plugin Notifications Orbs",
+                        type: "boolean",
+                        default: false
+                    },
+                    {
+                        id: "hoverNotificationHeight",
+                        label: "Notification Orbs Height",
+                        type: "range",
+                        min: 2,
+                        max: 14,
+                        step: 1,
+                        default: 10,
+                    },
+                    {
+                        id: "hoverNotificationAlpha",
+                        label: "Notification Orbs Transparency",
+                        type: "range",
+                        min: 0,
+                        max: 100,
+                        default: 100
+                    }
+                ]
+            })
+            this.chatInput = document.getElementById("chat-text-input") || null;
+            this.hotkeyCategories = new Set();
+            this.hotkeys = {};
+            this.hotkeyElement = null;
+
+            window.addEventListener("keydown", e => {
+
+            })
+        }
+    }
+
     class FlatMMOPlus {
 		constructor() {
 			this.version = VERSION;
@@ -509,43 +582,8 @@
 		}
     }
 
-    FlatMMOPlus.prototype.fmpKeyPress = function(e){
-        //This should make the dialogs hotkeys work even with flatChat
-        if(has_npc_chat_options_modal_open() || has_npc_chat_message_modal_open()) {
-            keypress_listener(e);
-            return;
-        }
-        //flatChat handles messages in another way, but checks for custom commands inside it
-        if ("flatChat" in window.FlatMMOPlus.plugins) {
-            return;
-        }
-        if(e.keyCode === 13){
-            if (chat_ele.value.trim().startsWith("/")) {
-                const message = chat_ele.value.trim();
-                const space = message.indexOf(" ");
-                let command;
-                let data;
-                if (space <= 0) {
-                    command = message.substring(1);
-                    data = "";
-                } else {
-                    command = message.substring(1, space);
-                    data = message.substring(space + 1);
-                }
-
-                if(command in window.FlatMMOPlus.customChatCommands) {
-                    window.FlatMMOPlus.handleCustomChatCommand(command, data);
-                    chat_ele.value = "";
-                } else {
-                    enter_pressed(e);
-                }
-            } else {
-                enter_pressed(e);
-            }
-        } else {
-            keypress_listener(e);
-        }
-    }
+    //TBD
+    FlatMMOPlus.prototype.fmpKeyPress = function(e){}
 
     //I'm not sure why Smitty has both keydown and the deprecated keypress, I will merge both codes here
     FlatMMOPlus.prototype.fmpKeyDown = function(e) {
@@ -557,11 +595,34 @@
             return;
         }
 
+        if(has_npc_chat_message_modal_open() && e.key === " ") {
+            document.getElementById("npc-chat-message-modal-continue-btn").click();
+            e.preventDefault();
+        }
+
+        //This doesn't need a switch case
+        if(has_npc_chat_options_modal_open() && e.keyCode > 48 && e.keyCode < 58) {
+            //1 is 49
+            const value = e.keyCode - 49;
+            let wrapper = document.getElementById("npc-chat-options-modal-content");
+            let options = wrapper.getElementsByTagName("div");
+            if(options[value]?.style.display != 'none') {
+                options[value].click();
+            }
+        }
+
+        //Modifiers can't have hotkeys on them
+        if(e.key === "Shift" || e.key === "Control" || e.key === "Alt" || e.key === "Meta") return;
+
         const stringKey = this.formatHotkey(hotkey);
 
         if(this.handler.hotkeys.hasOwnProperty(stringKey)) {
+            e.preventDefault();
             this.handler.hotkeys[stringKey].forEach(h => h.func(e));
+            return;
         }
+
+
     }
 
     FlatMMOPlus.prototype.registerHotkeyCategory = function(category) {
@@ -1695,76 +1756,6 @@
         });
     }
 
-    class handlerPlugin extends FlatMMOPlusPlugin {
-        constructor() {
-            super("handler", {
-                about: {
-                    name: "Plugin Handler",
-                    version: VERSION,
-                    author: "Liam",
-                    description: "FlatMMO+ Configs"
-                },
-                config: [
-                    {
-                        id: "priorityTest",
-                        label: "Test",
-                        type: "priority",
-                        default: [
-                            "Dotted",
-                            "Lime",
-                            "Gold"
-                        ]
-                    },
-                    {
-                        id: "globalSettings",
-                        label: "Share settings across all profiles",
-                        type: "boolean",
-                        default: false
-                    },
-                    {
-                        id: "turnSettingsGlobal",
-                        label: "Copy this profile's options to all profiles",
-                        text: "Copy",
-                        type: "button",
-                        func: "FlatMMOPlus.handler.shareThisSettings",
-                        //class: "btnClass"
-                    },
-                    {
-                        id: "hoverNotifications",
-                        label: "Plugin Notifications Orbs",
-                        type: "boolean",
-                        default: false
-                    },
-                    {
-                        id: "hoverNotificationHeight",
-                        label: "Notification Orbs Height",
-                        type: "range",
-                        min: 2,
-                        max: 14,
-                        step: 1,
-                        default: 10,
-                    },
-                    {
-                        id: "hoverNotificationAlpha",
-                        label: "Notification Orbs Transparency",
-                        type: "range",
-                        min: 0,
-                        max: 100,
-                        default: 100
-                    }
-                ]
-            })
-            this.chatInput = document.getElementById("chat-text-input") || null;
-            this.hotkeyCategories = new Set();
-            this.hotkeys = {};
-            this.hotkeyElement = null;
-
-            window.addEventListener("keydown", e => {
-
-            })
-        }
-    }
-
     FlatMMOPlus.prototype.init = function(){
         //Tries to hook into the websocket messages
         const hookIntoOnMessage = () => {
@@ -1817,8 +1808,7 @@
             }
         })()
 
-
-        window.addEventListener("keypress", this.fmpKeyPress, false);
+        window.addEventListener("keydown", this.fmpKeyDown, false);
 
         document.getElementById("canvas").insertAdjacentHTML("beforeend",'<div id="FMPNotifications"></div>')
 
@@ -2070,51 +2060,6 @@
             })
         }
 
-        this.handler.turnLowEnd = function() {
-            this.islowEnd = true;
-
-            fps_interval = 166
-
-            //BG
-            window.bgCanvas = canvas.cloneNode();
-            bgCanvas.id = "bgCanvas";
-            window.bgCtx = bgCanvas.getContext("2d");
-            const canvasParent = document.createElement("div");
-            canvasParent.style.position = "relative";
-            canvas.style.position = "absolute";
-            canvas.insertAdjacentElement("beforebegin", canvasParent);
-            canvasParent.append(canvas, bgCanvas);
-            
-            //Map background doesn't change, so it doesn't need to be drawn every tick, once is enough
-            paint_layer_0 = function(){};
-            paint_layer_1 = function(){};
-            paint_layer_3 = function(){};
-            this.onMapChanged();
-
-            //Text calls are expensive
-            paint_chat_above_head = function(){};
-            paint_xp_drops = function(){};
-            paint_tooltip = function(){};
-            paint_level_drops = function(){};
-            paint_xp_progress_bar = function(){};
-            paint_hit_splats = function(){}; //Vanilla, optimazed or none
-            paint_effects = function(){}; //Vanilla, text (html - paint once with timeout), none
-        }
-
-        //Map background doesn't change, so it doesn't need to be drawn every tick, once is enough
-        this.handler.onMapChanged = function() {
-            if(this.islowEnd) {
-                let map = get_map(current_map);
-                
-                bgCtx.drawImage(map.image, 0, 0);
-                if(map.upper_image != null) {
-                    bgCtx.drawImage(map.upper_image, 0, 0);
-                }
-            }
-        }
-
-        this.handler.turnLowEnd();
-
         /** Priority Config Type */
         document.addEventListener('dragstart', (e) => {
             if (e.target.classList.contains('fmp-priority-item')) {
@@ -2208,11 +2153,7 @@
               	<span>Use the /help command for more information about a specific command: /help &lt;command&gt;</span>
 			</div>`
         }
-		if (window.FlatMMOPlus.plugins.hasOwnProperty("flatChat")) {
-			window.FlatMMOPlus.plugins.flatChat.showWarning(help, "white");
-		} else {
-			document.getElementById("chat").insertAdjacentHTML("beforeend",help)
-		}
+        window.FlatMMOPlus.showWarning(help, "white");
         //Chat auto scroll is always true for now
 		chat_div_element.scrollTop = chat_div_element.scrollHeight;
     };
@@ -2242,15 +2183,25 @@
         Globals.websocket.send(`CHAT=/help`);
     }, `Shows the original vanilla /help`);
 
-    window.FlatMMOPlus.registerCustomChatCommand("collections", (command, data='') => {
+    window.FlatMMOPlus.registerCustomChatCommand("collections", () => {
         Globals.websocket.send(`CHAT=/collections`);
     }, `Access to your collection log`);
 
-    window.FlatMMOPlus.registerCustomChatCommand("detach", (command, data="on") => {
-        Globals.websocket.send(`CHAT=/detach`);
+    window.FlatMMOPlus.registerCustomChatCommand("detach", () => {
+        document.getElementById("chat").style.display = "none";
+        document.querySelector('[data-settings="hide_chat"]').checked = true;
+        openChatPopup();
     }, `Detach the chat from the window`);
 
-    window.FlatMMOPlus.registerCustomChatCommand("tick", (command, data='') => {
+    window.FlatMMOPlus.registerCustomChatCommand("timers", () => {
+        openTimersPopup();
+    }, `Opens timers menu`);
+
+    window.FlatMMOPlus.registerCustomChatCommand("autoyell", (command, data="on") => {
+        Globals.websocket.send("CHAT=/autoyell " + data);
+    }, `Turns auto yell on`);
+
+    window.FlatMMOPlus.registerCustomChatCommand("tick", () => {
         this.showWarning(`The current action takes ${progress_bar_target + 1} ticks (${(progress_bar_target + 1) / 2} seconds)`);
     }, `Shows the time needed to complete the current action`);
 
