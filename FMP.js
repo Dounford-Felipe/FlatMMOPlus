@@ -330,13 +330,18 @@
             #ui-panel-hotkeys-content {
                 h1 {
                     margin: 0;
+                    text-transform: capitalize;
                 }
                 h3 {
                     margin-bottom: 0;
                 }
                 button {
-                    cursos: pointer;
+                    cursor: pointer;
                 }
+            }
+            .fmpHotkeysConflict {
+                background-color: red;
+                color: white;
             }
             .fmpHotkeysCategory {
                 display: grid;
@@ -447,6 +452,14 @@
         original_sendmessage = Globals.websocket.send;
         original_switch_panels = window.switch_panels;
         original_settings_modal_tab = window.settings_modal_tab;
+
+        window.addEventListener("click", (e) => {
+            const btn = e.target.closest("[data-hotkeystring]");
+            if(btn) {
+                window.FlatMMOPlus.handler.hotkeyElement = btn;
+                btn.innerText = "Recording";
+            }
+        })
     }
 
 	function logFancy(s, color="#00f7ff") {
@@ -593,6 +606,36 @@
 
             })
         }
+
+        shareThisSettings() {
+            let keys = {
+                main: Globals.local_username,
+                scripts: new Set(),
+                alts: new Set(),
+            }
+
+            for (const key in localStorage) {
+                const match = key.match(/flatmmoplus\.(.*?)(?:\.(.*?))?\.config/);
+                if(match === null) continue;
+
+                const id = match[1];
+
+                keys.scripts.add(id);
+
+                const username = match[2];
+                if(username && username !== Globals.local_username) {
+                    keys.alts.add(username);
+                }
+            }
+
+            keys.scripts.forEach(script => {
+                const value = localStorage.getItem(`flatmmoplus.${script}.${keys.main}.config`) || '{}';
+
+                keys.alts.forEach(profile => {
+                    localStorage.setItem(`flatmmoplus.${script}.${profile}.config`)
+                })
+            })
+        }
     }
 
     class FlatMMOPlus {
@@ -654,9 +697,15 @@
         }
 
         //Modifiers can't have hotkeys on them
-        //if(e.key === "Shift" || e.key === "Control" || e.key === "Alt" || e.key === "Meta") return;
+        if(e.key === "Shift" || e.key === "Control" || e.key === "Alt" || e.key === "Meta") return;
 
         const stringKey = window.FlatMMOPlus.formatHotkey(e);
+
+        if(window.FlatMMOPlus.handler.hotkeyElement !== null) {
+            e.preventDefault();
+            window.FlatMMOPlus.modifyHotkey(e, stringKey);
+            return;
+        }
 
         if(window.FlatMMOPlus.handler.hotkeys.hasOwnProperty(stringKey)) {
             e.preventDefault();
@@ -677,11 +726,42 @@
             return;
         }
 
-        //Hotkeys can use F5, but they don't by default
-        if(e.key === "F5") return;
+        //Special keys won't be added
+        if(e.key.length > 1) return;
 
         //Using key instead of code should fix any browser/keyboard issues
         chat_ele.value += e.key;
+    }
+
+    FlatMMOPlus.prototype.modifyHotkey = function(e, stringKey) {
+        if(e.key === "Escape") {
+            stringKey = "N/A"
+        }
+        const hotkeyName = this.handler.hotkeyElement?.getAttribute("data-hotkeyname");
+        const hotkeyString = this.handler.hotkeyElement?.getAttribute("data-hotkeystring");
+        const hotkeyIndex = this.handler.hotkeys[hotkeyString]?.findIndex(h => h.name === hotkeyName)
+
+        if(hotkeyIndex !== -1) {
+            const hotkey = this.handler.hotkeys[hotkeyString].splice(hotkeyIndex, 1);
+            if(this.handler.hotkeys[hotkeyString].length === 0) {
+                delete this.handler.hotkeys[hotkeyString];
+            }
+
+            if(!this.handler.hotkeys.hasOwnProperty(stringKey)) {
+                this.handler.hotkeys[stringKey] = [];
+            }
+
+            this.handler.hotkeys[stringKey].push(...hotkey);
+            this.handler.hotkeyElement.innerText = stringKey;
+            this.handler.hotkeyElement.setAttribute("data-hotkeystring", stringKey);
+
+            hotkeyOverride[hotkeyName] = stringKey;
+            localStorage.setItem("FMP-hotkeys", JSON.stringify(hotkeyOverride));
+
+            this.checkHotkeyConflicts();
+        }
+
+        this.handler.hotkeyElement = null;
     }
 
     FlatMMOPlus.prototype.registerHotkeyCategory = function(category) {
@@ -690,7 +770,7 @@
 
         const container = document.createElement("div");
 
-        container.innerHTML = `<h2>${category}</h2>
+        container.innerHTML = `<h1>${category}</h1>
         <div class="fmpHotkeysCategory" id="${id}"></div>`
 
         document.getElementById("ui-panel-hotkeys-content").append(container);
@@ -716,12 +796,6 @@
             stringKey = hotkeyOverride[hotkey.name];
         }
 
-        //Hotkey Panel has categories, if not specified it will be misc, if it doesn't exist it will add
-        hotkey.category = hotkey.category || "misc";
-        if(!this.handler.hotkeyCategories.has(hotkey.category)) {
-            this.registerHotkeyCategory(hotkey.category)
-        }
-
         //Plugins can override or redeclare keyboards
         const oldEl = document.getElementById("fmp-hotkeysContainer-" + hotkey.name);
         if(oldEl) {
@@ -730,11 +804,17 @@
 
         //Some hotkeys should not show on hotkey menu
         if(!hotkey.private) {
+            //Hotkey Panel has categories, if not specified it will be misc, if it doesn't exist it will add
+            hotkey.category = hotkey.category || "misc";
+            if(!this.handler.hotkeyCategories.has(hotkey.category)) {
+                this.registerHotkeyCategory(hotkey.category)
+            }
+
             const categoryId = "fmp-hotkeys-category-" + hotkey.category;
             document.getElementById(categoryId).insertAdjacentHTML("beforeend", `<div id="fmp-hotkeysContainer-${hotkey.name}">
                 <h3>${hotkey.name}</h3>
-                <h4>${hotkey.description}</h4>
-                <button class="fmp-hotkeys-buttons" id="fmp-hotkeys-${hotkey.name}">${stringKey}</button>
+                <p>${hotkey.description}</p>
+                <button class="fmp-hotkeys-buttons" id="fmp-hotkeys-${hotkey.name}" data-hotkeyname="${hotkey.name}" data-hotkeystring="${stringKey}">${stringKey}</button>
             </div>`)
         }
 
@@ -1929,32 +2009,7 @@
         //Remove vanilla keyboard menu
         document.getElementById("settings-modal-keyboard-panel-btn").style.display = "none";
 
-        this.addPanel("hotkeys", "Hotkeys", `
-        <div>
-            <h2>Actions</h2>
-            <div class="fmpHotkeysCategory" id="fmp-hotkeys-category-actions"></div>
-        </div>
-        <div>
-            <h2>Equipments</h2>
-            <div class="fmpHotkeysCategory" id="fmp-hotkeys-category-equipments"></div>
-        </div>
-        <div>
-            <h2>Badges</h2>
-            <div class="fmpHotkeysCategory" id="fmp-hotkeys-category-badges"></div>
-        </div>
-        <div>
-            <h2>Teleports</h2>
-            <div class="fmpHotkeysCategory" id="fmp-hotkeys-category-teleports"></div>
-        </div>
-        <div>
-            <h2>Worship</h2>
-            <div class="fmpHotkeysCategory" id="fmp-hotkeys-category-worship"></div>
-        </div>
-        <div>
-            <h2>Misc</h2>
-            <div class="fmpHotkeysCategory" id="fmp-hotkeys-category-misc"></div>
-        </div>
-        `, true);
+        this.addPanel("hotkeys", "Hotkeys", "", true);
 
         this.addPanel("plugins", "FlatMMO+ Plugins", () => {
             let content = "";
@@ -2116,39 +2171,11 @@
             return content;
         }, true);
 
-        this.handler = new handlerPlugin()
-
-        this.registerPlugin(this.handler);
-
-        this.handler.shareThisSettings = function() {
-            let keys = {
-                main: Globals.local_username,
-                scripts: new Set(),
-                alts: new Set(),
-            }
-
-            for (const key in localStorage) {
-                const match = key.match(/flatmmoplus\.(.*?)(?:\.(.*?))?\.config/);
-                if(match === null) continue;
-
-                const id = match[1];
-
-                keys.scripts.add(id);
-
-                const username = match[2];
-                if(username && username !== Globals.local_username) {
-                    keys.alts.add(username);
-                }
-            }
-
-            keys.scripts.forEach(script => {
-                const value = localStorage.getItem(`flatmmoplus.${script}.${keys.main}.config`) || '{}';
-
-                keys.alts.forEach(profile => {
-                    localStorage.setItem(`flatmmoplus.${script}.${profile}.config`)
-                })
-            })
-        }
+        if(!this.plugins["handler"]) {
+            this.handler = new handlerPlugin()
+    
+            this.registerPlugin(this.handler);
+        }        
 
         /** Priority Config Type */
         document.addEventListener('dragstart', (e) => {
@@ -2304,5 +2331,4 @@
     }, `Send a trade request if the player is in the same map.<br><b>Usage:</b>/trade [username]`);
 
 	window.FlatMMOPlus.init();
-	//window.FlatMMOPlus.upDateSelf();
 })();
