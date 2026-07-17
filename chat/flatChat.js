@@ -7,7 +7,7 @@
 // @license      MIT
 // @match        *://flatmmo.com/play.php*
 // @grant        none
-// @require      https://openuserjs.org/install/Dounford/FlatMMOPlus.user.js
+// @require      https://update.greasyfork.org/scripts/544062/FlatMMOPlus.js
 // @require      https://cdnjs.cloudflare.com/ajax/libs/anchorme/2.1.2/anchorme.min.js
 // ==/UserScript==
 
@@ -378,6 +378,15 @@
 		agility: {
             blocked: "You dodge the attack and gain",
             name: "agility",
+            image: "https://flatmmo.com/images/worship/run.png",
+            title: "",
+            text: "",
+            ticks: 0,
+            color: "white"
+        },
+		superstorm: {
+            blocked: "storm spirit point",
+            name: "superstorm",
             image: "https://flatmmo.com/images/worship/run.png",
             title: "",
             text: "",

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         FlatMMOPlus
 // @namespace    com.dounford.flatmmo
-// @version      1.5
+// @version      1.5.1
 // @description  FlatMMO plugin framework
 // @author       Dounford adapted from Anwinity IPP
 // @match        *://flatmmo.com/play.php*
@@ -10,7 +10,7 @@
 
 (function() {
 	'use strict';
-	const VERSION = "1.5";
+	const VERSION = "1.5.1";
 
     Set.prototype.some = function(predicate) {
         for (const item of this) {
@@ -276,6 +276,71 @@
                 }
             }
         },
+        //Scrolls
+        {
+            key: "N/A",
+            name: "Chef's House Scroll",
+            description: "Uses a scroll to teleport to Chef's House",
+            category: "Teleport Book",
+            func: () => {
+                window.FlatMMOPlus.sendMessage(`TELE_BOOK=chefs_house_teleport_scroll`);
+            }
+        },
+        {
+            key: "N/A",
+            name: "Thieves Hideout Scroll",
+            description: "Uses a scroll to teleport to Thieves Hideout",
+            category: "Teleport Book",
+            func: () => {
+                window.FlatMMOPlus.sendMessage(`TELE_BOOK=thieves_hideout_teleport_scroll`);
+            }
+        },
+        {
+            key: "N/A",
+            name: "Greenhouse Scroll",
+            description: "Uses a scroll to teleport to Greenhouse",
+            category: "Teleport Book",
+            func: () => {
+                window.FlatMMOPlus.sendMessage(`TELE_BOOK=greenhouse_teleport_scroll`);
+            }
+        },
+        {
+            key: "N/A",
+            name: "Rogue's Grave Scroll",
+            description: "Uses a scroll to teleport to Rogue's Grave",
+            category: "Teleport Book",
+            func: () => {
+                window.FlatMMOPlus.sendMessage(`TELE_BOOK=rogue_teleport_scroll`);
+            }
+        },
+        {
+            key: "N/A",
+            name: "Phantos Mansion Scroll",
+            description: "Uses a scroll to teleport to Phantos Mansion",
+            category: "Teleport Book",
+            func: () => {
+                window.FlatMMOPlus.sendMessage(`TELE_BOOK=phantos_teleport_scroll`);
+            }
+        },
+        //Menus
+        {
+            key: "N/A",
+            name: "View Bank",
+            description: "Opens Bank Panel",
+            category: "panels",
+            func: () => {
+                window.FlatMMOPlus.sendMessage(`VIEW_BANK`);
+            }
+        },
+        {
+            key: "N/A",
+            name: "View Hunting",
+            description: "Opens Hunting Panel",
+            category: "panels",
+            func: () => {
+                switch_panels('hunting');
+            }
+        }
     ]
     let hotkeyOverride = {};
 
