@@ -334,6 +334,9 @@
                 h3 {
                     margin-bottom: 0;
                 }
+                button {
+                    cursos: pointer;
+                }
             }
             .fmpHotkeysCategory {
                 display: grid;
@@ -730,7 +733,7 @@
             const categoryId = "fmp-hotkeys-category-" + hotkey.category;
             document.getElementById(categoryId).insertAdjacentHTML("beforeend", `<div id="fmp-hotkeysContainer-${hotkey.name}">
                 <h3>${hotkey.name}</h3>
-                <h4>${hotkey.description}<h4>
+                <h4>${hotkey.description}</h4>
                 <button class="fmp-hotkeys-buttons" id="fmp-hotkeys-${hotkey.name}">${stringKey}</button>
             </div>`)
         }
