@@ -582,18 +582,10 @@
 		}
     }
 
-    //TBD
-    FlatMMOPlus.prototype.fmpKeyPress = function(e){}
-
     //I'm not sure why Smitty has both keydown and the deprecated keypress, I will merge both codes here
     FlatMMOPlus.prototype.fmpKeyDown = function(e) {
-        //
+        //This should make sure inputs don't break
         if(document.activeElement.nodeName === "INPUT" || document.activeElement.nodeName === "TEXTAREA" || document.activeElement.getAttribute("contenteditable") === "true") return;
-        //TBD
-        if(has_npc_chat_options_modal_open() || has_npc_chat_message_modal_open()) {
-            keypress_listener(e);
-            return;
-        }
 
         if(has_npc_chat_message_modal_open() && e.key === " ") {
             document.getElementById("npc-chat-message-modal-continue-btn").click();
@@ -606,7 +598,7 @@
             const value = e.keyCode - 49;
             let wrapper = document.getElementById("npc-chat-options-modal-content");
             let options = wrapper.getElementsByTagName("div");
-            if(options[value]?.style.display != 'none') {
+            if(options[value] && options[value].style.display != 'none') {
                 options[value].click();
             }
         }
@@ -618,11 +610,13 @@
 
         if(this.handler.hotkeys.hasOwnProperty(stringKey)) {
             e.preventDefault();
-            this.handler.hotkeys[stringKey].forEach(h => h.func(e));
-            return;
+            this.handler.hotkeys[stringKey].forEach(h =>{
+                //Most hotkeys won't allow holding down to spam them
+                if(h.repeat || e.repeat == false) {
+                    h.func(e);
+                }
+            });
         }
-
-
     }
 
     FlatMMOPlus.prototype.registerHotkeyCategory = function(category) {
