@@ -299,29 +299,41 @@
     let original_settings_modal_tab;
     let flatnotifications = {};
 
-	if (window.FlatMMOPlus) {
-        if(window.FlatMMOPlus.version >= VERSION) {
-            return
+    const pageWindow = typeof unsafeWindow !== 'undefined' ? unsafeWindow : window;
+
+	if (pageWindow.FlatMMOPlus) {
+        if(pageWindow.FlatMMOPlus.version >= VERSION) {
+            if (window !== pageWindow) {
+                window.AnimationSheetPlus = pageWindow.AnimationSheetPlus;
+                window.FlatMMOPlusPlugin = pageWindow.FlatMMOPlusPlugin;
+                window.FlatMMOPlus = pageWindow.FlatMMOPlus;
+            }
+            return;
         }
-        plugins = window.FlatMMOPlus.plugins;
-        panels = window.FlatMMOPlus.panels;
-        nextUniqueId = window.FlatMMOPlus.nextUniqueId;
-        customChatCommands = window.FlatMMOPlus.customChatCommands;
-        customChatHelp = window.FlatMMOPlus.customChatHelp;
-        currentPanel = window.FlatMMOPlus.currentPanel;
-        currentSettingsPanel = window.FlatMMOPlus.currentSettingsPanel;
-        loggedIn = window.FlatMMOPlus.loggedIn;
-        isFighting = window.FlatMMOPlus.isFighting;
-        original_onmessage = window.FlatMMOPlus.original_onmessage || Globals.websocket.onmessage;
-        original_sendmessage = window.FlatMMOPlus.original_sendmessage || Globals.websocket.send;
-        original_switch_panels = window.FlatMMOPlus.original_switch_panels || window.switch_panels;
-        original_settings_modal_tab = window.FlatMMOPlus.original_settings_modal_tab || window.settings_modal_tab;
-        flatnotifications = window.FlatMMOPlus.notifications || {};
-        window.removeEventListener("keydown", window.FlatMMOPlus.fmpKeyDown, false);
+        plugins = pageWindow.FlatMMOPlus.plugins;
+        panels = pageWindow.FlatMMOPlus.panels;
+        nextUniqueId = pageWindow.FlatMMOPlus.nextUniqueId;
+        customChatCommands = pageWindow.FlatMMOPlus.customChatCommands;
+        customChatHelp = pageWindow.FlatMMOPlus.customChatHelp;
+        currentPanel = pageWindow.FlatMMOPlus.currentPanel;
+        currentSettingsPanel = pageWindow.FlatMMOPlus.currentSettingsPanel;
+        loggedIn = pageWindow.FlatMMOPlus.loggedIn;
+        isFighting = pageWindow.FlatMMOPlus.isFighting;
+
+        original_onmessage = pageWindow.FlatMMOPlus.original_onmessage || Globals.websocket.onmessage;
+        original_sendmessage = pageWindow.FlatMMOPlus.original_sendmessage || Globals.websocket.send;
+        original_switch_panels = pageWindow.FlatMMOPlus.original_switch_panels || window.switch_panels;
+        original_settings_modal_tab = pageWindow.FlatMMOPlus.original_settings_modal_tab || window.settings_modal_tab;
+        flatnotifications = pageWindow.FlatMMOPlus.notifications || {};
+
+        if (pageWindow.FlatMMOPlus.fmpKeyDown) {
+            pageWindow.removeEventListener("keydown", pageWindow.FlatMMOPlus.fmpKeyDown, false);
+        }
+
         document.getElementById("ui-panel-flatmmoplus")?.remove();
         document.getElementById("settings-modal-plugins-panel-btn")?.remove();
         document.getElementById("settings-modal-plugins-panel")?.remove();
-        document.querySelector(".settings-ui tbody tr:last-child").remove()
+        document.querySelector(".settings-ui tbody tr:last-child")?.remove()
 	} else {
         document.head.insertAdjacentHTML("beforeend", `<style>
             .displaynone {
@@ -2239,6 +2251,12 @@
     window.AnimationSheetPlus = AnimationSheetPlus;
     window.FlatMMOPlusPlugin = FlatMMOPlusPlugin;
     window.FlatMMOPlus = new FlatMMOPlus();
+
+    if (typeof unsafeWindow !== 'undefined' && window !== unsafeWindow) {
+        unsafeWindow.AnimationSheetPlus = window.AnimationSheetPlus;
+        unsafeWindow.FlatMMOPlusPlugin = window.FlatMMOPlusPlugin;
+        unsafeWindow.FlatMMOPlus = window.FlatMMOPlus;
+    }
 
 	window.FlatMMOPlus.customChatCommands["help"] = (command, data='') => {
         let help;
