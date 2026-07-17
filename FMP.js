@@ -81,21 +81,21 @@
         {
             key: "F6",
             name: "Preset 1",
-            description: "Activates dodge ability",
+            description: "Equips Preset 1",
             category: "equipments",
             func: () => window.FlatMMOPlus.sendMessage("SHORTCUT_KEY=F6")
         },
         {
             key: "F7",
             name: "Preset 2",
-            description: "Activates dodge ability",
+            description: "Equips Preset 2",
             category: "equipments",
             func: () => window.FlatMMOPlus.sendMessage("SHORTCUT_KEY=F7")
         },
         {
             key: "F8",
             name: "Preset 3",
-            description: "Activates dodge ability",
+            description: "Equips Preset 3",
             category: "equipments",
             func: () => window.FlatMMOPlus.sendMessage("SHORTCUT_KEY=F8")
         },
@@ -103,28 +103,28 @@
         {
             key: "F9",
             name: "Badge 1",
-            description: "Activates dodge ability",
+            description: "Activates Badge 1",
             category: "badges",
             func: () => window.FlatMMOPlus.sendMessage("SHORTCUT_KEY=F9")
         },
         {
             key: "F10",
             name: "Badge 2",
-            description: "Activates dodge ability",
+            description: "Activates Badge 2",
             category: "badges",
             func: () => window.FlatMMOPlus.sendMessage("SHORTCUT_KEY=F10")
         },
         {
             key: "F11",
             name: "Badge 3",
-            description: "Activates dodge ability",
+            description: "Activates Badge 3",
             category: "badges",
             func: () => window.FlatMMOPlus.sendMessage("SHORTCUT_KEY=F11")
         },
         {
             key: "F12",
             name: "Badge 4",
-            description: "Activates dodge ability",
+            description: "Activates Badge 4",
             category: "badges",
             func: () => window.FlatMMOPlus.sendMessage("SHORTCUT_KEY=F12")
         },
@@ -443,7 +443,7 @@
                 font-weight: bold;
             }
         </style>`);
-        //The new hotkey system does everything this does
+        //The new hotkey system does everything these does
         window.removeEventListener("keypress", keypress_listener, false);
         window.removeEventListener("keyup", keyup_listener, false);
         window.removeEventListener("keydown", keydown_listener, false);
@@ -453,6 +453,7 @@
         original_switch_panels = window.switch_panels;
         original_settings_modal_tab = window.settings_modal_tab;
 
+        //Record hotkey remap
         window.addEventListener("click", (e) => {
             const btn = e.target.closest("[data-hotkeystring]");
             if(btn) {
@@ -548,16 +549,6 @@
                     description: "FlatMMO+ Configs"
                 },
                 config: [
-                    {
-                        id: "priorityTest",
-                        label: "Test",
-                        type: "priority",
-                        default: [
-                            "Dotted",
-                            "Lime",
-                            "Gold"
-                        ]
-                    },
                     {
                         id: "globalSettings",
                         label: "Share settings across all profiles",
@@ -703,7 +694,7 @@
 
         if(window.FlatMMOPlus.handler.hotkeyElement !== null) {
             e.preventDefault();
-            window.FlatMMOPlus.modifyHotkey(e, stringKey);
+            window.FlatMMOPlus.remapHotkey(e, stringKey);
             return;
         }
 
@@ -733,7 +724,7 @@
         chat_ele.value += e.key;
     }
 
-    FlatMMOPlus.prototype.modifyHotkey = function(e, stringKey) {
+    FlatMMOPlus.prototype.remapHotkey = function(e, stringKey) {
         if(e.key === "Escape") {
             stringKey = "N/A"
         }
@@ -836,7 +827,7 @@
 
         //Remove it from hotkey map
         this.handler.hotkeys = Object.fromEntries(
-            Object.entries(data).map(([key, array]) => [
+            Object.entries(this.handler.hotkeys).map(([key, array]) => [
                 key, 
                 array.filter(h => h.name !== hotkeyName)
             ])
@@ -1298,9 +1289,13 @@
         if(typeof id !== "string" || typeof title !== "string" || (typeof content !== "string" && typeof content !== "function") ) {
             throw new TypeError("FlatMMOPlus.addPanel takes the following arguments: (id:string, title:string, content:string|function)");
         }
+        if(this.panels[id]) {
+            console.error("There already is a panel with this id");
+            return;
+        }
         if(hasTabButton) {
             const firstPanel = document.querySelector("#settings-modal-sound-panel");
-            firstPanel.insertAdjacentHTML("beforebegin", `<div class="settings-modal-panel-btn hover" onclick="settings_modal_tab('${id}')" id="settings-modal-${id}-panel-btn">${title}</div>`)
+            firstPanel.insertAdjacentHTML("beforebegin", `<div class="settings-modal-panel-btn hover" onclick="settings_modal_tab('${id}')" id="settings-modal-${id}-panel-btn" style="margin-right: 10px;">${title}</div>`)
         }
         const lastPanel = document.querySelector("#settings-modal-mutes-panel");
         lastPanel.insertAdjacentHTML("afterend",`
@@ -1398,6 +1393,10 @@
             const el = document.getElementById(`settings-modal-${panel.id}-panel`);
             if(el) {
                 el.style.display = "none";
+            }
+            const btn = document.getElementById(`settings-modal-${panel.id}-panel-btn`);
+            if(btn) {
+                btn.style.backgroundColor = "";
             }
         });
     }
@@ -2011,7 +2010,7 @@
 
         this.addPanel("hotkeys", "Hotkeys", "", true);
 
-        this.addPanel("plugins", "FlatMMO+ Plugins", () => {
+        this.addPanel("plugins", "Plugins", () => {
             let content = "";
             this.forEachPlugin(plugin => {
                 let id = plugin.id;
@@ -2171,12 +2170,11 @@
             return content;
         }, true);
 
-        if(!this.plugins["handler"]) {
-            this.handler = new handlerPlugin()
+        this.handler = new handlerPlugin()
     
-            this.registerPlugin(this.handler);
-        }        
-
+        this.registerPlugin(this.handler);
+        
+        
         /** Priority Config Type */
         document.addEventListener('dragstart', (e) => {
             if (e.target.classList.contains('fmp-priority-item')) {
@@ -2226,26 +2224,14 @@
         hotkeyOverride = JSON.parse(localStorage.getItem("FMP-hotkeys") || '{}');
         defaultHotkeys.forEach(hotkey => window.FlatMMOPlus.registerHotkey(hotkey));
 
+        document.getElementById("fmp-hotkeysContainer-Preset 1").insertAdjacentHTML("beforeend", `<button onclick="Globals.websocket.send('SAVE_PRESET=F6')"><img src="images/icons/save.png"> Save Preset</button>`);
+        document.getElementById("fmp-hotkeysContainer-Preset 2").insertAdjacentHTML("beforeend", `<button onclick="Globals.websocket.send('SAVE_PRESET=F7')"><img src="images/icons/save.png"> Save Preset</button>`);
+        document.getElementById("fmp-hotkeysContainer-Preset 3").insertAdjacentHTML("beforeend", `<button onclick="Globals.websocket.send('SAVE_PRESET=F8')"><img src="images/icons/save.png"> Save Preset</button>`)
+
         
         logFancy(`(v${this.version}) initialized.`);
         if(this.loggedIn === false && Object.keys(item_sell_prices).length !== 0) {
             this.onLogin();
-        }
-    }
-
-    FlatMMOPlus.prototype.upDateSelf = async function(){
-        try {
-            let script;
-            await fetch('http://flat.dounford.qd.je/scripts/1').then(async (response) => {
-                script = await response.text()
-                script = JSON.parse(script);
-            })
-
-            const scriptTag = document.createElement("script");
-			scriptTag.textContent = script.code;
-			document.head.appendChild(scriptTag);
-        } catch(err) {
-            console.error("FMP was not loaded, please reload the page")
         }
     }
 
