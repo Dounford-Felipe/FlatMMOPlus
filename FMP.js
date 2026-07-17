@@ -242,14 +242,38 @@
             }
         },
         {
-            key: "Enter",
-            name: "Enter",
-            description: "Enter",
+            key: "Backspace",
+            name: "Backspace",
+            description: "Backspace",
+            private: true,
+            repeat: true,
+            func: (e) => {
+                //It doesn't need to check the activeElement because it won't run on input/textarea
+                if(chat_ele.value.trim().length > 0) {
+                    chat_ele.value = chat_ele.value.substring(0, chat_ele.value.length - 1);
+                }
+                if(chat_ele.value.trim().length == 0) {
+                    request_unfocus_chatbox();
+                }
+            }
+        },
+        {
+            key: "Escape",
+            name: "Escape",
+            description: "Escape",
             private: true,
             func: (e) => {
-
+                let closed = false;
+                for (const s of opened_modals) {
+                    close_modal(s);
+                    closed = true;
+                }
+                if(!closed) {
+                    close_bank();
+                    close_global_market();
+                }
             }
-        }
+        },
     ]
     let hotkeyOverride = {};
 
@@ -397,8 +421,10 @@
                 font-weight: bold;
             }
         </style>`);
-        //For some reason I was unable to change the original function, so I just deleted and added a new one
+        //The new hotkey system does everything this does
         window.removeEventListener("keypress", keypress_listener, false);
+        window.removeEventListener("keyup", keyup_listener, false);
+        window.removeEventListener("keydown", keydown_listener, false);
         document.getElementById("chat-text-input").onkeypress = null
         original_onmessage = Globals.websocket.onmessage;
         original_sendmessage = Globals.websocket.send;
@@ -590,6 +616,7 @@
         if(has_npc_chat_message_modal_open() && e.key === " ") {
             document.getElementById("npc-chat-message-modal-continue-btn").click();
             e.preventDefault();
+            return;
         }
 
         //This doesn't need a switch case
@@ -601,6 +628,7 @@
             if(options[value] && options[value].style.display != 'none') {
                 options[value].click();
             }
+            return;
         }
 
         //Modifiers can't have hotkeys on them
@@ -617,6 +645,17 @@
                 }
             });
         }
+
+        if(has_modal_open()) return;
+        if(document.activeElement.id != "body") {return;}
+
+        //Vanilla chat has a 100 characters limitation
+        if(LOCAL_CHAT_MAX_LENGTH <= chat_ele.value.length && this.handler.chatInput?.id === "chat") {
+            return;
+        }
+
+        //Using key instead of code should fix any browser/keyboard issues
+        chat_ele.value += e.key;
     }
 
     FlatMMOPlus.prototype.registerHotkeyCategory = function(category) {
