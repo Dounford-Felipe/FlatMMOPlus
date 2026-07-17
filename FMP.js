@@ -53,66 +53,79 @@
             key: "F1",
             name: "RUN!",
             description: "Toggle Run",
+            category: "actions",
             func: () => window.FlatMMOPlus.sendMessage("SHORTCUT_KEY=F1")
         },
         {
             key: "F2",
             name: "Eat",
             description: "Consumes a piece of food",
+            category: "actions",
             func: () => window.FlatMMOPlus.sendMessage("SHORTCUT_KEY=F2")
         },
         {
             key: "F3",
             name: "Fire",
             description: "Lights a fire",
+            category: "actions",
             func: () => window.FlatMMOPlus.sendMessage("SHORTCUT_KEY=F3")
         },
         {
             key: "F4",
             name: "Dodge",
             description: "Activates dodge ability",
+            category: "actions",
             func: () => window.FlatMMOPlus.sendMessage("SHORTCUT_KEY=F4")
         },
+        //Equipment
         {
             key: "F6",
             name: "Preset 1",
             description: "Activates dodge ability",
+            category: "equipments",
             func: () => window.FlatMMOPlus.sendMessage("SHORTCUT_KEY=F6")
         },
         {
             key: "F7",
             name: "Preset 2",
             description: "Activates dodge ability",
+            category: "equipments",
             func: () => window.FlatMMOPlus.sendMessage("SHORTCUT_KEY=F7")
         },
         {
             key: "F8",
             name: "Preset 3",
             description: "Activates dodge ability",
+            category: "equipments",
             func: () => window.FlatMMOPlus.sendMessage("SHORTCUT_KEY=F8")
         },
+        //Badges
         {
             key: "F9",
             name: "Badge 1",
             description: "Activates dodge ability",
+            category: "badges",
             func: () => window.FlatMMOPlus.sendMessage("SHORTCUT_KEY=F9")
         },
         {
             key: "F10",
             name: "Badge 2",
             description: "Activates dodge ability",
+            category: "badges",
             func: () => window.FlatMMOPlus.sendMessage("SHORTCUT_KEY=F10")
         },
         {
             key: "F11",
             name: "Badge 3",
             description: "Activates dodge ability",
+            category: "badges",
             func: () => window.FlatMMOPlus.sendMessage("SHORTCUT_KEY=F11")
         },
         {
             key: "F12",
             name: "Badge 4",
             description: "Activates dodge ability",
+            category: "badges",
             func: () => window.FlatMMOPlus.sendMessage("SHORTCUT_KEY=F12")
         },
         //Teleports
@@ -120,42 +133,49 @@
             key: "N/A",
             name: "Everbrook Teleport",
             description: "Teleports to Everbrook",
+            category: "teleports",
             func: () => window.FlatMMOPlus.sendMessage("USE_WORSHIP=teleport_everbrook")
         },
         {
             key: "N/A",
             name: "Mystic Vale Teleport",
             description: "Teleports to Mystic Vale",
+            category: "teleports",
             func: () => window.FlatMMOPlus.sendMessage("USE_WORSHIP=teleport_mysticvale")
         },
         {
             key: "N/A",
             name: "Omboko Teleport",
             description: "Teleports to Omboko",
+            category: "teleports",
             func: () => window.FlatMMOPlus.sendMessage("USE_WORSHIP=teleport_omboko")
         },
         {
             key: "N/A",
             name: "Dock Haven Teleport",
             description: "Teleports to Dock Haven",
+            category: "teleports",
             func: () => window.FlatMMOPlus.sendMessage("USE_WORSHIP=teleport_dock_haven")
         },
         {
             key: "N/A",
             name: "Jafa Teleport",
             description: "Teleports to Jafa",
+            category: "teleports",
             func: () => window.FlatMMOPlus.sendMessage("USE_WORSHIP=teleport_jafa_outpost")
         },
         {
             key: "N/A",
             name: "Frostvale Teleport",
             description: "Teleports to Frostvale",
+            category: "teleports",
             func: () => window.FlatMMOPlus.sendMessage("USE_WORSHIP=teleport_frostvale")
         },
         {
             key: "N/A",
             name: "Stuck",
             description: "Teleports to /stuck",
+            category: "teleports",
             func: () => window.FlatMMOPlus.sendMessage("CHAT=/stuck")
         },
         //Worship
@@ -163,48 +183,56 @@
             key: "N/A",
             name: "Remote Sell",
             description: "Opens Sell Menu",
+            category: "worship",
             func: () => window.FlatMMOPlus.sendMessage("USE_WORSHIP=remote_sell")
         },
         {
             key: "N/A",
             name: "Dig",
             description: "Dig",
+            category: "worship",
             func: () => window.FlatMMOPlus.sendMessage("USE_WORSHIP=dig")
         },
         {
             key: "N/A",
             name: "Timers",
             description: "Opens Timers Menu",
+            category: "worship",
             func: () => window.FlatMMOPlus.sendMessage("USE_WORSHIP=timers")
         },
         {
             key: "N/A",
             name: "Hell Burrying",
             description: "Burries your bones",
+            category: "worship",
             func: () => window.FlatMMOPlus.sendMessage("USE_WORSHIP=auto_hell_burying")
         },
         {
             key: "N/A",
             name: "Hunting Contact",
             description: "Opens Hunting Perks Menu",
+            category: "worship",
             func: () => window.FlatMMOPlus.sendMessage("USE_WORSHIP=hunting_contact")
         },
         {
             key: "N/A",
             name: "Mass Pickup",
             description: "Picks all your items",
+            category: "worship",
             func: () => window.FlatMMOPlus.sendMessage("USE_WORSHIP=mass_pickup")
         },
         {
             key: "N/A",
             name: "Focus",
             description: "Increases Damage by 5 and Accuracy by 2",
+            category: "worship",
             func: () => window.FlatMMOPlus.sendMessage("USE_WORSHIP=focus")
         },
         {
             key: "N/A",
             name: "Clarity",
             description: "Increases Damage by 15 and Accuracy by 5",
+            category: "worship",
             func: () => window.FlatMMOPlus.sendMessage("USE_WORSHIP=clarity")
         },
         //Gamehotkeys
@@ -213,33 +241,7 @@
             name: "Enter",
             description: "Enter",
             private: true,
-            func: (e) => {
-                const message = chat_ele.value.trim();
-                if (message === "") return;
-
-                chat_ele.value = "";
-                request_unfocus_chatbox();
-
-                if(message.startsWith("/")) {
-                    const space = message.indexOf(" ");
-                    let command;
-                    let data;
-                    if (space <= 0) {
-                        command = message.substring(1);
-                        data = "";
-                    } else {
-                        command = message.substring(1, space);
-                        data = message.substring(space + 1);
-                    }
-
-                    //FMP only excutes if this is a valid command, so there is no reason to check if it exists
-                    if (window.FlatMMOPlus.handleCustomChatCommand(command, data)) {
-                        return;
-                    }
-                }
-                //If it is not a valid command or isn't a command at all it will send the message
-                Globals.websocket.send('CHAT=' + message);
-            }
+            func: () => enter_pressed()
         },
         {
             key: "Backspace",
@@ -324,6 +326,18 @@
         document.head.insertAdjacentHTML("beforeend", `<style>
             .displaynone {
                 display: none !important;
+            }
+            #ui-panel-hotkeys-content {
+                h1 {
+                    margin: 0;
+                }
+                h3 {
+                    margin-bottom: 0;
+                }
+            }
+            .fmpHotkeysCategory {
+                display: grid;
+                grid-template-columns: auto auto auto;
             }
             .fmp-priority-div {
                 list-style: none;
@@ -611,7 +625,12 @@
     //I'm not sure why Smitty has both keydown and the deprecated keypress, I will merge both codes here
     FlatMMOPlus.prototype.fmpKeyDown = function(e) {
         //This should make sure inputs don't break
-        if(document.activeElement.nodeName === "INPUT" || document.activeElement.nodeName === "TEXTAREA" || document.activeElement.getAttribute("contenteditable") === "true") return;
+        if(document.activeElement.nodeName === "INPUT" || document.activeElement.nodeName === "TEXTAREA" || document.activeElement.getAttribute("contenteditable") === "true") {
+            if(document.activeElement.id === "chat-text-input" && e.key === "Enter") {
+                enter_pressed()
+            }
+            return;
+        };
 
         if(has_npc_chat_message_modal_open() && e.key === " ") {
             document.getElementById("npc-chat-message-modal-continue-btn").click();
@@ -632,27 +651,31 @@
         }
 
         //Modifiers can't have hotkeys on them
-        if(e.key === "Shift" || e.key === "Control" || e.key === "Alt" || e.key === "Meta") return;
+        //if(e.key === "Shift" || e.key === "Control" || e.key === "Alt" || e.key === "Meta") return;
 
-        const stringKey = this.formatHotkey(hotkey);
+        const stringKey = window.FlatMMOPlus.formatHotkey(e);
 
-        if(this.handler.hotkeys.hasOwnProperty(stringKey)) {
+        if(window.FlatMMOPlus.handler.hotkeys.hasOwnProperty(stringKey)) {
             e.preventDefault();
-            this.handler.hotkeys[stringKey].forEach(h =>{
+            window.FlatMMOPlus.handler.hotkeys[stringKey].forEach(h =>{
                 //Most hotkeys won't allow holding down to spam them
                 if(h.repeat || e.repeat == false) {
                     h.func(e);
                 }
             });
+            return;
         }
 
         if(has_modal_open()) return;
         if(document.activeElement.id != "body") {return;}
 
         //Vanilla chat has a 100 characters limitation
-        if(LOCAL_CHAT_MAX_LENGTH <= chat_ele.value.length && this.handler.chatInput?.id === "chat") {
+        if(LOCAL_CHAT_MAX_LENGTH <= chat_ele.value.length && this.handler.chatInput?.id === "chat-text-input") {
             return;
         }
+
+        //Hotkeys can use F5, but they don't by default
+        if(e.key === "F5") return;
 
         //Using key instead of code should fix any browser/keyboard issues
         chat_ele.value += e.key;
@@ -690,10 +713,10 @@
             stringKey = hotkeyOverride[hotkey.name];
         }
 
-        //Hotkey Panel has categories, if not specified or it doesn't exist it will be misc
+        //Hotkey Panel has categories, if not specified it will be misc, if it doesn't exist it will add
         hotkey.category = hotkey.category || "misc";
         if(!this.handler.hotkeyCategories.has(hotkey.category)) {
-            hotkey.category = "misc";
+            this.registerHotkeyCategory(hotkey.category)
         }
 
         //Plugins can override or redeclare keyboards
@@ -708,7 +731,7 @@
             document.getElementById(categoryId).insertAdjacentHTML("beforeend", `<div id="fmp-hotkeysContainer-${hotkey.name}">
                 <h3>${hotkey.name}</h3>
                 <h4>${hotkey.description}<h4>
-                <button class="fmp-hotkeys-buttons" id="fmp-hotkeys-${hotkey.name}">${stringKey}<button>
+                <button class="fmp-hotkeys-buttons" id="fmp-hotkeys-${hotkey.name}">${stringKey}</button>
             </div>`)
         }
 
@@ -1872,6 +1895,37 @@
             this.onSettingsPanelChanged(panelBefore, panelAfter);
         }
 
+        window.enter_pressed = function() {
+            const message = chat_ele.value.trim();
+            if (message === "") return;
+
+            chat_ele.value = "";
+            request_unfocus_chatbox();
+
+            if(message.startsWith("/")) {
+                const space = message.indexOf(" ");
+                let command;
+                let data;
+                if (space <= 0) {
+                    command = message.substring(1);
+                    data = "";
+                } else {
+                    command = message.substring(1, space);
+                    data = message.substring(space + 1);
+                }
+
+                //FMP only excutes if this is a valid command, so there is no reason to check if it exists
+                if (window.FlatMMOPlus.handleCustomChatCommand(command, data)) {
+                    return;
+                }
+            }
+            //If it is not a valid command or isn't a command at all it will send the message
+            Globals.websocket.send('CHAT=' + message);
+        }
+
+        //Remove vanilla keyboard menu
+        document.getElementById("settings-modal-keyboard-panel-btn").style.display = "none";
+
         this.addPanel("hotkeys", "Hotkeys", `
         <div>
             <h2>Actions</h2>
@@ -1891,7 +1945,7 @@
         </div>
         <div>
             <h2>Worship</h2>
-            <div class="fmpHotkeysCategory" id="fmp-hotkeys-category-Worship"></div>
+            <div class="fmpHotkeysCategory" id="fmp-hotkeys-category-worship"></div>
         </div>
         <div>
             <h2>Misc</h2>
