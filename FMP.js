@@ -630,7 +630,7 @@
                         id: "globalSettings",
                         label: "Share settings across all profiles",
                         type: "boolean",
-                        default: false
+                        default: true
                     },
                     {
                         id: "turnSettingsGlobal",
