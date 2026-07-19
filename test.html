@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Eternium $1 Gesture Recognizer</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: #111116;
+      font-family: sans-serif;
+      color: white;
+    }
+    #ui {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      pointer-events: none;
+    }
+    h1 { margin: 0 0 5px 0; font-size: 24px; color: #a5d6a7; transition: color 0.3s; }
+    p { margin: 0; color: #aaa; font-size: 14px; }
+    canvas { display: block; touch-action: none; }
+  </style>
+</head>
+<body>
+
+  <div id="ui">
+    <h1 id="status">Desenhe um "V" ou "Circulo"</h1>
+    <p id="log">Aguardando gesto...</p>
+  </div>
+
+  <canvas id="gestureCanvas"></canvas>
+
+  <script>
+    // --- 1. IMPLEMENTAÇÃO REAL DO ALGORITMO $1 DOLLAR RECOGNIZER ---
+    class DollarRecognizer {
+      constructor() {
+        // Templates de referência normalizados (32 pontos cada)
+        this.templates = {
+          'V': this.normalizePath([
+            {x:0, y:0}, {x:25, y:50}, {x:50, y:100}, {x:75, y:50}, {x:100, y:0}
+          ]),
+          'Circulo': this.normalizePath([
+            {x:50, y:0}, {x:85, y:15}, {x:100, y:50}, {x:85, y:85}, 
+            {x:50, y:100}, {x:15, y:85}, {x:0, y:50}, {x:15, y:15}, {x:50, y:0}
+          ])
+        };
+      }
+
+      // Prepara qualquer caminho bruto passando pelas etapas geométricas do $1 algorithm
+      normalizePath(points) {
+        let resampled = this.resample(points, 32);
+        let rotated = this.rotateToZero(resampled);
+        let scaled = this.scaleToSquare(rotated, 250);
+        return this.translateToOrigin(scaled);
+      }
+
+      resample(points, n) {
+        if (points.length < 2) return points;
+        const I = this.pathLength(points) / (n - 1);
+        let D = 0;
+        const newPoints = [points[0]];
+        
+        for (let i = 1; i < points.length; i++) {
+          let d = this.distance(points[i - 1], points[i]);
+          if ((D + d) >= I) {
+            let qx = points[i - 1].x + ((I - D) / d) * (points[i].x - points[i - 1].x);
+            let qy = points[i - 1].y + ((I - D) / d) * (points[i].y - points[i - 1].y);
+            let q = {x: qx, y: qy};
+            newPoints.push(q);
+            points.splice(i, 0, q); 
+            D = 0;
+          } else D += d;
+        }
+        if (newPoints.length === n - 1) newPoints.push(points[points.length - 1]);
+        return newPoints;
+      }
+
+      rotateToZero(points) {
+        const c = this.centroid(points);
+        const theta = Math.atan2(c.y - points[0].y, c.x - points[0].x);
+        return this.rotateBy(points, -theta);
+      }
+
+      rotateBy(points, angle) {
+        const c = this.centroid(points);
+        const cos = Math.cos(angle), sin = Math.sin(angle);
+        return points.map(p => ({
+          x: (p.x - c.x) * cos - (p.y - c.y) * sin + c.x,
+          y: (p.x - c.x) * sin + (p.y - c.y) * cos + c.y
+        }));
+      }
+
+      scaleToSquare(points, size) {
+        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+        for (let p of points) {
+          if (p.x < minX) minX = p.x; if (p.x > maxX) maxX = p.x;
+          if (p.y < minY) minY = p.y; if (p.y > maxY) maxY = p.y;
+        }
+        const boxW = maxX - minX, boxH = maxY - minY;
+        return points.map(p => ({
+          x: p.x * (size / (boxW || 1)),
+          y: p.y * (size / (boxH || 1))
+        }));
+      }
+
+      translateToOrigin(points) {
+        const c = this.centroid(points);
+        return points.map(p => ({ x: p.x - c.x, y: p.y - c.y }));
+      }
+
+      centroid(points) {
+        let x = 0, y = 0;
+        for (let p of points) { x += p.x; y += p.y; }
+        return { x: x / points.length, y: y / points.length };
+      }
+
+      distance(p1, p2) { return Math.hypot(p2.x - p1.x, p2.y - p1.y); }
+      
+      pathLength(points) { 
+        return points.reduce((acc, p, i) => i === 0 ? 0 : acc + this.distance(points[i-1], p), 0); 
+      }
+
+      pathDistance(path1, path2) {
+        return path1.reduce((sum, p, i) => sum + this.distance(p, path2[i]), 0) / path1.length;
+      }
+
+      // Substitua o método recognize antigo por esta versão com upgrade Protractor:
+recognize(rawPath) {
+  if (rawPath.length < 10 || this.pathLength(rawPath) < 50) return { name: 'Desconhecido', score: 0 };
+  
+  const candidate = this.normalizePath([...rawPath]);
+  let bestMatch = 'Desconhecido';
+  let maxScore = 0;
+
+  for (const [name, template] of Object.entries(this.templates)) {
+    // Protractor usa a distância do cosseno ideal entre os vetores de pontos
+    const score = this.optimalCosineDistance(candidate, template);
+    if (score > maxScore) {
+      maxScore = score;
+      bestMatch = name;
+    }
+  }
+
+  return { name: bestMatch, score: maxScore };
+}
+
+// Adicione este método auxiliar dentro da classe DollarRecognizer:
+optimalCosineDistance(path1, path2) {
+  let a = 0;
+  let b = 0;
+  
+  // Transforma as coordenadas em um vetor de magnitudes angulares
+  for (let i = 0; i < path1.length; i++) {
+    a += path1[i].x * path2[i].x + path1[i].y * path2[i].y;
+    b += path1[i].x * path2[i].y - path1[i].y * path2[i].x;
+  }
+  
+  const angle = Math.atan2(b, a);
+  const score = Math.acos(a * Math.cos(angle) + b * Math.sin(angle));
+  
+  // Converte radianos de erro em uma nota de proximidade entre 0.0 e 1.0
+  return Math.max(0, 1 - (score / Math.PI));
+}
+
+    }
+
+    // --- 2. PIPELINE DE RENDERIZAÇÃO E EVENTOS ---
+    const canvas = document.getElementById('gestureCanvas');
+    const ctx = canvas.getContext('2d');
+    const statusText = document.getElementById('status');
+    const logText = document.getElementById('log');
+
+    const recognizer = new DollarRecognizer();
+    let points = [];
+    let isDrawing = false;
+
+    function resize() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    canvas.addEventListener('pointerdown', (e) => {
+      isDrawing = true;
+      points = [{ x: e.clientX, y: e.clientY }];
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    });
+
+    canvas.addEventListener('pointermove', (e) => {
+      if (!isDrawing) return;
+      points.push({ x: e.clientX, y: e.clientY });
+      
+      // Renderiza o rastro brilhante
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.strokeStyle = '#29b6f6';
+      ctx.lineWidth = 6;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.shadowBlur = 10;
+      ctx.shadowColor = '#0288d1';
+      
+      ctx.beginPath();
+      ctx.moveTo(points[0].x, points[0].y);
+      for (let i = 1; i < points.length; i++) {
+        ctx.lineTo(points[i].x, points[i].y);
+      }
+      ctx.stroke();
+    });
+
+    canvas.addEventListener('pointerup', () => {
+      if (!isDrawing) return;
+      isDrawing = false;
+
+      const result = recognizer.recognize(points);
+      
+      // Exige pelo menos 82% de precisão geométrica com o template
+      if (result.name !== 'Desconhecido' && result.score > 0.82) {
+        triggerSpell(result.name, result.score);
+      } else {
+        statusText.innerText = 'Gesto inválido!';
+        statusText.style.color = '#ef5350';
+        logText.innerText = `Rejeitado (Score: ${Math.round(result.score * 100)}%)`;
+      }
+
+      setTimeout(() => {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        if (statusText.innerText === 'Gesto inválido!') {
+          statusText.innerText = 'Desenhe um "V" ou "Circulo"';
+          statusText.style.color = '#a5d6a7';
+        }
+      }, 500);
+    });
+
+    function triggerSpell(name, score) {
+      const pct = Math.round(score * 100);
+      if (name === 'V') {
+        statusText.innerText = '🔥 Bola de Fogo!';
+        statusText.style.color = '#ff7043';
+        logText.innerText = `Identificado "V" com precisão de ${pct}%`;
+      } else if (name === 'Circulo') {
+        statusText.innerText = '🛡️ Escudo de Gelo!';
+        statusText.style.color = '#26c6da';
+        logText.innerText = `Identificado "Circulo" com precisão de ${pct}%`;
+      }
+
+      setTimeout(() => {
+        statusText.innerText = 'Desenhe um "V" ou "Circulo"';
+        statusText.style.color = '#a5d6a7';
+      }, 2000);
+    }
+  </script>
+</body>
+</html>

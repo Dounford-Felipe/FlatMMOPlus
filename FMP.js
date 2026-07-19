@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         FlatMMOPlus
 // @namespace    com.dounford.flatmmo
-// @version      1.5.2
+// @version      1.5.4
 // @description  FlatMMO plugin framework
 // @author       Dounford adapted from Anwinity IPP
 // @match        *://flatmmo.com/play.php*
@@ -10,7 +10,7 @@
 
 (function() {
 	'use strict';
-	const VERSION = "1.5.2";
+	const VERSION = "1.5.4";
 
     Set.prototype.some = function(predicate) {
         for (const item of this) {
@@ -1618,14 +1618,6 @@
             <br>
         </div>`)
 
-        this.forEachPlugin((plugin) => {
-            if(plugin.id !== "handler") {this.loadPluginConfigs(plugin.id)};
-            if(typeof plugin.onLogin === "function") {
-                plugin.onLogin();
-            }
-        });
-        this.loggedIn = true;
-
         setTimeout(() => {
             Object.defineProperty(players[Globals.local_username], 'in_combat_ticker', {
                 get: function() {
@@ -1676,6 +1668,14 @@
                 console.warn("Error on FlatMMO+ paint_ground_items", error.message)
             }
         };
+
+        this.forEachPlugin((plugin) => {
+            if(plugin.id !== "handler") {this.loadPluginConfigs(plugin.id)};
+            if(typeof plugin.onLogin === "function") {
+                plugin.onLogin();
+            }
+        });
+        this.loggedIn = true;
     }
 
     FlatMMOPlus.prototype.onChat = function(data) {
@@ -1908,6 +1908,7 @@
         if(this.debug) {
             console.log(`FMMO+ onMapChanged "${mapBefore}" -> "${mapAfter}"`);
         }
+        if(!this.loggedIn) return;
         this.forEachPlugin((plugin) => {
             if(typeof plugin.onMapChanged === "function") {
                 plugin.onMapChanged(mapBefore, mapAfter);
