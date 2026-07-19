@@ -1619,7 +1619,7 @@
         </div>`)
 
         this.forEachPlugin((plugin) => {
-            this.loadPluginConfigs(plugin.id);
+            if(plugin.id !== "handler") {this.loadPluginConfigs(plugin.id)};
             if(typeof plugin.onLogin === "function") {
                 plugin.onLogin();
             }
@@ -2251,6 +2251,7 @@
         this.handler = new handlerPlugin()
     
         this.registerPlugin(this.handler);
+        this.loadPluginConfigs("handler")
         
         
         /** Priority Config Type */
