@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         FlatMMOPlus
 // @namespace    com.dounford.flatmmo
-// @version      1.5.1
+// @version      1.5.2
 // @description  FlatMMO plugin framework
 // @author       Dounford adapted from Anwinity IPP
 // @match        *://flatmmo.com/play.php*
@@ -10,7 +10,7 @@
 
 (function() {
 	'use strict';
-	const VERSION = "1.5.1";
+	const VERSION = "1.5.2";
 
     Set.prototype.some = function(predicate) {
         for (const item of this) {
@@ -122,7 +122,7 @@
             func: () => window.FlatMMOPlus.sendMessage("SHORTCUT_KEY=F11")
         },
         {
-            key: "F12",
+            key: "N/A",
             name: "Badge 4",
             description: "Activates Badge 4",
             category: "badges",
@@ -1424,12 +1424,12 @@
         }
 
         this.plugins[plugin.id] = plugin;
-        this.loadPluginConfigs(plugin.id);
         let versionString = plugin.opts&&plugin.opts.about&&plugin.opts.about.version ? ` (v${plugin.opts.about.version})` : "";
         logFancy(`registered plugin "${plugin.id}"${versionString}`);
 
         //Calls onlogin when the plugin is loaded with delay
         if(this.loggedIn) {
+            this.loadPluginConfigs(plugin.id);
             plugin.onLogin();
         }
     }
@@ -1619,6 +1619,7 @@
         </div>`)
 
         this.forEachPlugin((plugin) => {
+            this.loadPluginConfigs(plugin.id);
             if(typeof plugin.onLogin === "function") {
                 plugin.onLogin();
             }
