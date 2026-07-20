@@ -170,9 +170,9 @@
             this.onMapChanged();
 
             //Text calls are expensive
-            const originalTextAboveHead = paint_chat_above_head;
-            paint_chat_above_head = ()=>{
-                if(this.settings.chatAboveHead) originalTextAboveHead();
+            const originalTextAboveHead = add_player_chat_over_head;
+            add_player_chat_over_head = (username, message)=>{
+                if(this.settings.chatAboveHead) originalTextAboveHead(username, message);
             };
 
             const originalPaintEffects = paint_effects;
@@ -236,9 +236,13 @@
                 paintParticles: true,
                 paintProjectiles: true,
                 paintNPCs: true,
+                paintPets: true,
                 pathAlgorithm: 0, //0Vanilla - 1Custom Smooth - 2Custom Minimal
                 paintGroundItems: true,
-                defaultInput: 0, // 0 Keyboard/mouse - 1 controller - 2 mobile gesture (require mobile gestures plugin)
+                paintObjects: true,
+                chatMaxMessages: 50000, 
+                clearChat: false, //Remove last 20% of messages by default
+                defaultInput: 0, // 0 Keyboard/mouse - 1 controller (requires) - 2 mobile gesture (require mobile gestures plugin Protractor directly into the standard JavaScript version of the $1 Recognizer algorithm)
             }
 
             paint_xp_drops = () => {
@@ -258,6 +262,7 @@
             }
         }
 
+        //TBD
         paintEffectsAsText() {
             if(is_snowing) {
                 ctx.fillStyle = "white";

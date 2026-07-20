@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         FlatMMOPlus
 // @namespace    com.dounford.flatmmo
-// @version      1.5.4
+// @version      1.5.4.1
 // @description  FlatMMO plugin framework
 // @author       Dounford adapted from Anwinity IPP
 // @match        *://flatmmo.com/play.php*
@@ -10,7 +10,7 @@
 
 (function() {
 	'use strict';
-	const VERSION = "1.5.4";
+	const VERSION = "1.5.4.1";
 
     Set.prototype.some = function(predicate) {
         for (const item of this) {
@@ -1189,7 +1189,7 @@
         const globalValue = localStorage.getItem(`flatmmoplus.${id}.config`) || "{}";
         const accountValue = localStorage.getItem(`flatmmoplus.${id}.${Globals.local_username}.config`);
         if(id !== "handler") {
-            const usesGlobal = this.handler.config.globalSettings;
+            const usesGlobal = this.handler.config.globalSettings || !Globals?.local_username;
             
             if(usesGlobal) {
                 value = globalValue;
@@ -1482,6 +1482,7 @@
         if(this.debug) {
             console.log(`FM+ onMessageSent: ${message}`);
         }
+        if(!this.loggedIn) return false;
         let interrupt = false;
         this.forEachPlugin((plugin) => {
             if(typeof plugin.onMessageSent === "function") {
@@ -1499,15 +1500,16 @@
             console.log(`FM+ onMessageReceived: ${data}`);
         }
         if(data) {
+            if(data.startsWith("LOGGED_IN")) {
+                this.onLogin();
+            }
+            if(!this.loggedIn) return;
             this.forEachPlugin((plugin) => {
                 if(typeof plugin.onMessageReceived === "function") {
                     plugin.onMessageReceived(data);
                 }
             });
-            if(data.startsWith("LOGGED_IN")) {
-                this.onLogin();
-
-            } else if (data.startsWith("YELL")) {
+            if (data.startsWith("YELL")) {
                 const split = data.substring("YELL=".length).split("~");
 
                 const chatData = {
@@ -1584,6 +1586,7 @@
             console.log(`FMMO+ onCustomReceived: ${sender} ${message}`);
         }
 
+        if(!this.loggedIn) return;
         this.forEachPlugin((plugin) => {
             if (typeof plugin.onCustomReceived === "function") {
                 plugin.onCustomReceived(sender, script, command, payload);
@@ -1682,6 +1685,7 @@
         if(this.debug) {
             console.log(`FM+ onChat`, data);
         }
+        if(!this.loggedIn) return;
         this.forEachPlugin((plugin) => {
             if(typeof plugin.onChat === "function") {
                 plugin.onChat(data);
@@ -1708,6 +1712,7 @@
     }
 
     FlatMMOPlus.prototype.paintNotifications = function() {
+        if(!this.loggedIn) return;
         const nots = Object.keys(this.notifications);
         if(nots.length === 0) return;
         if(this.handler.config.hoverNotifications) {
@@ -1883,6 +1888,7 @@
         if(this.debug) {
             console.log(`FM+ onPanelChanged "${panelBefore}" -> "${panelAfter}"`);
         }
+        if(!this.loggedIn) return;
         this.forEachPlugin((plugin) => {
             if(typeof plugin.onPanelChanged === "function") {
                 plugin.onPanelChanged(panelBefore, panelAfter);
@@ -1894,6 +1900,7 @@
         if(this.debug) {
             console.log(`FM+ onSettingsPanelChanged "${panelBefore}" -> "${panelAfter}"`);
         }
+        if(!this.loggedIn) return;
         if(panelAfter === "plugins") {
             this.refreshPanel("plugins");
         }
@@ -1920,6 +1927,7 @@
         if(this.debug) {
             console.log(`FMMO+ onInventoryChanged "${inventoryBefore}" -> "${inventoryAfter}"`);
         }
+        if(!this.loggedIn) return;
         this.forEachPlugin((plugin) => {
             if(typeof plugin.onInventoryChanged === "function") {
                 plugin.onInventoryChanged(inventoryBefore, inventoryAfter);
@@ -1931,6 +1939,7 @@
         if(this.debug) {
             console.log(`FMMO+ onDamageTaken "${hpBefore}" -> "${hpAfter}"`);
         }
+        if(!this.loggedIn) return;
         this.forEachPlugin((plugin) => {
             if(typeof plugin.onDamageTaken === "function") {
                 plugin.onDamageTaken(hpBefore, hpAfter);
@@ -1942,6 +1951,7 @@
         if(this.debug) {
             console.log(`FMMO+ onFightStarted`);
         }
+        if(!this.loggedIn) return;
         this.isFighting = true;
         this.forEachPlugin((plugin) => {
             if(typeof plugin.onFightStarted === "function") {
@@ -1954,6 +1964,7 @@
         if(this.debug) {
             console.log(`FMMO+ onFightEnded`);
         }
+        if(!this.loggedIn) return;
         this.isFighting = false;
         this.forEachPlugin((plugin) => {
             if(typeof plugin.onFightEnded === "function") {
@@ -1966,6 +1977,7 @@
         if(this.debug) {
             console.log(`FMMO+ onActionChanged`);
         }
+        if(!this.loggedIn) return;
         this.forEachPlugin((plugin) => {
             if(typeof plugin.onActionChanged === "function") {
                 plugin.onActionChanged();
