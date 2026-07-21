@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         FlatMMOPlus
 // @namespace    com.dounford.flatmmo
-// @version      1.5.4.1
+// @version      1.5.4.2
 // @description  FlatMMO plugin framework
 // @author       Dounford adapted from Anwinity IPP
 // @match        *://flatmmo.com/play.php*
@@ -10,7 +10,7 @@
 
 (function() {
 	'use strict';
-	const VERSION = "1.5.4.1";
+	const VERSION = "1.5.4.2";
 
     Set.prototype.some = function(predicate) {
         for (const item of this) {
@@ -1638,10 +1638,10 @@
         //Chat auto scroll is always true for now
         chat_div_element.scrollTop = chat_div_element.scrollHeight;
 
-        const original_paint = window.paint_effects;
+        this.original_paintEffects = window.paint_effects;
 
         window.paint_effects = function() {
-            original_paint();
+            this.original_paintEffects();
 
             try {
                 window.FlatMMOPlus.onPaint();
@@ -1650,9 +1650,9 @@
             }
         };
 
-        const originalLayer1 = window.paint_layer_1;
+        this.originalLayer1 = window.paint_layer_1;
         window.paint_layer_1 = function() {
-            originalLayer1();
+            this.originalLayer1();
 
             try {
                 window.FlatMMOPlus.onPaintObjects();
@@ -1661,9 +1661,9 @@
             }
         };
 
-        const originalGroundItems = window.paint_ground_items;
+        this.originalGroundItems = window.paint_ground_items;
         window.paint_ground_items = function() {
-            originalGroundItems();
+            this.originalGroundItems();
 
             try {
                 window.FlatMMOPlus.onPaintNpcs();
