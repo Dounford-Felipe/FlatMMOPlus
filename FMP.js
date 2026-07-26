@@ -2403,7 +2403,7 @@
     }, `Turns auto yell on`);
 
     window.FlatMMOPlus.registerCustomChatCommand("tick", () => {
-        this.showWarning(`The current action takes ${progress_bar_target + 1} ticks (${(progress_bar_target + 1) / 2} seconds)`);
+        FlatMMOPlus.showWarning(`The current action takes ${progress_bar_target + 1} ticks (${(progress_bar_target + 1) / 2} seconds)`);
     }, `Shows the time needed to complete the current action`);
 
     window.FlatMMOPlus.registerCustomChatCommand("trade", (command, data='') => {
