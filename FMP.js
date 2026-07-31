@@ -1641,7 +1641,7 @@
         this.original_paintEffects = window.paint_effects;
 
         window.paint_effects = function() {
-            this.original_paintEffects();
+            window.FlatMMOPlus.original_paintEffects();
 
             try {
                 window.FlatMMOPlus.onPaint();
@@ -1652,7 +1652,7 @@
 
         this.originalLayer1 = window.paint_layer_1;
         window.paint_layer_1 = function() {
-            this.originalLayer1();
+            window.FlatMMOPlus.originalLayer1();
 
             try {
                 window.FlatMMOPlus.onPaintObjects();
@@ -1663,7 +1663,7 @@
 
         this.originalGroundItems = window.paint_ground_items;
         window.paint_ground_items = function() {
-            this.originalGroundItems();
+            window.FlatMMOPlus.originalGroundItems();
 
             try {
                 window.FlatMMOPlus.onPaintNpcs();

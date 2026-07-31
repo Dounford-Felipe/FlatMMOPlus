@@ -16,6 +16,14 @@
     const defaultCanvasWidth = 1536;
     const defaultCanvasHeight = 896;
     const defaultTileSize = 64;
+    const effects = {
+        //Text, bgColor, textColor
+        snowing: ["Snowing", "#ddd", "white"],
+        darkness: ["Darkness", "rgba(0, 0, 0, 0.75)", "white"],
+        underwater: ["Underwater", "rgba(0, 76, 255, 0.15)", "white"],
+        volcano: ["Heat", "rgba(255, 0, 0, 0.50)", "white"],
+        thunder: ["Thunder", "rgba(255, 255, 255, 0.1)", "rgba(255, 255, 255, 1)"],
+    }
  
     class SettingsPlugin extends FlatMMOPlusPlugin {
         constructor() {
@@ -26,12 +34,139 @@
                     author: GM_info.script.author,
                     description: GM_info.script.description
                 },
-                config: []
+                config: [
+                    {
+						id: "fps",
+						label: "FPS",
+						type: "range",
+						min: 1,
+						max: 60,
+						step: 1,
+						default: 60,
+					},
+                    {
+						id: "scale",
+						label: "Render Scale",
+						type: "range",
+						min: 0.1,
+						max: 1,
+						step: 0.1,
+						default: 1,
+					},
+                    {
+						id: "animations",
+						label: "Animations (You may need to reload)",
+						type: "boolean",
+						default: true
+					},
+                    {
+						id: "effects",
+						label: "Effects",
+						type: "select",
+						options: [
+							{value: 0, label: "Vanilla"},
+							{value: 1, label: "Text"},
+							{value: 2, label: "None"}
+						],
+						default: 0
+					},
+                    {
+						id: "hitsplat",
+						label: "Hitsplat",
+						type: "boolean",
+						default: true
+					},
+                    {
+						id: "chatOverHead",
+						label: "Chat Over Head",
+						type: "boolean",
+						default: true
+					},
+                    {
+						id: "xp",
+						label: "XP Progress",
+						type: "select",
+						options: [
+							{value: 0, label: "Vanilla (Orbs)"},
+							{value: 1, label: "Old Vanilla (Rectangle)"},
+							{value: 2, label: "Text"},
+                            {value: 3, label: "None"}
+						],
+						default: 0
+					},
+                    {
+						id: "particles",
+						label: "Particles",
+						type: "boolean",
+						default: true
+					},
+                    {
+						id: "projectiles",
+						label: "Projectiles",
+						type: "boolean",
+						default: true
+					},
+                    {
+						id: "npcs",
+						label: "NPCs",
+						type: "boolean",
+						default: true
+					},
+                    {
+						id: "pets",
+						label: "Pets",
+						type: "boolean",
+						default: true
+					},
+                    {
+						id: "pathing",
+						label: "Path Algorithm",
+						type: "select",
+						options: [
+							{value: "vanilla", label: "Vanilla"},
+							{value: "custom", label: "Custom"},
+							{value: "minimal", label: "Minimal"}
+						],
+						default: "vanilla"
+					},
+                    {
+						id: "groundItems",
+						label: "Ground Items",
+						type: "boolean",
+						default: true
+					},
+                    {
+						id: "mapObjects",
+						label: "Map Objects",
+						type: "boolean",
+						default: true
+					},
+                    {
+						id: "maxMessages",
+						label: "Max Messages On Chat (0 = unlimited)",
+						type: "number",
+						max: 5000,
+                        min: 1,
+						step: 50,
+						default: 0
+					},
+                    /*{ This will be used by controller/runes scripts
+						id: "input",
+						label: "Default Input",
+						type: "select",
+						options: [
+							{value: "keyboard", label: "Vanilla"},
+							//{value: "controller", label: "Controller"},
+							//{value: "touch", label: "Touch Gestures"}
+						],
+						default: "keyboard"
+					}*/
+                ]
             });
 
-            this.settings = {
+            /*this.settings = {
                 fps: 60,
-                renderAspect: 1,
+                scale: 1,
                 canvasWidth: 1536,
                 canvasHeight: 896,
                 animations: true,
@@ -49,7 +184,14 @@
                 chatMaxMessages: 50000, 
                 clearChat: false, //Remove last 20% of messages by default
                 defaultInput: 0, // 0 Keyboard/mouse - 1 controller (requires controller plugin) - 2 mobile gesture (requires mobile gestures plugin it uses Protractor version of the $1 Recognizer algorithm)
+            }*/
+        
+            this.settings = {
+                canvasWidth: 1536,
+                canvasHeight: 896,
             }
+
+            this.currentEffect = null;
         }
 
         changeRenderResolution(value) {
@@ -117,15 +259,15 @@
             //Text calls are expensive
             const originalTextAboveHead = add_player_chat_over_head;
             add_player_chat_over_head = (username, message)=>{
-                if(this.settings.chatAboveHead) originalTextAboveHead(username, message);
+                if(this.config.chatOverHead) originalTextAboveHead(username, message);
             };
 
             //FMP uses this function on onPaint()
             const originalPaintEffects = FlatMMOPlus.original_paint_effects;
             FlatMMOPlus.original_paint_effects = ()=>{
-                if(this.settings.paintEffects === 0) {
+                if(this.config.effects === 0) {
                     originalPaintEffects();
-                } else if(this.settings.paintEffects === 1) {
+                } else if(this.config.effects === 1) {
                     this.paintEffectsAsText();
                 }
             }
@@ -161,7 +303,7 @@
             }
 
             paint_hit_splats = () => {
-                if(this.settings.paintHitSplat === false) return;
+                if(this.config.hitsplat === false) return;
                 ctx.font = "35px serif";
                 for (let slug in hit_splats) {
                     ctx.globalAlpha = 0.6;
@@ -238,102 +380,127 @@
                 }
             }
 
-            this.settings = {
-                fps: 60,
-                renderAspect: 1,
-                canvasWidth: 1536,
-                canvasHeight: 896,
-                animations: true,
-                //chatAboveHead: true,
-                //paintEffects: 0, //0Vanilla - 1Text - 2None
-                paintHitSplat: true,
-                xpProgress: 0, //0Vanilla/Orbs - 1Old Vanilla/Rectangle - 2Text - 3None
-                paintParticles: true,
-                paintProjectiles: true,
-                paintNPCs: true,
-                paintPets: true,
-                pathAlgorithm: 0, //0Vanilla - 1Custom Smooth - 2Custom Minimal
-                paintGroundItems: true,
-                paintObjects: true,
-                chatMaxMessages: 50000, 
-                clearChat: false, //Remove last 20% of messages by default
-                defaultInput: 0, // 0 Keyboard/mouse - 1 controller (requires controller plugin) - 2 mobile gesture (requires mobile gestures plugin it uses Protractor version of the $1 Recognizer algorithm)
-            }
-
             paint_xp_drops = () => {
                 
             }
             paint_level_drops = () => {
                 
             }
+
+            const originalXpProgressBar = paint_xp_progress_bar;
             paint_xp_progress_bar = () => {
-                
+                if(this.config.xp === 0) {
+                    originalXpProgressBar();
+                } else if(this.config.xp === 1) {
+                    this.paintOldXp();
+                } else if(this.config.xp === 2) {
+                    this.paintXpText()
+                }
             }
+
             paint_npcs = () => {
 
             }
         }
 
-        //TBD
         paintEffectsAsText() {
-            document.getElementById("effectsSpan").innerText = "Snowing";
+            const effectSpan = document.getElementById("effectsSpan");
 
-            const effects = {
-                //Text, bgColor, textColor
-                snowing: ["Snowing", "#ddd", "white"],
-                darkness: ["Darkness", "rgba(0, 0, 0, 0.75)", "white"],
-                underwater: ["Underwater", "rgba(0, 76, 255, 0.15)", "white"],
-                volcano: ["Heat", "rgba(255, 0, 0, 0.50)", "white"],
-                thunder: ["Thunder", "rgba(255, 255, 255, 0.1)", "rgba(255, 255, 255, 1)"],
+            let currentEffect = null;
+            if(thunder_effect_ticks > 0) {
+                currentEffect = "thunder"
+                thunder_effect_ticks--;
+            } else if(is_snowing) {
+                currentEffect = "snowing";
+            } else if(is_dark) {
+                currentEffect = "darkness";
+            } else if(is_underwater) {
+                currentEffect = "underwater";
+            } else if(is_volcan_heat) {
+                currentEffect = "volcano"
             }
-            if(is_snowing) {
-                ctx.fillStyle = "white";
-                for (const b of balls) {
-                    b.y += b.vy;
-                    if (b.y - b.r > ctx.canvas.height) b.y = -b.r, b.x = Math.random() * ctx.canvas.width;
 
-                    ctx.beginPath();
-                    ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
-                    ctx.fill();
+
+            
+            if(this.currentEffect !== currentEffect) {
+                this.currentEffect = currentEffect;
+                if(currentEffect) {
+                    effectSpan.innerText = effects[currentEffect][0];
+                    effectSpan.style.backgroundColor = effects[currentEffect][1];
+                    effectSpan.style.color = effects[currentEffect][2];
+                    effectSpan.style.display = "";
+                } else {
+                    effectSpan.style.display = "none";
                 }
             }
-            if(is_dark) {
-                ctx.fillStyle = "rgba(0, 0, 0, 0.75)";
-                ctx.fillRect(0, 0, canvasWidth, canvasHeight);
-            }
-            if(is_underwater) {
-                ctx.fillStyle = "rgba(0, 76, 255, 0.15)";
-                ctx.fillRect(0, 0, canvasWidth, canvasHeight);
-            }
-            if(is_volcan_heat) {
-                ctx.fillStyle = "rgba(255, 0, 0, 0.50)";
-                ctx.fillRect(0, 0, canvasWidth, canvasHeight);
-            }
-            if(thunder_effect_ticks > 50) {
-                ctx.fillStyle = "rgba(255, 255, 255, 1)";
-                ctx.fillRect(0, 0, canvasWidth, canvasHeight);
-            }
-            else if(thunder_effect_ticks > 40) {
-                ctx.fillStyle = "rgba(255, 255, 255, 0.5)";
-                ctx.fillRect(0, 0, canvasWidth, canvasHeight);
-            }
-            else if(thunder_effect_ticks > 30) {
-                ctx.fillStyle = "rgba(255, 255, 255, 0.3)";
-                ctx.fillRect(0, 0, canvasWidth, canvasHeight);
-            }
-            else if(thunder_effect_ticks > 10) {
-                ctx.fillStyle = "rgba(255, 255, 255, 0.1)";
-                ctx.fillRect(0, 0, canvasWidth, canvasHeight);
-            }
+        }
 
-            if(thunder_effect_ticks > 0) {
-                thunder_effect_ticks--;
+        paintOldXp() {
+            const PADDING = 10;
+            let yOffset = 0;
+            let y = 0.2 * TILE_SIZE;
+            for (let s in xp_progress_bar_top_right) {
+                const not = xp_progress_bar_top_right[s];
+                if(not.ticks <= 0) {
+                    delete xp_progress_bar_top_right[s];
+                    continue;
+                }
+                not.ticks--;
+                if(!not.hasOwnProperty("xpi")) {
+                    not.xpi = parseInt(not.xp.replaceAll(",",""));
+                }
+                if(not.xpi > 10004999) {//lvl 100
+                    continue;
+                }
+                //We don't need to call this function all the time
+                if(!not.hasOwnProperty("image")) {
+                    not.image = get_image_large_icon(s);
+                }
+                if(!not.hasOwnProperty("title")) {
+                    not.title = s.toUpperCase();
+                }
+                if(!not.hasOwnProperty("text")) {
+                    not.text = not.xp + " / " + not.xp_next + " xp"
+                }
+                ctx.font = "20px serif";
+                ctx.fillStyle = "white";
+                ctx.globalAlpha = 0.2;
+                ctx.fillRect(20.5 * TILE_SIZE, y + yOffset, TILE_SIZE * 3.5 - PADDING, TILE_SIZE - PADDING);
+                ctx.globalAlpha = 1.0;
+                ctx.drawImage(not.image, 20.5 * TILE_SIZE + PADDING, y + 10 - yOffset, 32, 32);
+                ctx.fillText(not.title, 20.5 * TILE_SIZE + 50, y + 20 - yOffset);
+                ctx.font = "16px serif";
+                ctx.fillText(not.text, 20.5 * TILE_SIZE + 50, y + 40 - yOffset);
+                yOffset += TILE_SIZE;
             }
+        }
+
+        paintXpText() {
+
+        }
+
+        removeAllAnimations() {
+
         }
  
         
         onConfigsChanged() {
-            console.log("SamplePlugin.onConfigsChanged");
+			this.changedConfigs.forEach(config => {
+				switch (config) {
+                    case "fps": {
+                        const fps = this.config.fps;
+                        fps_interval = 1000 / fps;
+                    } break;
+					case "scale": {
+                        this.changeRenderResolution(this.config.scale);
+                    } break;
+                    case "animations": {
+                        if(this.config.animations === false) {
+                            this.removeAllAnimations();
+                        }
+                    } break;
+                }
+            })
         }
 
         getRgbFromName(color) {

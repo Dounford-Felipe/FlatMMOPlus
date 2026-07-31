@@ -422,7 +422,7 @@
 					},
 					{
 						id: "showTime",
-						label: "Mssage Received Time",
+						label: "Message Received Time",
 						type: "boolean",
 						default: true
 					},
