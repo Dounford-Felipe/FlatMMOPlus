@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         FlatMMO+ Graphic Settings
 // @namespace    com.dounford.flatmmo.settingsPlus
-// @version      0.0.1
+// @version      1.0.0
 // @description  Adds new Graphic Settings
 // @author       Liam
 // @license      MIT
@@ -29,10 +29,10 @@
         constructor() {
             super("settings", {
                 about: {
-                    name: GM_info.script.name,
-                    version: GM_info.script.version,
-                    author: GM_info.script.author,
-                    description: GM_info.script.description
+                    name: "FlatMMO+ Graphic Settings",
+                    version: "1.0.0",
+                    author: "Liam",
+                    description: "Adds new Graphic Settings"
                 },
                 config: [
                     {
@@ -118,7 +118,7 @@
 						type: "boolean",
 						default: true
 					},
-                    {
+                    /*{
 						id: "pathing",
 						label: "Path Algorithm",
 						type: "select",
@@ -128,7 +128,7 @@
 							{value: "minimal", label: "Minimal"}
 						],
 						default: "vanilla"
-					},
+					},*/
                     {
 						id: "groundItems",
 						label: "Ground Items",
@@ -149,6 +149,18 @@
                         min: 1,
 						step: 50,
 						default: 0
+					},
+                    {
+						id: "presetLow",
+						label: "Low End Preset",
+						type: "btn",
+                        func: ()=>{this.preset("low")}
+					},
+                    {
+						id: "presetVanilla",
+						label: "Vanilla Preset",
+						type: "btn",
+                        func: ()=>{this.preset("vanilla")}
 					},
                     /*{ This will be used by controller/runes scripts
 						id: "input",
@@ -194,6 +206,29 @@
             this.currentEffect = null;
         }
 
+        addCSS() {
+            const style = document.createElement("style");
+            style.innerHTML = `
+                .xpDiv {
+                    background: aqua;
+                    position: absolute;
+                    right: 0;
+                }
+                .graphicsXp {
+                    background-color: gray;
+                    display: flex;
+                    align-items: center;
+                    text-align: center;
+                    padding: 5px;
+                    width: 214px;
+                }
+                .graphicsXpTitle {
+                    text-transform: uppercase;
+                }
+            `
+            document.head.append(style);
+        }
+
         changeRenderResolution(value) {
             if(isNaN(value) || value <= 0) {
                 console.error("Invalid value on changeRenderResolution, it needs to be a positive number")
@@ -230,7 +265,7 @@
 
                 //paint_layer_3
                 if(map.upper_image != null) {
-                    bgUpperCanvas.drawImage(map.upper_image, 0, 0, this.settings.canvasWidth, this.settings.canvasHeight)
+                    bgUpperCtx.drawImage(map.upper_image, 0, 0, this.settings.canvasWidth, this.settings.canvasHeight)
                 }
             }, 500);
         }
@@ -380,26 +415,71 @@
                 }
             }
 
-            paint_xp_drops = () => {
-                
-            }
-            paint_level_drops = () => {
-                
-            }
-
             const originalXpProgressBar = paint_xp_progress_bar;
             paint_xp_progress_bar = () => {
                 if(this.config.xp === 0) {
                     originalXpProgressBar();
                 } else if(this.config.xp === 1) {
                     this.paintOldXp();
-                } else if(this.config.xp === 2) {
-                    this.paintXpText()
                 }
             }
 
+            const originalPaintNpcs = paint_npcs;
             paint_npcs = () => {
+                if(this.settings.npcs === false) return;
+                originalPaintNpcs();
+            }
 
+            const originalPaintObjectsLower = paint_map_objects_lower;
+            paint_map_objects_lower = () => {
+                if(this.settings.mapObjects === false) return;
+                originalPaintObjectsLower();
+            }
+
+            const originalPaintObjectsUpper = paint_map_objects_upper;
+            paint_map_objects_upper = () => {
+                if(this.settings.mapObjects === false) return;
+                originalPaintObjectsUpper();
+            }
+
+            const originalPaintObjectsLowerShadows = paint_map_objects_lower_shadows;
+            paint_map_objects_lower_shadows = () => {
+                if(this.settings.mapObjects === false) return;
+                originalPaintObjectsLowerShadows();
+            }
+            
+            const originalPaintParticles = paint_particles;
+            paint_particles = () => {
+                if(this.settings.particles === false) return;
+                originalPaintParticles();
+            }
+
+            //This is considered particle
+            const originalPaintXpDrop = paint_xp_drops;
+            paint_xp_drops = () => {
+                if(this.settings.particles === false) return;
+                originalPaintXpDrop();
+            }
+
+            //This is considered particle
+            const originalPaintLvlDrop = paint_level_drops;
+            paint_level_drops = () => {
+                if(this.settings.particles === false) return;
+                originalPaintLvlDrop();
+            }
+
+            const originalPaintProjectiles = paint_projectiles;
+            paint_projectiles = () => {
+                if(this.settings.projectiles === false) return;
+                originalPaintProjectiles();
+            }
+
+            const originalXpTracker = update_session_XP_tracker;
+            update_session_XP_tracker = (skillName, newXP) => {
+                if(this.config.xp === 2) {
+                    this.paintXpText(skillName);
+                }
+                originalXpTracker(skillName, newXP);
             }
         }
 
@@ -475,8 +555,25 @@
             }
         }
 
-        paintXpText() {
+        paintXpText(s) {
+            const not = xp_progress_bar_top_right[s]
+            let skillDiv = document.querySelector(`.graphicsXp[data-skill='${s}']`)
+            if(skillDiv === null) {
+                skillDiv = document.createElement("div");
+                skillDiv.setAttribute("data-skill", s);
+                skillDiv.className = "graphicsXp";
 
+                skillDiv.innerHTML = `<img src="images/icons/${s}_large.png" width="32" height="32">
+                <div>
+                    <span class="graphicsXpTitle">${s}</span>
+                    <span class="graphicsXpText">${not?.xp + " / " + not?.xp_next + " xp"}</span>
+                </div>`;
+                document.getElementById("xpDiv").append(skillDiv);
+            } else {
+                skillDiv.querySelector("graphicsXpText").innerText = not?.xp + " / " + not?.xp_next + " xp";
+            }
+            clearTimeout(not.timeout)
+            not.timeout = setTimeout(()=>{skillDiv.remove()}, 5000);
         }
 
         removeAllAnimations() {
@@ -499,6 +596,9 @@
                             this.removeAllAnimations();
                         }
                     } break;
+                    case "pets": {
+                        window.hide_pets = !this.config.pets;
+                    } break;
                 }
             })
         }
@@ -508,10 +608,20 @@
             colorCtx.fillStyle = color;
             return colorCtx.fillStyle;
         }
- 
-        
+
+        preset(pres) {
+            this.config = {}
+
+            this.changedConfigs.add("fps");
+            this.changedConfigs.add("scale");
+            this.changedConfigs.add("animations");
+            this.changedConfigs.add("pets");
+            this.onConfigsChanged()
+        }
+
         onLogin() {
-            console.log("SamplePlugin.onLogin");
+            this.addCSS();
+            this.changeVanilla();
         }
     }
  
