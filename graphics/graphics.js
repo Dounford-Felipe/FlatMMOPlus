@@ -230,48 +230,56 @@
             canvas.style.width = defaultCanvasWidth + 'px';
             canvas.style.height = defaultCanvasHeight + 'px';
 
-            canvas_scale = parseInt(window.getComputedStyle(canvas).width) / canvas.width;
+            if(value === 1) {
+                canvas.style.imageRendering = "";
+            } else {
+                canvas.style.imageRendering = "pixelated";
+            }
+        }
+
+        updateMapBg() {
+            bgCtx.clearRect(0, 0, textCanvas.width, textCanvas.height);
+            bgUpperCtx.clearRect(0, 0, textCanvas.width, textCanvas.height);
+
+            let map = get_map(current_map);
+
+            //paint_layer_0
+            bgCtx.drawImage(map.get_background(), 0, 0, this.settings.canvasWidth, this.settings.canvasHeight)
+            let shadow_bg = map.get_shadow_background();
+            if(shadow_bg != null) {
+                bgCtx.drawImage(shadow_bg, 0, 0, this.settings.canvasWidth, this.settings.canvasHeight)
+            }
+
+            //paint_layer_1 - I don't think Smitty will use this again, but just in case I will keep it here
+            /*let tiles = map.get_tiles();
+            for(let y = 0; y < Y_TILES; y++) {
+                for(let x = 0; x < X_TILES; x++) {
+                    let tile = tiles[y][x];
+                    if(!tile.is_empty())
+                    bgCtx.drawImage(tile.get_frame(), x * TILE_SIZE, y * TILE_SIZE)
+                }
+            }*/
+
+            //paint_layer_3
+            if(map.upper_image != null) {
+                bgUpperCtx.drawImage(map.upper_image, 0, 0, this.settings.canvasWidth, this.settings.canvasHeight)
+            }
         }
 
         onMapChanged() {
-            //Just in case it doesn't update as soon as you go to another map
-            setTimeout(()=> {
-                let map = get_map(current_map);
-
-                //paint_layer_0
-                bgCtx.drawImage(map.get_background(), 0, 0, this.settings.canvasWidth, this.settings.canvasHeight)
-                let shadow_bg = map.get_shadow_background();
-                if(shadow_bg != null) {
-                    bgCtx.drawImage(shadow_bg, 0, 0, this.settings.canvasWidth, this.settings.canvasHeight)
-                }
-
-                //paint_layer_1 - I don't think Smitty will use this again, but just in case I will keep it here
-                /*let tiles = map.get_tiles();
-                for(let y = 0; y < Y_TILES; y++) {
-                    for(let x = 0; x < X_TILES; x++) {
-                        let tile = tiles[y][x];
-                        if(!tile.is_empty())
-                        bgCtx.drawImage(tile.get_frame(), x * TILE_SIZE, y * TILE_SIZE)
-                    }
-                }*/
-
-                //paint_layer_3
-                if(map.upper_image != null) {
-                    bgUpperCtx.drawImage(map.upper_image, 0, 0, this.settings.canvasWidth, this.settings.canvasHeight)
-                }
-            }, 500);
+            this.updateMapBg();
         }
 
         changeVanilla() {
             //I will use setTransform for the scale, it shouldn't be too expensive, just some matrix multiplications
-            const originalSetTransform = CanvasRenderingContext2D.prototype.setTransform;
+            const originalSetTransform = ctx.setTransform;
 
             ctx.setTransform = function(a, b, c, d, e, f) {
                 if (a === 1 && b === 0 && c === 0 && d === 1 && e === 0 && f === 0) {
                     const scale = FlatMMOPlus.plugins.settings.config.scale || 1;
-                    return originalSetTransform.call(this, scale, 0, 0, scale, 0, 0);
+                    return originalSetTransform.call(ctx, scale, 0, 0, scale, 0, 0);
                 }
-                return originalSetTransform.apply(this, arguments);
+                return originalSetTransform.apply(ctx, arguments);
             };
 
             //There are a lot of measureText on the code, instead of replacing it, I added a cache, 
@@ -287,53 +295,69 @@
             }
 
             //Map background doesn't change while you are in the room, so it doesn't need to be drawn every tick, once is enough
-            paint_layer_0 = function(){};
+            //Layer 0 is the first paint function I will clear text there
+            paint_layer_0 = function(){
+                textCtx.clearRect(0, 0, textCanvas.width, textCanvas.height);
+            };
             paint_layer_1 = function(){};
             paint_layer_3 = function(){};
 
             //Two new canvas are created
+            canvas.style.position = "absolute";
+            canvas.style.top = "0";
+            canvas.style.left = "0";
+            
             window.bgCanvas = canvas.cloneNode();
             bgCanvas.id = "bgCanvas";
-            window.bgCtx = bgCanvas.getContext("2d");
+
             window.bgUpperCanvas = canvas.cloneNode();
             bgUpperCanvas.id = "bgUpperCanvas";
+            bgUpperCanvas.style.pointerEvents = "none";
+
+            window.textCanvas = canvas.cloneNode();
+            textCanvas.id = "textCanvas";
+            textCanvas.style.pointerEvents = "none";
+
+            window.bgCtx = bgCanvas.getContext("2d");
             window.bgUpperCtx = bgUpperCanvas.getContext("2d");
-            window.textCanvas = document.createElement("canvas");
-            window.textCanvas.id = "textCanvas"
             window.textCtx = textCanvas.getContext("2d");
+
             const canvasParent = document.createElement("div");
             canvasParent.style.position = "relative";
-            canvas.style.position = "absolute";
-            canvas.insertAdjacentElement("beforebegin", canvasParent);
-            canvasParent.append(canvas, bgCanvas, bgUpperCanvas, textCanvas);
+            canvasParent.style.width = canvas.width + "px";
+            canvasParent.style.height = canvas.height + "px";
+
+            canvas.replaceWith(canvasParent);
+
+            canvasParent.append(bgCanvas, canvas, bgUpperCanvas, textCanvas);
 
             this.onMapChanged();
 
 
             //I didn't want text to look blurry, so I made another canvas just for text, there's no way I'm changing each paint function one by one, so I will hack the fillText and the ctx properties, very clever I know
             
-            CanvasRenderingContext2D.prototype.fillText = function(...args) {
-                return textCtx.fillText(...args);
+            ctx.fillText = function(...args) {
+                textCtx.fillText(...args);
             };
-            CanvasRenderingContext2D.prototype.strokeText = function(...args) {
-                return textCtx.strokeText(...args);
+            ctx.strokeText = function(...args) {
+                textCtx.strokeText(...args);
             };
             const ctxProperties = ['font', 'textAlign', 'textBaseline', 'fillStyle', 'strokeStyle', 'lineWidth'];
 
             ctxProperties.forEach(prop => {
-                const descriptor = Object.getOwnPropertyDescriptor(CanvasRenderingContext2D.prototype, prop);
+                let value = ctx[prop];
                 
-                if (descriptor && descriptor.set) {
-                    Object.defineProperty(CanvasRenderingContext2D.prototype, prop, {
-                        set(value) {
-                            textCtx[prop] = value;
-                            descriptor.set.call(this, value);
-                        },
-                        get() {
-                            return descriptor.get.call(this);
-                        }
-                    });
-                }
+                Object.defineProperty(ctx, prop, {
+                    get: function() {
+                        return value;
+                    },
+                    set: function(newValue) {
+                        value = newValue;
+                        textCtx[prop] = newValue;
+                    },
+                    configurable: true,
+                    enumerable: true
+                });
             });
 
             //Text calls are expensive
@@ -367,7 +391,7 @@
 
             window.groundItemImageCache = new window.Map();
 
-            //Same as HitSplat, the code could save some cycles with amount and creating new images
+            //The code could save some cycles with amount and creating new images
             GroundItem.prototype.constructor = function(uuid, name, amount, x, y) {
                 this.uuid = uuid;
                 this.name = name;
@@ -390,7 +414,7 @@
             }
 
             FlatMMOPlus.paint_ground_items = () => {
-                if(this.settings.paintGroundItems === false) return;
+                if(this.config.groundItems === false) return;
                 let ground_items_seen = []
                 for(let i = 0; i < ground_items.length; i++) {
                     let ground_item = ground_items[i];
@@ -438,51 +462,51 @@
 
             const originalPaintNpcs = paint_npcs;
             paint_npcs = () => {
-                if(this.settings.npcs === false) return;
+                if(this.config.npcs === false) return;
                 originalPaintNpcs();
             }
 
             const originalPaintObjectsLower = paint_map_objects_lower;
             paint_map_objects_lower = () => {
-                if(this.settings.mapObjects === false) return;
+                if(this.config.mapObjects === false) return;
                 originalPaintObjectsLower();
             }
 
             const originalPaintObjectsUpper = paint_map_objects_upper;
             paint_map_objects_upper = () => {
-                if(this.settings.mapObjects === false) return;
+                if(this.config.mapObjects === false) return;
                 originalPaintObjectsUpper();
             }
 
             const originalPaintObjectsLowerShadows = paint_map_objects_lower_shadows;
             paint_map_objects_lower_shadows = () => {
-                if(this.settings.mapObjects === false) return;
+                if(this.config.mapObjects === false) return;
                 originalPaintObjectsLowerShadows();
             }
             
             const originalPaintParticles = paint_particles;
             paint_particles = () => {
-                if(this.settings.particles === false) return;
+                if(this.config.particles === false) return;
                 originalPaintParticles();
             }
 
             //This is considered particle
             const originalPaintXpDrop = paint_xp_drops;
             paint_xp_drops = () => {
-                if(this.settings.particles === false) return;
+                if(this.config.particles === false) return;
                 originalPaintXpDrop();
             }
 
             //This is considered particle
             const originalPaintLvlDrop = paint_level_drops;
             paint_level_drops = () => {
-                if(this.settings.particles === false) return;
+                if(this.config.particles === false) return;
                 originalPaintLvlDrop();
             }
 
             const originalPaintProjectiles = paint_projectiles;
             paint_projectiles = () => {
-                if(this.settings.projectiles === false) return;
+                if(this.config.projectiles === false) return;
                 originalPaintProjectiles();
             }
 
@@ -493,10 +517,6 @@
                 }
                 originalXpTracker(skillName, newXP);
             }
-        }
-
-        onPaint() {
-            textCtx.clearRect(0, 0, textCtx.width, textCtx.height);
         }
 
         paintEffectsAsText() {
@@ -586,7 +606,7 @@
                 </div>`;
                 document.getElementById("xpDiv").append(skillDiv);
             } else {
-                skillDiv.querySelector("graphicsXpText").innerText = not?.xp + " / " + not?.xp_next + " xp";
+                skillDiv.querySelector(".graphicsXpText").innerText = not?.xp + " / " + not?.xp_next + " xp";
             }
             clearTimeout(not.timeout)
             not.timeout = setTimeout(()=>{skillDiv.remove()}, 5000);
@@ -636,7 +656,7 @@
         }
 
         onLogin() {
-            if(FlatMMOPlus.version < "1.5.4.2") {
+            if(FlatMMOPlus.version < "1.5.4.3") {
                 window.alert(`Your FlatMMO+ version (${FlatMMOPlus.version}) is bellow the required (1.5.4.2), you need to update it.`);
                 return;
             }

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         FlatMMOPlus
 // @namespace    com.dounford.flatmmo
-// @version      1.5.4.2
+// @version      1.5.4.3
 // @description  FlatMMO plugin framework
 // @author       Dounford adapted from Anwinity IPP
 // @match        *://flatmmo.com/play.php*
@@ -10,7 +10,7 @@
 
 (function() {
 	'use strict';
-	const VERSION = "1.5.4.2";
+	const VERSION = "1.5.4.3";
 
     Set.prototype.some = function(predicate) {
         for (const item of this) {
@@ -1308,7 +1308,7 @@
                 } else if (CONFIG_TYPES_FLOAT.includes(cfg.type)) {
                     config[cfg.id] = parseFloat(el.value);
                 } else if (CONFIG_TYPES_RANGE.includes(cfg.type)) {
-                    config[cfg.id] = parseInt(el.value);
+                    config[cfg.id] = parseFloat(el.value);
                 } else if (CONFIG_TYPES_STRING.includes(cfg.type)) {
                     config[cfg.id] = el.value;
                 } else if (CONFIG_TYPES_SELECT.includes(cfg.type)) {
