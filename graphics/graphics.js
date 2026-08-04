@@ -136,6 +136,12 @@
 						default: true
 					},
                     {
+						id: "showItemAmount",
+						label: "Show Ground Items Amount",
+						type: "boolean",
+						default: false
+					},
+                    {
 						id: "mapObjects",
 						label: "Map Objects",
 						type: "boolean",
@@ -175,28 +181,6 @@
 					}*/
                 ]
             });
-
-            /*this.settings = {
-                fps: 60,
-                scale: 1,
-                canvasWidth: 1536,
-                canvasHeight: 896,
-                animations: true,
-                //chatAboveHead: true,
-                paintEffects: 0, //0Vanilla - 1Text - 2None
-                paintHitSplat: true,
-                xpProgress: 0, //0Vanilla/Orbs - 1Old Vanilla/Rectangle - 2Text - 3None
-                paintParticles: true,
-                paintProjectiles: true,
-                paintNPCs: true,
-                paintPets: true,
-                pathAlgorithm: 0, //0Vanilla - 1Custom Smooth - 2Custom Minimal
-                paintGroundItems: true,
-                paintObjects: true,
-                chatMaxMessages: 50000, 
-                clearChat: false, //Remove last 20% of messages by default
-                defaultInput: 0, // 0 Keyboard/mouse - 1 controller (requires controller plugin) - 2 mobile gesture (requires mobile gestures plugin it uses Protractor version of the $1 Recognizer algorithm)
-            }*/
         
             this.settings = {
                 canvasWidth: 1536,
@@ -229,16 +213,24 @@
             document.head.append(style);
         }
 
+        /**
+         * Changes the scale in which the game is rendered
+         * @param {number} value Scale factor
+         */
         changeRenderResolution(value) {
             if(isNaN(value) || value <= 0) {
                 console.error("Invalid value on changeRenderResolution, it needs to be a positive number")
                 return;
             }
-            canvasWidth = defaultCanvasWidth * value;
-            canvasWidth = defaultCanvasWidth * value;
-            TILE_SIZE = defaultTileSize * value;
+            canvas.width = defaultCanvasWidth * value;
+            canvas.height = defaultCanvasHeight * value;
 
-            //TBD
+            ctx.scale(value, value);
+
+            canvas.style.width = defaultCanvasWidth + 'px';
+            canvas.style.height = defaultCanvasHeight + 'px';
+
+            canvas_scale = parseInt(window.getComputedStyle(canvas).width) / canvas.width;
         }
 
         onMapChanged() {
@@ -271,6 +263,29 @@
         }
 
         changeVanilla() {
+            //I will use setTransform for the scale, it shouldn't be too expensive, just some matrix multiplications
+            const originalSetTransform = CanvasRenderingContext2D.prototype.setTransform;
+
+            ctx.setTransform = function(a, b, c, d, e, f) {
+                if (a === 1 && b === 0 && c === 0 && d === 1 && e === 0 && f === 0) {
+                    const scale = FlatMMOPlus.plugins.settings.config.scale || 1;
+                    return originalSetTransform.call(this, scale, 0, 0, scale, 0, 0);
+                }
+                return originalSetTransform.apply(this, arguments);
+            };
+
+            //There are a lot of measureText on the code, instead of replacing it, I added a cache, 
+            const originalMeasureText = ctx.measureText;
+            window.TextMetricsCache = new window.Map();
+            ctx.measureText = function(text){
+                const key = this.font + ":" + text;
+
+                if(!TextMetricsCache.has(key)) {
+                    TextMetricsCache.set(key, originalMeasureText.call(this, text))
+                }
+                return TextMetricsCache.get(key) 
+            }
+
             //Map background doesn't change while you are in the room, so it doesn't need to be drawn every tick, once is enough
             paint_layer_0 = function(){};
             paint_layer_1 = function(){};
@@ -283,13 +298,43 @@
             window.bgUpperCanvas = canvas.cloneNode();
             bgUpperCanvas.id = "bgUpperCanvas";
             window.bgUpperCtx = bgUpperCanvas.getContext("2d");
+            window.textCanvas = document.createElement("canvas");
+            window.textCanvas.id = "textCanvas"
+            window.textCtx = textCanvas.getContext("2d");
             const canvasParent = document.createElement("div");
             canvasParent.style.position = "relative";
             canvas.style.position = "absolute";
             canvas.insertAdjacentElement("beforebegin", canvasParent);
-            canvasParent.append(canvas, bgCanvas, bgUpperCanvas);
+            canvasParent.append(canvas, bgCanvas, bgUpperCanvas, textCanvas);
 
             this.onMapChanged();
+
+
+            //I didn't want text to look blurry, so I made another canvas just for text, there's no way I'm changing each paint function one by one, so I will hack the fillText and the ctx properties, very clever I know
+            
+            CanvasRenderingContext2D.prototype.fillText = function(...args) {
+                return textCtx.fillText(...args);
+            };
+            CanvasRenderingContext2D.prototype.strokeText = function(...args) {
+                return textCtx.strokeText(...args);
+            };
+            const ctxProperties = ['font', 'textAlign', 'textBaseline', 'fillStyle', 'strokeStyle', 'lineWidth'];
+
+            ctxProperties.forEach(prop => {
+                const descriptor = Object.getOwnPropertyDescriptor(CanvasRenderingContext2D.prototype, prop);
+                
+                if (descriptor && descriptor.set) {
+                    Object.defineProperty(CanvasRenderingContext2D.prototype, prop, {
+                        set(value) {
+                            textCtx[prop] = value;
+                            descriptor.set.call(this, value);
+                        },
+                        get() {
+                            return descriptor.get.call(this);
+                        }
+                    });
+                }
+            });
 
             //Text calls are expensive
             const originalTextAboveHead = add_player_chat_over_head;
@@ -320,66 +365,31 @@
             " id="effectsSpan"></span>
             `)
 
-            
+            window.groundItemImageCache = new window.Map();
 
-
-            //I'm only modifying it to avoid calculating text width all the time
-            HitSplat.prototype.constructor = function(value, color, x , y) {
-                this.value = value;
-                this.color = color;
-                this.x = x;
-                this.y = y;
-
-                this.y_offset = 0;
-
-                //It never changes, so it would be better to calculate it here
-                ctx.font = "35px serif";
-                this.textWidth = ctx.measureText(value).width;
-            }
-
-            paint_hit_splats = () => {
-                if(this.config.hitsplat === false) return;
-                ctx.font = "35px serif";
-                for (let slug in hit_splats) {
-                    ctx.globalAlpha = 0.6;
-                    if (hit_splats.hasOwnProperty(slug)) {
-                    let obj = hit_splats[slug];
-                    obj.tick();
-                    let text_width = obj?.textWidth || 1;
-                    
-                    let x = obj.x;
-                    let y = obj.y;
-                    y -= obj.y_offset;
-
-                    ctx.fillStyle = obj.color;
-                    ctx.fillRect(x - 10, y - 10, text_width + 20, 35);
-                    ctx.fillStyle = "white";
-                    ctx.globalAlpha = 1.0;
-                    ctx.fillText(obj.value, x, y + 20);
-                    }
-                }
-                ctx.globalAlpha = 1.0;
-            }
-
-            //Same as HitSplat, the code could save some cycles with text
+            //Same as HitSplat, the code could save some cycles with amount and creating new images
             GroundItem.prototype.constructor = function(uuid, name, amount, x, y) {
                 this.uuid = uuid;
                 this.name = name;
-                this.amount = amount;
+                this.amount = FlatMMOPlus.plugins.settings.config.showItemAmount ? amount : 0;
                 this.x = x;
                 this.y = y;
                 this.mouse_hovering_over = false;
                 this.opacity = 1.0;
-                let image = new Image();
-                image.src = "images/items/" + name + ".png";
-                this.image = image;
 
-                //Text is expensive, it's better to measure it on creation
-                this.label = format_snake_case(name);
-                this.textWidth = ctx.measureText(this.label).width;
+                //The original implementation creates a new image instance every time a new item drops, this is a waste
+                //Images will be cached until reload, but it is usually fine
+                if (groundItemImageCache.has(name)) {
+                    this.image = groundItemImageCache.get(name);
+                } else {
+                    let image = new Image();
+                    image.src = "images/items/" + name + ".png";
+                    groundItemImageCache.set(name, image);
+                    this.image = image;
+                }
             }
 
-            paint_ground_items = () => {
+            FlatMMOPlus.paint_ground_items = () => {
                 if(this.settings.paintGroundItems === false) return;
                 let ground_items_seen = []
                 for(let i = 0; i < ground_items.length; i++) {
@@ -396,13 +406,15 @@
 
                     
                     let label = ground_item.label || "";
+                    /* Liam - this is not worth the additional cost, even considering the cache
                     if(count_seen == 3) {
                         label = "...";
-                    }
+                    }*/
+                   //Instead of removing it here I will remove it on creation
                     if(ground_item.amount > 1) {
                         label += " ("+format_number(ground_item.amount)+")"
                     }
-                    let text_width = ground_item?.textWidth || 1;
+                    let text_width = ctx.measureText(label).width;
                     ctx.fillStyle = "silver"
                     ctx.globalAlpha = 1.0;
                     if(count_seen < 4) {
@@ -481,6 +493,10 @@
                 }
                 originalXpTracker(skillName, newXP);
             }
+        }
+
+        onPaint() {
+            textCtx.clearRect(0, 0, textCtx.width, textCtx.height);
         }
 
         paintEffectsAsText() {
@@ -620,6 +636,10 @@
         }
 
         onLogin() {
+            if(FlatMMOPlus.version < "1.5.4.2") {
+                window.alert(`Your FlatMMO+ version (${FlatMMOPlus.version}) is bellow the required (1.5.4.2), you need to update it.`);
+                return;
+            }
             this.addCSS();
             this.changeVanilla();
         }

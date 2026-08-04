@@ -27,6 +27,7 @@
  */
 
 /**
+ * Path object, it uses an array of boxes so any path shape will work
  * @typedef {Object} Path
  * @property {Box[]} boxes
  * @property {string} destination
@@ -34,6 +35,7 @@
  */
 
 /**
+ * Map_objects positions
  * @typedef {Object} MapObject
  * @property {string} name
  * @property {number} x
@@ -41,6 +43,7 @@
  */
 
 /**
+ * NPC positions
  * @typedef {Object} MapNpc
  * @property {string} name
  * @property {number} x
@@ -48,6 +51,7 @@
  */
 
 /**
+ * Represents how each map is stored in Maps.js
  * @typedef {Object} GameMap
  * @property {string} ingameId
  * @property {string} displayName
@@ -57,18 +61,41 @@
  * @property {MapNpc[]} npcs
  */
 
+/**
+ * Represents how npcs are store in Npcs.js - Pets are ignored
+ * @typedef {Object} NPC
+ * @property
+ */
+
+
+/**
+ * Represents how map_objects are stored in Object.js
+ * @typedef {Object} Obj
+ * @property {string} label
+ * @property {string} description
+ * @property {string} itemPage
+ * @property {number} width
+ * @property {number} height
+ * @property {boolean} noLower
+ * @property {boolean} upper
+ * @property {boolean} shadow
+ * @property {boolean} structure
+ * @property {boolean} noInspect
+ * @property {string} [url]
+ */
+
 
 (function() {
     'use strict';
  
-    class SamplePlugin extends FlatMMOPlusPlugin {
+    class mapExtractorPlugin extends FlatMMOPlusPlugin {
         constructor() {
-            super("sample", {
+            super("mapExtractor", {
                 about: {
                     name: "Interactive Map Constructor",
-                    version: GM_info.script.version,
-                    author: GM_info.script.author,
-                    description: GM_info.script.description
+                    version: "1.0.0",
+                    author: "Liam",
+                    description: "Extracts map data for the interactive map"
                 },
                 config: [
                     {
@@ -79,98 +106,19 @@
                     }
                 ]
             });
+            /** @type {boolean} */
             this.loaded = false;
+            /** @type {Click|null} */
             this.lastClick = {x: 10, y: 13};
+
+            this.lastClickWasNpc = false;
 
             /** @type {Object<string,GameMap>} */
             this.maps = {};
-            this.npcs = new window.Map();
-            this.objects = new window.Map();
-            this.mappu = {m1001_1001: {
-                ingameId: "m1001_1001",
-                displayName: "Everbrook Mayor Front Yard",
-                upperImg: true,
-                paths: [
-                    {
-                        x1: 8,
-                        y1: 13,
-                        x2: 13,
-                        y2: 13,
-                        destination: "m1001_1000"
-                    },
-                    {
-                        boxes: [
-                            {
-                                x1: 22,
-                                y1: 7,
-                                x2: 23,
-                                y2: 7
-                            },
-                            {
-                                x1: 23,
-                                y1: 8,
-                                x2: 23,
-                                y2: 9
-                            }
-                        ],
-                        destination: "m1002_1001"
-                    },
-                    {
-                        x1: 4,
-                        y1: 0,
-                        x2: 6,
-                        y2: 0,
-                        destination: "m1001_1002"
-                    },
-                    {
-                        x1: 9,
-                        y1: 5,
-                        x2: 11,
-                        y2: 6,
-                        destination: "m1001_1001_inside1",
-                        ignoreDraw: true
-                    }
-                ],
-                objects: [
-                    {
-                        name: "blue_flag",
-                        x: 15,
-                        y: 5
-                    },
-                    {
-                        name: "triple_wooden_door",
-                        x: 9,
-                        y: 5
-                    },
-                    {
-                        name: "anchovy_fish_spot",
-                        x: 1,
-                        y: 3
-                    },
-                    {
-                        name: "shrimp_fish_spot",
-                        x: 1,
-                        y: 6
-                    },
-                    {
-                        name: "shrimp_fish_spot",
-                        x: 3,
-                        y: 9
-                    },
-                    {
-                        name: "oak_tree",
-                        x: 18,
-                        y: 2
-                    }
-                ],
-                npcs: [
-                    {
-                        name: "everbrook_guard",
-                        x: 18,
-                        y: 10
-                    }
-                ]
-            }}
+            /** @type {Object<string, NPC>} */
+            this.npcs = {};
+            /** @type {Object<string, Obj>} */
+            this.objects = {};
         }
 
         async getData() {
@@ -185,7 +133,10 @@
             //this.getData()
         }
  
-        
+        /**
+         * Server messages sent to player
+         * @param {string} data
+         */
         onMessageReceived(data) {
             if(!this.loaded || !this.config.mapping) return;
             if (data.startsWith("UPDATE_OBJECTS")) {
@@ -195,17 +146,45 @@
             //console.log("SamplePlugin.onMessageReceived: ", data);
         }
 
+        /**
+         * Player messages sent to the server
+         * @param {string} data
+         */
         onMessageSent(data) {
             if(!this.loaded || !this.config.mapping) return;
-            if(teleport) {
-                this.lastClick = null;
-            } else if(click) {
-                this.lastClick = {x: 0, y: 0};
+            data = "CLICKED_TILE=1_2"
+            const [command, message] = data.split("=");
+            switch(command) {
+                case "TELE_BOOK":
+                case "USE_WORSHIP": {
+                    this.lastClick = null;
+                } break;
+                case "CLICKED_TILE": {
+                    const split = message.split("_")
+                    const x = parseInt(split[0]);
+                    const y = parseInt(split[1]);
+                    this.lastClick = {x, y};
+                    lastClickWasNpc = false;
+                } break;
+                case "CLICKED_MAP_OBJECT": {
+                    const obj = map_objects.find(o => o.uuid === message);
+                    this.lastClick = {x: obj.x, y: obj.y};
+                    lastClickWasNpc = false;
+                } break;
+                case "CLICKS_NPC": {
+                    this.lastClickWasNpc = true;
+                    const name = npcs["N_gtpuclrgea"].name;
+                    const npc = this.maps[current_map].npcs.find(n => n.name === name);
+                    this.lastClick = {x: npc.x, y: npc.y};
+                } break;
+                case "NPC_CHAT_OPTION": {
+                    this.lastClickWasNpc = true;
+                }
             }
         }
  
         /**
-         * 
+         * Calls every time the player changes maps
          * @param {string} mapBefore 
          * @param {string} mapAfter 
          */
