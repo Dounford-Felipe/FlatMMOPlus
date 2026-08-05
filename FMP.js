@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         FlatMMOPlus
 // @namespace    com.dounford.flatmmo
-// @version      1.5.4.3
+// @version      1.5.4.4
 // @description  FlatMMO plugin framework
 // @author       Dounford adapted from Anwinity IPP
 // @match        *://flatmmo.com/play.php*
@@ -10,7 +10,7 @@
 
 (function() {
 	'use strict';
-	const VERSION = "1.5.4.3";
+	const VERSION = "1.5.4.4";
 
     Set.prototype.some = function(predicate) {
         for (const item of this) {
@@ -47,6 +47,7 @@
 
 
 	const CHAT_COMMAND_NO_OVERRIDE = ["help"];
+    /** @type {Hotkey[]} All the default hotkeys */
     const defaultHotkeys = [
         //Default F keys
         {
@@ -723,15 +724,6 @@
         }
     }
 
-    /**
- * Represents a user in the system.
- * 
- * @class
- * @constructor
- * @property {string} name - The user's full name.
- * @property {number} age - The user's age in years.
- * @property {string} role - The user's system role permissions.
- */
     class FlatMMOPlus {
 		constructor() {
             this.name = ""
@@ -1387,6 +1379,15 @@
             plugin.onConfigsChanged();
         }
         plugin.changedConfigs.clear();
+    }
+
+    FlatMMOPlus.prototype.forceSavePluginConfigs = function(id) {
+        if (typeof id !== "string") {
+            throw new TypeError("FlatMMOPlus.forceSavePluginConfigs takes the following arguments: (id:string)");
+        }
+        const key = this.handler.config.globalSettings ? `flatmmoplus.${id}.config` : `flatmmoplus.${id}.${Globals.local_username}.config`;
+
+        localStorage.setItem(key, JSON.stringify(this.plugins[id].config));
     }
     
     FlatMMOPlus.prototype.showWarning = function(message, color = "orange") {

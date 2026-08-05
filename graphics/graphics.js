@@ -292,6 +292,8 @@
 
             ctx.scale(value, value);
 
+            cachedScale = value;
+
             if(value === 1) {
                 canvas.style.imageRendering = "";
             } else {
@@ -299,11 +301,9 @@
             }
         }
 
-        updateMapBg() {
-            bgCtx.clearRect(0, 0, textCanvas.width, textCanvas.height);
-            bgUpperCtx.clearRect(0, 0, textCanvas.width, textCanvas.height);
-
-            let map = get_map(current_map);
+        updateMapBg(map) {
+            bgCtx.clearRect(0, 0, defaultCanvasWidth, defaultCanvasHeight);
+            bgUpperCtx.clearRect(0, 0, defaultCanvasWidth, defaultCanvasHeight);
 
             //paint_layer_0
             bgCtx.drawImage(map.get_background(), 0, 0, this.settings.canvasWidth, this.settings.canvasHeight)
@@ -329,19 +329,25 @@
         }
 
         onMapChanged() {
-            this.updateMapBg();
+            const map = get_map(current_map);
+            if(map.image.complete) {
+                this.updateMapBg(map);
+            } else {
+                map.image.onload = ()=>{this.updateMapBg(map)};
+            }
         }
 
         changeVanilla() {
             //I will use setTransform for the scale, it shouldn't be too expensive, just some matrix multiplications
             const originalSetTransform = ctx.setTransform;
 
+            window.cachedScale = 1;
+
             ctx.setTransform = function(a, b, c, d, e, f) {
                 if (a === 1 && b === 0 && c === 0 && d === 1 && e === 0 && f === 0) {
-                    const scale = FlatMMOPlus.plugins.settings.config.scale || 1;
-                    return originalSetTransform.call(ctx, scale, 0, 0, scale, 0, 0);
+                    return originalSetTransform.call(ctx, cachedScale, 0, 0, cachedScale, 0, 0);
                 }
-                return originalSetTransform.apply(ctx, arguments);
+                return originalSetTransform.call(ctx, a, b, c, d, e, f);
             };
 
             //There are a lot of measureText on the code, instead of replacing it, I added a cache, 
@@ -359,7 +365,7 @@
             //Map background doesn't change while you are in the room, so it doesn't need to be drawn every tick, once is enough
             //Layer 0 is the first paint function I will clear text there
             paint_layer_0 = function(){
-                textCtx.clearRect(0, 0, textCanvas.width, textCanvas.height);
+                textCtx.clearRect(0, 0, defaultCanvasWidth, defaultCanvasHeight);
             };
             paint_layer_1 = function(){};
             paint_layer_3 = function(){};
@@ -397,8 +403,12 @@
 
             this.onMapChanged();
 
-            canvasParent.insertAdjacentHTML("afterbegin", `<span id="effectsSpan"></span>`)
-
+            this.effectSpan = document.createElement("span");
+            this.effectSpan.id = "effectsSpan";
+            
+            const xpDiv = document.createElement("div");
+            xpDiv.id = "xpDiv";
+            canvasParent.append(this.effectSpan, xpDiv);
 
             //I didn't want text to look blurry, so I made another canvas just for text, there's no way I'm changing each paint function one by one, so I will hack the fillText and the ctx properties, very clever I know
             ctx.fillText = function(...args) {
@@ -408,16 +418,18 @@
                 textCtx.strokeText(...args);
             };
             const ctxProperties = ['font', 'textAlign', 'textBaseline', 'fillStyle', 'strokeStyle', 'lineWidth'];
-            ctx.props = {};
 
             ctxProperties.forEach(prop => {
+                const nativeSetter = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(ctx), prop).set;
+
                 Object.defineProperty(ctx, prop, {
                     get: function() {
-                        return this.props[prop];
+                        return textCtx[prop];
                     },
                     set: function(newValue) {
-                        this.props[prop] = newValue;
+                        if (textCtx[prop] === newValue) return;
                         textCtx[prop] = newValue;
+                        nativeSetter.call(this, newValue);
                     },
                     configurable: true,
                     enumerable: true
@@ -464,43 +476,39 @@
                 }
             }
 
+            const tileCounts = new Uint8Array(336);
+
             FlatMMOPlus.paint_ground_items = () => {
-                if(this.config.groundItems === false) return;
-                let ground_items_seen = []
-                for(let i = 0; i < ground_items.length; i++) {
+                if (this.config.groundItems === false) return;
+
+                tileCounts.fill(0);
+
+                ctx.fillStyle = "silver";
+
+                for (let i = 0; i < ground_items.length; i++) {
                     let ground_item = ground_items[i];
+                    const tileIndex = item.x + (item.y * 24);
+                    
+                    const countSeen = tileCounts[tileIndex];
+                    tileCounts[tileIndex] = countSeen + 1;
 
-                    let count_seen = 0;
-                    for(let j = 0; j < ground_items_seen.length; j++) {
-                        let ground_item_seen = ground_items_seen[j];
-                        if(ground_item_seen.x == ground_item.x && ground_item_seen.y == ground_item.y) {
-                            count_seen++;
+                    //label doesn't need to be created when it is not used
+                    if (countSeen < 4) {
+                        let label = ground_item.label || "";
+                        if (ground_item.amount > 1) {
+                            label += " (" + format_number(ground_item.amount) + ")";
                         }
+                        let text_width = ctx.measureText(label).width;
+                        
+                        ctx.globalAlpha = 1.0;
+                        
+                        ctx.fillText(label, ground_item.x * TILE_SIZE + TILE_SIZE / 2 - text_width / 2, ground_item.y * TILE_SIZE + TILE_SIZE + 4 + (countSeen * 15));
                     }
-                    ground_items_seen.push(ground_item)
 
-                    
-                    let label = ground_item.label || "";
-                    /* Liam - this is not worth the additional cost, even considering the cache
-                    if(count_seen == 3) {
-                        label = "...";
-                    }*/
-                   //Instead of removing it here I will remove it on creation
-                    if(ground_item.amount > 1) {
-                        label += " ("+format_number(ground_item.amount)+")"
-                    }
-                    let text_width = ctx.measureText(label).width;
-                    ctx.fillStyle = "silver"
-                    ctx.globalAlpha = 1.0;
-                    if(count_seen < 4) {
-                        ctx.fillText(label, ground_item.x * TILE_SIZE + TILE_SIZE / 2 - text_width/2, ground_item.y * TILE_SIZE + TILE_SIZE + 4 + (count_seen * 15));
-                    }
-                    
-
-                    ctx.globalAlpha = ground_item.get_opacity()
-                    ctx.drawImage(ground_item.image, ground_item.x * TILE_SIZE + (TILE_SIZE/12), ground_item.y * TILE_SIZE + (TILE_SIZE/12));
+                    ctx.globalAlpha = ground_item.get_opacity();
+                    ctx.drawImage(ground_item.image, ground_item.x * TILE_SIZE + (TILE_SIZE / 12), ground_item.y * TILE_SIZE + (TILE_SIZE / 12));
                 }
-            }
+            };
 
             const originalXpProgressBar = paint_xp_progress_bar;
             paint_xp_progress_bar = () => {
@@ -569,7 +577,15 @@
 
             const originalXpTracker = update_session_XP_tracker;
             update_session_XP_tracker = (skillName, newXP) => {
-                if(this.config.xp === "2") {
+                if(this.config.xp === "1") {
+                    //We only update it once, instead of each tick, should help a bit
+                    const not = xp_progress_bar_top_right[skillName]
+                    if(!not) return;
+                    not.xpi = parseInt(not.xp.replaceAll(",",""));
+                    not.image = get_image_large_icon(skillName);
+                    not.title = skillName.toUpperCase();
+                    not.text = not.xp + " / " + not.xp_next + " xp";
+                } else if(this.config.xp === "2") {
                     this.paintXpText(skillName);
                 }
                 originalXpTracker(skillName, newXP);
@@ -577,8 +593,6 @@
         }
 
         paintEffectsAsText() {
-            const effectSpan = document.getElementById("effectsSpan");
-
             let currentEffect = null;
             if(thunder_effect_ticks > 0) {
                 currentEffect = "thunder"
@@ -598,12 +612,12 @@
             if(this.currentEffect !== currentEffect) {
                 this.currentEffect = currentEffect;
                 if(currentEffect) {
-                    effectSpan.innerText = effects[currentEffect][0];
-                    effectSpan.style.backgroundColor = effects[currentEffect][1];
-                    effectSpan.style.color = effects[currentEffect][2];
-                    effectSpan.style.display = "";
+                    this.effectSpan.innerText = effects[currentEffect][0];
+                    this.effectSpan.style.backgroundColor = effects[currentEffect][1];
+                    this.effectSpan.style.color = effects[currentEffect][2];
+                    this.effectSpan.style.display = "";
                 } else {
-                    effectSpan.style.display = "none";
+                    this.effectSpan.style.display = "none";
                 }
             }
         }
@@ -619,21 +633,8 @@
                     continue;
                 }
                 not.ticks--;
-                if(!not.hasOwnProperty("xpi")) {
-                    not.xpi = parseInt(not.xp.replaceAll(",",""));
-                }
                 if(not.xpi > 10004999) {//lvl 100
                     continue;
-                }
-                //We don't need to call this function all the time
-                if(!not.hasOwnProperty("image")) {
-                    not.image = get_image_large_icon(s);
-                }
-                if(!not.hasOwnProperty("title")) {
-                    not.title = s.toUpperCase();
-                }
-                if(!not.hasOwnProperty("text")) {
-                    not.text = not.xp + " / " + not.xp_next + " xp"
                 }
                 ctx.font = "20px serif";
                 ctx.fillStyle = "white";
@@ -676,7 +677,6 @@
         
         onConfigsChanged() {
             this.changedConfigs.forEach(config => {
-                console.log(config)
 				switch (config) {
                     case "fps": {
                         const fps = this.config.fps;
@@ -703,9 +703,15 @@
             return colorCtx.fillStyle;
         }
 
+        /**
+         * Sets a preset
+         * @param {string} pres 
+         */
         preset(pres) {
-            this.config = {}
-            
+            if(!presets.hasOwnProperty(pres)) return;
+            this.config = {...presets[pres]};
+
+            FlatMMOPlus.forceSavePluginConfigs("settings");
 
             this.changedConfigs.add("fps");
             this.changedConfigs.add("scale");
@@ -715,12 +721,18 @@
         }
 
         onLogin() {
-            if(FlatMMOPlus.version < "1.5.4.3") {
-                window.alert(`Your FlatMMO+ version (${FlatMMOPlus.version}) is bellow the required (1.5.4.2), you need to update it.`);
+            if(FlatMMOPlus.version < "1.5.4.4") {
+                window.alert(`Your FlatMMO+ version (${FlatMMOPlus.version}) is bellow the required (1.5.4.4), you need to update it.`);
                 return;
             }
             this.addCSS();
             this.changeVanilla();
+
+            this.changedConfigs.add("fps");
+            this.changedConfigs.add("scale");
+            this.changedConfigs.add("animations");
+            this.changedConfigs.add("pets");
+            this.onConfigsChanged();
         }
     }
  
