@@ -13,6 +13,60 @@
 (function() {
     'use strict';
 
+    const presets = {
+        verylow: {
+            "fps": 10,
+            "scale": 0.2,
+            "animations": false,
+            "effects": "2",
+            "hitsplat": false,
+            "chatOverHead": false,
+            "xp": "3",
+            "particles": false,
+            "projectiles": false,
+            "npcs": false,
+            "pets": false,
+            "groundItems": false,
+            "showItemAmount": false,
+            "mapObjects": true,
+            "maxMessages": 200
+        },
+        low: {
+            "fps": 20,
+            "scale": 0.5,
+            "animations": false,
+            "effects": "1",
+            "hitsplat": true,
+            "chatOverHead": false,
+            "xp": "2",
+            "particles": false,
+            "projectiles": true,
+            "npcs": true,
+            "pets": false,
+            "groundItems": true,
+            "showItemAmount": false,
+            "mapObjects": true,
+            "maxMessages": 2000
+        },
+        vanilla: {
+            "fps": 60,
+            "scale": 1,
+            "animations": true,
+            "effects": "0",
+            "hitsplat": true,
+            "chatOverHead": true,
+            "xp": "0",
+            "particles": true,
+            "projectiles": true,
+            "npcs": true,
+            "pets": true,
+            "groundItems": true,
+            "showItemAmount": true,
+            "mapObjects": true,
+            "maxMessages": 0
+        }
+    }
+
     const defaultCanvasWidth = 1536;
     const defaultCanvasHeight = 896;
     const defaultTileSize = 64;
@@ -209,6 +263,17 @@
                 .graphicsXpTitle {
                     text-transform: uppercase;
                 }
+                #effectsSpan {
+                    z-index: 999;
+                    position: absolute;
+                    background-color: white;
+                    right: 10px;
+                    font-size: 2rem;
+                    padding: 5px;
+                    border-radius: 10%;
+                    top: 10px;
+                    display: none
+                }
             `
             document.head.append(style);
         }
@@ -226,9 +291,6 @@
             canvas.height = defaultCanvasHeight * value;
 
             ctx.scale(value, value);
-
-            canvas.style.width = defaultCanvasWidth + 'px';
-            canvas.style.height = defaultCanvasHeight + 'px';
 
             if(value === 1) {
                 canvas.style.imageRendering = "";
@@ -306,6 +368,8 @@
             canvas.style.position = "absolute";
             canvas.style.top = "0";
             canvas.style.left = "0";
+            canvas.style.width = defaultCanvasWidth + 'px';
+            canvas.style.height = defaultCanvasHeight + 'px';
             
             window.bgCanvas = canvas.cloneNode();
             bgCanvas.id = "bgCanvas";
@@ -333,9 +397,10 @@
 
             this.onMapChanged();
 
+            canvasParent.insertAdjacentHTML("afterbegin", `<span id="effectsSpan"></span>`)
+
 
             //I didn't want text to look blurry, so I made another canvas just for text, there's no way I'm changing each paint function one by one, so I will hack the fillText and the ctx properties, very clever I know
-            
             ctx.fillText = function(...args) {
                 textCtx.fillText(...args);
             };
@@ -343,16 +408,15 @@
                 textCtx.strokeText(...args);
             };
             const ctxProperties = ['font', 'textAlign', 'textBaseline', 'fillStyle', 'strokeStyle', 'lineWidth'];
+            ctx.props = {};
 
             ctxProperties.forEach(prop => {
-                let value = ctx[prop];
-                
                 Object.defineProperty(ctx, prop, {
                     get: function() {
-                        return value;
+                        return this.props[prop];
                     },
                     set: function(newValue) {
-                        value = newValue;
+                        this.props[prop] = newValue;
                         textCtx[prop] = newValue;
                     },
                     configurable: true,
@@ -369,25 +433,12 @@
             //FMP uses this function on onPaint()
             const originalPaintEffects = FlatMMOPlus.original_paint_effects;
             FlatMMOPlus.original_paint_effects = ()=>{
-                if(this.config.effects === 0) {
+                if(this.config.effects === "0") {
                     originalPaintEffects();
-                } else if(this.config.effects === 1) {
+                } else if(this.config.effects === "1") {
                     this.paintEffectsAsText();
                 }
             }
-
-            canvasParent.insertAdjacentHTML("afterbegin", `<span style="
-                z-index: 999;
-                position: absolute;
-                background-color: white;
-                right: 10px;
-                font-size: 2rem;
-                padding: 5px;
-                border-radius: 10%;
-                top: 10px;
-                display:none
-            " id="effectsSpan"></span>
-            `)
 
             window.groundItemImageCache = new window.Map();
 
@@ -453,9 +504,9 @@
 
             const originalXpProgressBar = paint_xp_progress_bar;
             paint_xp_progress_bar = () => {
-                if(this.config.xp === 0) {
+                if(this.config.xp === "0") {
                     originalXpProgressBar();
-                } else if(this.config.xp === 1) {
+                } else if(this.config.xp === "1") {
                     this.paintOldXp();
                 }
             }
@@ -503,6 +554,12 @@
                 if(this.config.particles === false) return;
                 originalPaintLvlDrop();
             }
+            
+            const originalPaintHitSplat = paint_hit_splats;
+            paint_hit_splats = () => {
+                if(this.config.hitSplat === false) return;
+                originalPaintHitSplat();
+            }
 
             const originalPaintProjectiles = paint_projectiles;
             paint_projectiles = () => {
@@ -512,7 +569,7 @@
 
             const originalXpTracker = update_session_XP_tracker;
             update_session_XP_tracker = (skillName, newXP) => {
-                if(this.config.xp === 2) {
+                if(this.config.xp === "2") {
                     this.paintXpText(skillName);
                 }
                 originalXpTracker(skillName, newXP);
@@ -618,7 +675,8 @@
  
         
         onConfigsChanged() {
-			this.changedConfigs.forEach(config => {
+            this.changedConfigs.forEach(config => {
+                console.log(config)
 				switch (config) {
                     case "fps": {
                         const fps = this.config.fps;
@@ -633,7 +691,7 @@
                         }
                     } break;
                     case "pets": {
-                        window.hide_pets = !this.config.pets;
+                        hide_pets = !this.config.pets;
                     } break;
                 }
             })
@@ -647,6 +705,7 @@
 
         preset(pres) {
             this.config = {}
+            
 
             this.changedConfigs.add("fps");
             this.changedConfigs.add("scale");

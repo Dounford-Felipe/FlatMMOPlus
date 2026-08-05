@@ -544,7 +544,17 @@
 		console.log("%cFlatMMOPlus: %c"+s, `color: ${color}; font-weight: bold; font-size: 12pt;`, "color: silver; font-weight: normal; font-size: 10pt;");
 	}
 
+    /**
+     * Spritesheet, uses the same logic as the original spritesheet on the game, but without being locked using the game's cdn
+     */
     class AnimationSheetPlus {
+        /**
+         * Creates a new spritesheet
+         * @param {string} filename 
+         * @param {number} frames 
+         * @param {number} speed 
+         * @param {string[]} images 
+         */
         constructor(filename, frames, speed, images) {
             this.filename = filename;
             this.running = false;
@@ -561,6 +571,9 @@
             }
         }
 
+        /**
+         * Returns the next frame image
+         */
         get_frame() {
             if(this.FRAMES > 0) {
                 if(this.SPEED == this.speed_at) {
@@ -625,6 +638,7 @@
                     author: "Liam",
                     description: "FlatMMO+ Configs"
                 },
+                /** @type {PluginConfig} */
                 config: [
                     {
                         id: "globalSettings",
@@ -665,16 +679,19 @@
                     }
                 ]
             })
+            /** @type {HTMLInputElement|null} */
             this.chatInput = document.getElementById("chat-text-input") || null;
+            /** @type {Set} */
             this.hotkeyCategories = new Set();
+            /** @type {Object<string,Hotkey>} */
             this.hotkeys = {};
+            /** @type {HTMLButtonElement|null} */
             this.hotkeyElement = null;
-
-            window.addEventListener("keydown", e => {
-
-            })
         }
 
+        /**
+         * Copies current profile settings to every other profile
+         */
         shareThisSettings() {
             let keys = {
                 main: Globals.local_username,
@@ -706,9 +723,20 @@
         }
     }
 
+    /**
+ * Represents a user in the system.
+ * 
+ * @class
+ * @constructor
+ * @property {string} name - The user's full name.
+ * @property {number} age - The user's age in years.
+ * @property {string} role - The user's system role permissions.
+ */
     class FlatMMOPlus {
 		constructor() {
+            this.name = ""
 			this.version = VERSION;
+            /** @type {Object<string, FlatMMOPlusPlugin>} */
 			this.plugins = plugins;
 			this.panels = panels;
 			this.debug = false;
@@ -846,7 +874,10 @@
         this.handler.hotkeyCategories.add(category);
     }
 
-    //Hotkeys can be overwriten
+    /**
+     * Registers a new hotkey, hotkeys can be overwriten or redeclared
+     * @param {Hotkey} hotkey 
+     */
     FlatMMOPlus.prototype.registerHotkey = function(hotkey) {
         if(typeof hotkey.func !== "function") {
             console.error("You forgot the the hotkey.func or it is not a function")
@@ -1415,6 +1446,10 @@
         }
     }
 
+    /**
+     * 
+     * @param {FlatMMOPlusPlugin} plugin 
+     */
     FlatMMOPlus.prototype.registerPlugin = function(plugin) {
         if(!(plugin instanceof FlatMMOPlusPlugin)) {
             throw new TypeError("FlatMMOPlus.registerPlugin takes the following arguments: (plugin:FlatMMOPlusPlugin)");
