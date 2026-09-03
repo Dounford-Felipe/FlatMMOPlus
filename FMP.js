@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         FlatMMOPlus
 // @namespace    com.dounford.flatmmo
-// @version      1.5.4.4
+// @version      1.5.5
 // @description  FlatMMO plugin framework
 // @author       Dounford adapted from Anwinity IPP
 // @match        *://flatmmo.com/play.php*
@@ -10,7 +10,7 @@
 
 (function() {
 	'use strict';
-	const VERSION = "1.5.4.4";
+	const VERSION = "1.5.5";
 
     Set.prototype.some = function(predicate) {
         for (const item of this) {
@@ -556,7 +556,7 @@
          * @param {number} speed 
          * @param {string[]} images 
          */
-        constructor(filename, frames, speed, images) {
+        constructor(filename, frames, speed, images, waitImageLoad = false) {
             this.filename = filename;
             this.running = false;
             this.frame_at = 0;
@@ -570,6 +570,25 @@
                 image.src = images[i - 1]
                 this.images.push(image);
             }
+
+            if(waitImageLoad === false) return this;
+
+            return (async () => {
+                const loadPromises = this.images.map(img => {
+                    return new Promise((resolve) => {
+                        if (img.complete && img.naturalWidth !== 0) {
+                            resolve();
+                        } else {
+                            img.onload = () => resolve();
+                            img.onerror = () => resolve();
+                        }
+                    });
+                });
+
+                await Promise.all(loadPromises);
+
+                return this; 
+            })();
         }
 
         /**
