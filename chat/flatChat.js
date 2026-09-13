@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         FlatChat
 // @namespace    com.dounford.flatmmo.flatChat
-// @version      2.4.2
+// @version      2.4.3
 // @description  Better chat for FlatMMO
 // @author       Dounford
 // @license      MIT
@@ -400,7 +400,7 @@
 			super("flatChat", {
 				about: {
 					name: "FlatChat",
-					version: "2.4.2",
+					version: "2.4.3",
 					author: "Liam",
 					description: "Improved chat for FlatMMO"
 				},
@@ -2021,6 +2021,8 @@
 
 			if (data.tag && data.tag !== "none") {
 				let tag = document.createElement("span");
+
+				if(data.tag === "investor_plus") data.tag = "investor-plus"
 
 				tag.innerText = data.tag === "investor-gold" ? "GOLD INVESTOR" : data.tag === "investor-plus" ? "INVESTOR" : data.tag === "moderator" ? "MOD" : data.tag.toUpperCase();
 

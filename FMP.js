@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         FlatMMOPlus
 // @namespace    com.dounford.flatmmo
-// @version      1.5.5
+// @version      1.5.6
 // @description  FlatMMO plugin framework
 // @author       Dounford adapted from Anwinity IPP
 // @match        *://flatmmo.com/play.php*
@@ -10,7 +10,7 @@
 
 (function() {
 	'use strict';
-	const VERSION = "1.5.5";
+	const VERSION = "1.5.6";
 
     Set.prototype.some = function(predicate) {
         for (const item of this) {
@@ -341,6 +341,15 @@
             func: () => {
                 switch_panels('hunting');
             }
+        },
+        {
+            key: "N/A",
+            name: "View Collections",
+            description: "Opens Market Listing",
+            category: "panels",
+            func: () => {
+                window.open('https://market.flatmmo.com/market/listing/all/view/', '_blank')
+            }
         }
     ]
     let hotkeyOverride = {};
@@ -521,24 +530,28 @@
                 font-weight: bold;
             }
         </style>`);
-        //The new hotkey system does everything these does
-        window.removeEventListener("keypress", keypress_listener, false);
-        window.removeEventListener("keyup", keyup_listener, false);
-        window.removeEventListener("keydown", keydown_listener, false);
-        document.getElementById("chat-text-input").onkeypress = null
+        //It won't break in case Smitty adds hotkey handler on vanilla
+        if(window["register_hotkey"] === undefined) {
+            //The new hotkey system does everything these does
+            window.removeEventListener("keypress", keypress_listener, false);
+            window.removeEventListener("keyup", keyup_listener, false);
+            window.removeEventListener("keydown", keydown_listener, false);
+            document.getElementById("chat-text-input").onkeypress = null
+            
+            //Record hotkey remap
+            window.addEventListener("click", (e) => {
+                const btn = e.target.closest("[data-hotkeystring]");
+                if(btn) {
+                    window.FlatMMOPlus.handler.hotkeyElement = btn;
+                    btn.innerText = "Recording";
+                }
+            })
+        }
         original_onmessage = Globals.websocket.onmessage;
         original_sendmessage = Globals.websocket.send;
         original_switch_panels = window.switch_panels;
         original_settings_modal_tab = window.settings_modal_tab;
 
-        //Record hotkey remap
-        window.addEventListener("click", (e) => {
-            const btn = e.target.closest("[data-hotkeystring]");
-            if(btn) {
-                window.FlatMMOPlus.handler.hotkeyElement = btn;
-                btn.innerText = "Recording";
-            }
-        })
     }
 
 	function logFancy(s, color="#00f7ff") {
@@ -2092,7 +2105,45 @@
             }
         })()
 
-        window.addEventListener("keydown", this.fmpKeyDown, false);
+        //Prevents duplicated hoykeys in case Smitty adds hoykey remap on vanilla
+        if(window["register_hotkey"] === undefined) {
+            window.addEventListener("keydown", this.fmpKeyDown, false);
+            this.addPanel("hotkeys", "Hotkeys", "", true);
+            //Remove vanilla keyboard menu
+            document.getElementById("settings-modal-keyboard-panel-btn").style.display = "none";
+        } else {
+            //Plugins using it shouldn't break if hotkeys are added on vanilla
+            FlatMMOPlus.prototype.registerHotkeyCategory = window.register_hotkey_category;
+            FlatMMOPlus.prototype.registerHotkey = window.register_hotkey;
+            FlatMMOPlus.prototype.deleteHotkey = window.delete_hotkey;
+        }
+        window.enter_pressed = function() {
+            const message = chat_ele.value.trim();
+            if (message === "") return;
+
+            chat_ele.value = "";
+            request_unfocus_chatbox();
+
+            if(message.startsWith("/")) {
+                const space = message.indexOf(" ");
+                let command;
+                let data;
+                if (space <= 0) {
+                    command = message.substring(1);
+                    data = "";
+                } else {
+                    command = message.substring(1, space);
+                    data = message.substring(space + 1);
+                }
+
+                //FMP only excutes if this is a valid command, so there is no reason to check if it exists
+                if (window.FlatMMOPlus.handleCustomChatCommand(command, data)) {
+                    return;
+                }
+            }
+            //If it is not a valid command or isn't a command at all it will send the message
+            Globals.websocket.send('CHAT=' + message);
+        }
 
         document.getElementById("canvas").insertAdjacentHTML("beforeend",'<div id="FMPNotifications"></div>')
 
@@ -2122,39 +2173,6 @@
             let panelAfter = id;
             this.onSettingsPanelChanged(panelBefore, panelAfter);
         }
-
-        window.enter_pressed = function() {
-            const message = chat_ele.value.trim();
-            if (message === "") return;
-
-            chat_ele.value = "";
-            request_unfocus_chatbox();
-
-            if(message.startsWith("/")) {
-                const space = message.indexOf(" ");
-                let command;
-                let data;
-                if (space <= 0) {
-                    command = message.substring(1);
-                    data = "";
-                } else {
-                    command = message.substring(1, space);
-                    data = message.substring(space + 1);
-                }
-
-                //FMP only excutes if this is a valid command, so there is no reason to check if it exists
-                if (window.FlatMMOPlus.handleCustomChatCommand(command, data)) {
-                    return;
-                }
-            }
-            //If it is not a valid command or isn't a command at all it will send the message
-            Globals.websocket.send('CHAT=' + message);
-        }
-
-        //Remove vanilla keyboard menu
-        document.getElementById("settings-modal-keyboard-panel-btn").style.display = "none";
-
-        this.addPanel("hotkeys", "Hotkeys", "", true);
 
         this.addPanel("plugins", "Plugins", () => {
             let content = "";
@@ -2367,13 +2385,16 @@
             window.FlatMMOPlus.setPluginConfigUIDirty(pluginId, true, configId);
         });
 
-        /*Hotkeys Setup*/
-        hotkeyOverride = JSON.parse(localStorage.getItem("FMP-hotkeys") || '{}');
-        defaultHotkeys.forEach(hotkey => window.FlatMMOPlus.registerHotkey(hotkey));
+        //Prevents duplicated hoykeys in case Smitty adds hoykey remap on vanilla
+        if(window["register_hotkey"] === undefined) {
+            /*Hotkeys Setup*/
+            hotkeyOverride = JSON.parse(localStorage.getItem("FMP-hotkeys") || '{}');
+            defaultHotkeys.forEach(hotkey => window.FlatMMOPlus.registerHotkey(hotkey));
+            document.getElementById("fmp-hotkeysContainer-Preset 1").insertAdjacentHTML("beforeend", `<button onclick="Globals.websocket.send('SAVE_PRESET=F6')"><img src="images/icons/save.png"> Save Preset</button>`);
+            document.getElementById("fmp-hotkeysContainer-Preset 2").insertAdjacentHTML("beforeend", `<button onclick="Globals.websocket.send('SAVE_PRESET=F7')"><img src="images/icons/save.png"> Save Preset</button>`);
+            document.getElementById("fmp-hotkeysContainer-Preset 3").insertAdjacentHTML("beforeend", `<button onclick="Globals.websocket.send('SAVE_PRESET=F8')"><img src="images/icons/save.png"> Save Preset</button>`);
+        }
 
-        document.getElementById("fmp-hotkeysContainer-Preset 1").insertAdjacentHTML("beforeend", `<button onclick="Globals.websocket.send('SAVE_PRESET=F6')"><img src="images/icons/save.png"> Save Preset</button>`);
-        document.getElementById("fmp-hotkeysContainer-Preset 2").insertAdjacentHTML("beforeend", `<button onclick="Globals.websocket.send('SAVE_PRESET=F7')"><img src="images/icons/save.png"> Save Preset</button>`);
-        document.getElementById("fmp-hotkeysContainer-Preset 3").insertAdjacentHTML("beforeend", `<button onclick="Globals.websocket.send('SAVE_PRESET=F8')"><img src="images/icons/save.png"> Save Preset</button>`)
 
         
         logFancy(`(v${this.version}) initialized.`);
