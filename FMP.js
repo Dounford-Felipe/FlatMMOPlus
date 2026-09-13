@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         FlatMMOPlus
 // @namespace    com.dounford.flatmmo
-// @version      1.5.6
+// @version      1.5.6.1
 // @description  FlatMMO plugin framework
 // @author       Dounford adapted from Anwinity IPP
 // @match        *://flatmmo.com/play.php*
@@ -10,7 +10,7 @@
 
 (function() {
 	'use strict';
-	const VERSION = "1.5.6";
+	const VERSION = "1.5.6.1";
 
     Set.prototype.some = function(predicate) {
         for (const item of this) {
@@ -345,6 +345,15 @@
         {
             key: "N/A",
             name: "View Collections",
+            description: "Opens Collections Panel",
+            category: "panels",
+            func: () => {
+                Globals.websocket.send('OPEN_COLLECTION_LOG');
+            }
+        },
+        {
+            key: "N/A",
+            name: "View Market",
             description: "Opens Market Listing",
             category: "panels",
             func: () => {
