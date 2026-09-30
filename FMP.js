@@ -797,7 +797,10 @@
 		}
     }
 
-    //I'm not sure why Smitty has both keydown and the deprecated keypress, I will merge both codes here
+    /**
+     * I'm not sure why Smitty has both keydown and the deprecated keypress, I will merge both codes here 
+     * @param {KeyboardEvent} e
+     */
     FlatMMOPlus.prototype.fmpKeyDown = function(e) {
         //This should make sure inputs don't break
         if(document.activeElement.nodeName === "INPUT" || document.activeElement.nodeName === "TEXTAREA" || document.activeElement.getAttribute("contenteditable") === "true") {

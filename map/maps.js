@@ -268,7 +268,7 @@
         }
     }
  
-    const plugin = new SamplePlugin();
+    const plugin = new mapExtractorPlugin();
     FlatMMOPlus.registerPlugin(plugin);
  
 })();
