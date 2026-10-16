@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         FlatMMOPlus
 // @namespace    com.dounford.flatmmo
-// @version      1.5.6.1
+// @version      1.5.6.2
 // @description  FlatMMO plugin framework
 // @author       Dounford adapted from Anwinity IPP
 // @match        *://flatmmo.com/play.php*
@@ -10,7 +10,7 @@
 
 (function() {
 	'use strict';
-	const VERSION = "1.5.6.1";
+	const VERSION = "1.5.6.2";
 
     Set.prototype.some = function(predicate) {
         for (const item of this) {
@@ -2491,12 +2491,12 @@
     }, `Turns auto yell on`);
 
     window.FlatMMOPlus.registerCustomChatCommand("tick", () => {
-        FlatMMOPlus.showWarning(`The current action takes ${progress_bar_target + 1} ticks (${(progress_bar_target + 1) / 2} seconds)`);
+        window.FlatMMOPlus.showWarning(`The current action takes ${progress_bar_target + 1} ticks (${(progress_bar_target + 1) / 2} seconds)`);
     }, `Shows the time needed to complete the current action`);
 
     window.FlatMMOPlus.registerCustomChatCommand("trade", (command, data='') => {
         if (data === "") {
-            FlatMMOPlus.showWarning("You need to specify the username", "red");
+            window.FlatMMOPlus.showWarning("You need to specify the username", "red");
             return;
         }
         Globals.websocket.send("SEND_TRADE_REQUEST=" + data.replaceAll("_", " "));

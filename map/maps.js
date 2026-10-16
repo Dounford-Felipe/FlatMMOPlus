@@ -64,7 +64,12 @@
 /**
  * Represents how npcs are store in Npcs.js - Pets are ignored
  * @typedef {Object} NPC
- * @property
+ * @property {string} label
+ * @property {string} [description]
+ * @property {string} [itemPage]
+ * @property {number} [height]
+ * @property {number} [width]
+ * @property {boolean} [noLower]
  */
 
 
@@ -122,15 +127,24 @@
         }
 
         async getData() {
-            const response = await fetch("https://flat.dounford.qd.je/maps");
-            const data = response.json();
-            this.maps = data.maps
+            try {
+                const objResponse = await import("https://flatmmo.wiki/index.php/MediaWiki:InteractiveMap/Objects.json?action=raw&ctype=text/javascript", { with: { type: 'json' } });
+                this.objects = objResponse.default;
+
+                const mapResponse = await import("https://flatmmo.wiki/index.php/MediaWiki:InteractiveMap/Maps.json?action=raw&ctype=text/javascript", { with: { type: 'json' } });
+                this.maps = mapResponse.default;
+
+                const npcResponse = await import("https://flatmmo.wiki/index.php/MediaWiki:InteractiveMap/NPCs.json?action=raw&ctype=text/javascript", { with: { type: 'json' } });
+                this.npcs = npcResponse.default;
+                this.loaded = true;
+            } catch (err) {
+                console.error(`Maps data could not be loaded, with error:\n`, err);
+            }
         }
  
         
         onLogin() {
-            console.log("SamplePlugin.onLogin");
-            //this.getData()
+            this.getData()
         }
  
         /**

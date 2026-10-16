@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         FlatChat
 // @namespace    com.dounford.flatmmo.flatChat
-// @version      2.4.3
+// @version      2.5
 // @description  Better chat for FlatMMO
 // @author       Dounford
 // @license      MIT
@@ -13,6 +13,16 @@
 
 (function() {
 	'use strict';
+
+	/**
+	 * @typedef {Object} ChatData
+	 * @property {string} username
+	 * @property {string} tag
+	 * @property {string} sigil
+	 * @property {string} color
+	 * @property {string} message
+	 * @property {boolean} yell
+	 */
 
 	//Which css variable corresponds to each color
 	const messageColors = {
@@ -553,6 +563,27 @@
 						default: "whisper"
 					},
 					{
+						id: "lvlChat",
+						label: "Total Level Chat (0 = deactivated)",
+						type: "number",
+						max: 2000,
+						step: 1,
+						default: 0
+					},
+					{
+						id: "fetchLevels",
+						label: "Fetch Player Lvls",
+						type: "btn",
+						text: "Fetch",
+                        func: () => {FlatMMOPlus.plugins.flatChat.fetchTotalLvls}
+					},
+					{
+						id: "ignoredLvlPlayers",
+						label: "Players That are Exempt From LvL Requirement",
+						type: "list",
+						default: ["dounbot", "santabot"]
+					},
+					{
 						id: "shortcuts",
 						label: "Shortcuts List (Use the key between [])",
 						type: "object",
@@ -622,6 +653,8 @@
 			this.themes = {};
 
 			this.contextActions = {};
+
+			this.playerWithTotalLvl = new Set();
 		}
 
 		onLogin() {
@@ -644,10 +677,58 @@
 			this.changeThemeEditor();
 			FlatMMOPlus.showWarning("Welcome to flatmmo.com", "orange");
 			FlatMMOPlus.showWarning(document.querySelectorAll("#chat span")[1].innerHTML, "white");
+			FlatMMOPlus.showWarning(`<span style="color:white">Chat tags may be purchased <u style="pointer-events: auto;" class="hover" onclick="switch_panels('donor-shop')">here</u>.</span>`, "white");
 			FlatMMOPlus.showWarning(`<span><strong style="color:cyan">FYI: </strong> Use the /help command to see information on available chat commands.</span>`, "white");
 			this.configurePosition();
+
+			if(this.config.lvlChat !== 0) {
+				const lastFetch = Number(localStorage.getItem("FlatChat-LastFetch"));
+				const list = localStorage.getItem("FlatChat-LastFetchList");
+				if(Date.now() - lastFetch >= 86400000 || !list) {
+					this.fetchTotalLvls()
+				} else {
+					this.playerWithTotalLvl = new Set(JSON.parse(list))
+					this.playerWithTotalLvl.add(Globals.local_username);
+					this.config.ignoredLvlPlayers.forEach(p => this.playerWithTotalLvl.add(p))
+				}
+			}
 		}
 
+		async fetchTotalLvls() {
+			this.playerWithTotalLvl = new Set();
+			const minimumLvl = this.config.lvlChat;
+
+			const response = await fetch("https://flatmmo.com/hiscores/");
+			const htmlString = await response.text();
+
+			const parser = new DOMParser();
+			const doc = parser.parseFromString(htmlString, 'text/html');
+			
+
+			//It will only run until the minimun lvl is reached
+			const scLevels = doc.querySelectorAll(".hiscore-table-block:nth-child(1) tbody tr");
+			for (let tr of scLevels){
+				if(Number(tr.cells[3].textContent) < minimumLvl) break;
+				this.playerWithTotalLvl.add(tr.cells[1].textContent.trim())
+			}
+
+			const hcLevels = doc.querySelectorAll(".hiscore-table-block:nth-child(2) tbody tr");
+			for (let tr of hcLevels){
+				if(Number(tr.cells[3].textContent) < minimumLvl) break;
+				this.playerWithTotalLvl.add(tr.cells[1].textContent.trim())
+			}
+			
+			localStorage.setItem("FlatChat-LastFetch", Date.now().toString());
+			localStorage.setItem("FlatChat-LastFetchList", JSON.stringify(Array.from(this.playerWithTotalLvl)));
+
+			//Add the user in case they are not added yet
+			this.playerWithTotalLvl.add(Globals.local_username);
+			this.config.ignoredLvlPlayers.forEach(p => this.playerWithTotalLvl.add(p))
+		}
+
+		/**
+		 * @param {ChatData} data
+		 */
 		onChat(data) {
 			if (data.yell) {
 				data.channel = "channel_global";
@@ -745,6 +826,21 @@
 							this.fcElement.classList.remove("flatChatDimmed");
 						}
 					} break;
+					case "lvlChat": {
+						if(this.config.lvlChat !== 0) {
+							this.fetchTotalLvls()
+						}
+					} break;
+					case "ignoredLvlPlayers": {
+						const list = localStorage.getItem("FlatChat-LastFetchList");
+						if(!list) {
+							this.fetchTotalLvls();
+							break;
+						}
+						this.playerWithTotalLvl = new Set(JSON.parse(list))
+						this.playerWithTotalLvl.add(Globals.local_username);
+						this.config.ignoredLvlPlayers.forEach(p => this.playerWithTotalLvl.add(p))
+					} break;
 				}
 			})
 		}
@@ -780,7 +876,7 @@
 					yell: false,
 					channel: FlatMMOPlus.plugins.flatChat.currentChannel
 				}
-				FlatMMOPlus.plugins.flatChat.showMessage(data, true);
+				FlatMMOPlus.plugins.flatChat.showServerMessage(data, true);
 			}
 
 			FlatMMOPlus.deleteHotkey("Enter")
@@ -1966,6 +2062,9 @@
 			//     channel: "private_dounford"
 			//     usernameColor: "red"
 			// }
+			
+			//In case there is a minimun lvl set it will ignore low level players
+			if(this.config.lvlChat !== 0 && !this.playerWithTotalLvl.has(data.username)) return;
 
 			//If for some reason the channel does not exist
 			if(!data.channel in this.channels) {
@@ -2216,8 +2315,6 @@
 			const not = textToNotification[blocked];
 			FlatMMOPlus.addNotification(not.name, not.image, not.title, not.text, not.ticks, not.color);
 		}
-
-		
 
 		sendMessage() {
 			const input = this.fcElement.querySelector("#flatChatInput");
