@@ -1,425 +1,443 @@
 // ==UserScript==
 // @name         FlatMMOPlus
 // @namespace    com.dounford.flatmmo
-// @version      1.5.6.2
+// @version      1.5.7
 // @description  FlatMMO plugin framework
 // @author       Dounford adapted from Anwinity IPP
 // @match        *://flatmmo.com/play.php*
 // @grant        none
 // ==/UserScript==
 
-(function() {
+(function () {
 	'use strict';
-	const VERSION = "1.5.6.2";
+	const VERSION = "1.5.7";
 
-    Set.prototype.some = function(predicate) {
-        for (const item of this) {
-            if (predicate(item)) {
-                return true;
-            }
-        }
-        return false;
-    };
+	Set.prototype.some = function (predicate) {
+		for (const item of this) {
+			if (predicate(item)) {
+				return true;
+			}
+		}
+		return false;
+	};
 
-    Set.prototype.toggle = function(item) {
-        if (this.has(item)) {
-            this.delete(item)
-        } else {
-            this.add(item)
-        }
-    };
+	Set.prototype.toggle = function (item) {
+		if (this.has(item)) {
+			this.delete(item)
+		} else {
+			this.add(item)
+		}
+	};
 
 	const LOCAL_STORAGE_KEY_DEBUG = "FlatMMOPlus:debug";
- 
-    const CONFIG_TYPES_LABEL = ["label"];
-    const CONFIG_TYPES_PANEL = ["panel"];
-    const CONFIG_TYPES_BOOLEAN = ["boolean", "bool", "checkbox"];
-    const CONFIG_TYPES_INTEGER = ["integer", "int"];
-    const CONFIG_TYPES_FLOAT = ["number", "num", "float"];
-    const CONFIG_TYPES_RANGE = ["range"];
-    const CONFIG_TYPES_STRING = ["string", "text"];
-    const CONFIG_TYPES_SELECT = ["select"];
-    const CONFIG_TYPES_COLOR = ["color"];
-    const CONFIG_TYPES_LIST = ["list", "array"];
-    const CONFIG_TYPES_RELATION = ["relation", "key", "object"];
-    const CONFIG_TYPES_BUTTON = ["button", "btn"];
-    const CONFIG_TYPES_PRIORITY = ["sort", "priority"];
+
+	const CONFIG_TYPES_LABEL = ["label"];
+	const CONFIG_TYPES_PANEL = ["panel"];
+	const CONFIG_TYPES_BOOLEAN = ["boolean", "bool", "checkbox"];
+	const CONFIG_TYPES_INTEGER = ["integer", "int"];
+	const CONFIG_TYPES_FLOAT = ["number", "num", "float"];
+	const CONFIG_TYPES_RANGE = ["range"];
+	const CONFIG_TYPES_STRING = ["string", "text"];
+	const CONFIG_TYPES_SELECT = ["select"];
+	const CONFIG_TYPES_COLOR = ["color"];
+	const CONFIG_TYPES_LIST = ["list", "array"];
+	const CONFIG_TYPES_RELATION = ["relation", "key", "object"];
+	const CONFIG_TYPES_BUTTON = ["button", "btn"];
+	const CONFIG_TYPES_PRIORITY = ["sort", "priority"];
 
 
 	const CHAT_COMMAND_NO_OVERRIDE = ["help"];
-    /** @type {Hotkey[]} All the default hotkeys */
-    const defaultHotkeys = [
-        //Default F keys
-        {
-            key: "F1",
-            name: "RUN!",
-            description: "Toggle Run",
-            category: "actions",
-            func: () => window.FlatMMOPlus.sendMessage("SHORTCUT_KEY=F1")
-        },
-        {
-            key: "F2",
-            name: "Eat",
-            description: "Consumes a piece of food",
-            category: "actions",
-            func: () => window.FlatMMOPlus.sendMessage("SHORTCUT_KEY=F2")
-        },
-        {
-            key: "F3",
-            name: "Fire",
-            description: "Lights a fire",
-            category: "actions",
-            func: () => window.FlatMMOPlus.sendMessage("SHORTCUT_KEY=F3")
-        },
-        {
-            key: "F4",
-            name: "Dodge",
-            description: "Activates dodge ability",
-            category: "actions",
-            func: () => window.FlatMMOPlus.sendMessage("SHORTCUT_KEY=F4")
-        },
-        //Equipment
-        {
-            key: "F6",
-            name: "Preset 1",
-            description: "Equips Preset 1",
-            category: "equipments",
-            func: () => window.FlatMMOPlus.sendMessage("SHORTCUT_KEY=F6")
-        },
-        {
-            key: "F7",
-            name: "Preset 2",
-            description: "Equips Preset 2",
-            category: "equipments",
-            func: () => window.FlatMMOPlus.sendMessage("SHORTCUT_KEY=F7")
-        },
-        {
-            key: "F8",
-            name: "Preset 3",
-            description: "Equips Preset 3",
-            category: "equipments",
-            func: () => window.FlatMMOPlus.sendMessage("SHORTCUT_KEY=F8")
-        },
-        //Badges
-        {
-            key: "F9",
-            name: "Badge 1",
-            description: "Activates Badge 1",
-            category: "badges",
-            func: () => window.FlatMMOPlus.sendMessage("SHORTCUT_KEY=F9")
-        },
-        {
-            key: "F10",
-            name: "Badge 2",
-            description: "Activates Badge 2",
-            category: "badges",
-            func: () => window.FlatMMOPlus.sendMessage("SHORTCUT_KEY=F10")
-        },
-        {
-            key: "F11",
-            name: "Badge 3",
-            description: "Activates Badge 3",
-            category: "badges",
-            func: () => window.FlatMMOPlus.sendMessage("SHORTCUT_KEY=F11")
-        },
-        {
-            key: "N/A",
-            name: "Badge 4",
-            description: "Activates Badge 4",
-            category: "badges",
-            func: () => window.FlatMMOPlus.sendMessage("SHORTCUT_KEY=F12")
-        },
-        //Teleports
-        {
-            key: "N/A",
-            name: "Everbrook Teleport",
-            description: "Teleports to Everbrook",
-            category: "teleports",
-            func: () => window.FlatMMOPlus.sendMessage("USE_WORSHIP=teleport_everbrook")
-        },
-        {
-            key: "N/A",
-            name: "Mystic Vale Teleport",
-            description: "Teleports to Mystic Vale",
-            category: "teleports",
-            func: () => window.FlatMMOPlus.sendMessage("USE_WORSHIP=teleport_mysticvale")
-        },
-        {
-            key: "N/A",
-            name: "Omboko Teleport",
-            description: "Teleports to Omboko",
-            category: "teleports",
-            func: () => window.FlatMMOPlus.sendMessage("USE_WORSHIP=teleport_omboko")
-        },
-        {
-            key: "N/A",
-            name: "Dock Haven Teleport",
-            description: "Teleports to Dock Haven",
-            category: "teleports",
-            func: () => window.FlatMMOPlus.sendMessage("USE_WORSHIP=teleport_dock_haven")
-        },
-        {
-            key: "N/A",
-            name: "Jafa Teleport",
-            description: "Teleports to Jafa",
-            category: "teleports",
-            func: () => window.FlatMMOPlus.sendMessage("USE_WORSHIP=teleport_jafa_outpost")
-        },
-        {
-            key: "N/A",
-            name: "Frostvale Teleport",
-            description: "Teleports to Frostvale",
-            category: "teleports",
-            func: () => window.FlatMMOPlus.sendMessage("USE_WORSHIP=teleport_frostvale")
-        },
-        {
-            key: "N/A",
-            name: "Stuck",
-            description: "Teleports to /stuck",
-            category: "teleports",
-            func: () => window.FlatMMOPlus.sendMessage("CHAT=/stuck")
-        },
-        //Worship
-        {
-            key: "N/A",
-            name: "Remote Sell",
-            description: "Opens Sell Menu",
-            category: "worship",
-            func: () => window.FlatMMOPlus.sendMessage("USE_WORSHIP=remote_sell")
-        },
-        {
-            key: "N/A",
-            name: "Dig",
-            description: "Dig",
-            category: "worship",
-            func: () => window.FlatMMOPlus.sendMessage("USE_WORSHIP=dig")
-        },
-        {
-            key: "N/A",
-            name: "Timers",
-            description: "Opens Timers Menu",
-            category: "worship",
-            func: () => window.FlatMMOPlus.sendMessage("USE_WORSHIP=timers")
-        },
-        {
-            key: "N/A",
-            name: "Hell Burrying",
-            description: "Burries your bones",
-            category: "worship",
-            func: () => window.FlatMMOPlus.sendMessage("USE_WORSHIP=auto_hell_burying")
-        },
-        {
-            key: "N/A",
-            name: "Hunting Contact",
-            description: "Opens Hunting Perks Menu",
-            category: "worship",
-            func: () => window.FlatMMOPlus.sendMessage("USE_WORSHIP=hunting_contact")
-        },
-        {
-            key: "N/A",
-            name: "Mass Pickup",
-            description: "Picks all your items",
-            category: "worship",
-            func: () => window.FlatMMOPlus.sendMessage("USE_WORSHIP=mass_pickup")
-        },
-        {
-            key: "N/A",
-            name: "Focus",
-            description: "Increases Damage by 5 and Accuracy by 2",
-            category: "worship",
-            func: () => window.FlatMMOPlus.sendMessage("USE_WORSHIP=focus")
-        },
-        {
-            key: "N/A",
-            name: "Clarity",
-            description: "Increases Damage by 15 and Accuracy by 5",
-            category: "worship",
-            func: () => window.FlatMMOPlus.sendMessage("USE_WORSHIP=clarity")
-        },
-        //Gamehotkeys
-        {
-            key: "Enter",
-            name: "Enter",
-            description: "Enter",
-            private: true,
-            func: () => enter_pressed()
-        },
-        {
-            key: "Backspace",
-            name: "Backspace",
-            description: "Backspace",
-            private: true,
-            repeat: true,
-            func: (e) => {
-                //It doesn't need to check the activeElement because it won't run on input/textarea
-                if(chat_ele.value.trim().length > 0) {
-                    chat_ele.value = chat_ele.value.substring(0, chat_ele.value.length - 1);
-                }
-                if(chat_ele.value.trim().length == 0) {
-                    request_unfocus_chatbox();
-                }
-            }
-        },
-        {
-            key: "Escape",
-            name: "Escape",
-            description: "Escape",
-            private: true,
-            func: (e) => {
-                let closed = false;
-                for (const s of opened_modals) {
-                    close_modal(s);
-                    closed = true;
-                }
-                if(!closed) {
-                    close_bank();
-                    close_global_market();
-                }
-            }
-        },
-        //Scrolls
-        {
-            key: "N/A",
-            name: "Chef's House Scroll",
-            description: "Uses a scroll to teleport to Chef's House",
-            category: "Teleport Book",
-            func: () => {
-                window.FlatMMOPlus.sendMessage(`TELE_BOOK=chefs_house_teleport_scroll`);
-            }
-        },
-        {
-            key: "N/A",
-            name: "Thieves Hideout Scroll",
-            description: "Uses a scroll to teleport to Thieves Hideout",
-            category: "Teleport Book",
-            func: () => {
-                window.FlatMMOPlus.sendMessage(`TELE_BOOK=thieves_hideout_teleport_scroll`);
-            }
-        },
-        {
-            key: "N/A",
-            name: "Greenhouse Scroll",
-            description: "Uses a scroll to teleport to Greenhouse",
-            category: "Teleport Book",
-            func: () => {
-                window.FlatMMOPlus.sendMessage(`TELE_BOOK=greenhouse_teleport_scroll`);
-            }
-        },
-        {
-            key: "N/A",
-            name: "Rogue's Grave Scroll",
-            description: "Uses a scroll to teleport to Rogue's Grave",
-            category: "Teleport Book",
-            func: () => {
-                window.FlatMMOPlus.sendMessage(`TELE_BOOK=rogue_teleport_scroll`);
-            }
-        },
-        {
-            key: "N/A",
-            name: "Phantos Mansion Scroll",
-            description: "Uses a scroll to teleport to Phantos Mansion",
-            category: "Teleport Book",
-            func: () => {
-                window.FlatMMOPlus.sendMessage(`TELE_BOOK=phantos_teleport_scroll`);
-            }
-        },
-        //Menus
-        {
-            key: "N/A",
-            name: "View Bank",
-            description: "Opens Bank Panel",
-            category: "panels",
-            func: () => {
-                window.FlatMMOPlus.sendMessage(`VIEW_BANK`);
-            }
-        },
-        {
-            key: "N/A",
-            name: "View Hunting",
-            description: "Opens Hunting Panel",
-            category: "panels",
-            func: () => {
-                switch_panels('hunting');
-            }
-        },
-        {
-            key: "N/A",
-            name: "View Collections",
-            description: "Opens Collections Panel",
-            category: "panels",
-            func: () => {
-                Globals.websocket.send('OPEN_COLLECTION_LOG');
-            }
-        },
-        {
-            key: "N/A",
-            name: "View Market",
-            description: "Opens Market Listing",
-            category: "panels",
-            func: () => {
-                window.open('https://market.flatmmo.com/market/listing/all/view/', '_blank')
-            }
-        }
-    ]
-    let hotkeyOverride = {};
+	/** @type {Hotkey[]} All the default hotkeys */
+	const defaultHotkeys = [
+		//Default F keys
+		{
+			key: "F1",
+			name: "RUN!",
+			description: "Toggle Run",
+			category: "actions",
+			func: () => window.FlatMMOPlus.sendMessage("SHORTCUT_KEY=F1")
+		},
+		{
+			key: "F2",
+			name: "Eat",
+			description: "Consumes a piece of food",
+			category: "actions",
+			func: () => window.FlatMMOPlus.sendMessage("SHORTCUT_KEY=F2")
+		},
+		{
+			key: "F3",
+			name: "Fire",
+			description: "Lights a fire",
+			category: "actions",
+			func: () => window.FlatMMOPlus.sendMessage("SHORTCUT_KEY=F3")
+		},
+		{
+			key: "F4",
+			name: "Dodge",
+			description: "Activates dodge ability",
+			category: "actions",
+			func: () => window.FlatMMOPlus.sendMessage("SHORTCUT_KEY=F4")
+		},
+		{
+			key: "N/A",
+			name: "Special Attack",
+			description: "Special Attack",
+			category: "actions",
+			func: () => window.FlatMMOPlus.sendMessage('SPECIAL_ATTACK')
+		},
+		//Equipment
+		{
+			key: "F6",
+			name: "Preset 1",
+			description: "Equips Preset 1",
+			category: "equipments",
+			func: () => window.FlatMMOPlus.sendMessage("SHORTCUT_KEY=F6")
+		},
+		{
+			key: "F7",
+			name: "Preset 2",
+			description: "Equips Preset 2",
+			category: "equipments",
+			func: () => window.FlatMMOPlus.sendMessage("SHORTCUT_KEY=F7")
+		},
+		{
+			key: "F8",
+			name: "Preset 3",
+			description: "Equips Preset 3",
+			category: "equipments",
+			func: () => window.FlatMMOPlus.sendMessage("SHORTCUT_KEY=F8")
+		},
+		//Badges
+		{
+			key: "F9",
+			name: "Badge 1",
+			description: "Activates Badge 1",
+			category: "badges",
+			func: () => window.FlatMMOPlus.sendMessage("SHORTCUT_KEY=F9")
+		},
+		{
+			key: "F10",
+			name: "Badge 2",
+			description: "Activates Badge 2",
+			category: "badges",
+			func: () => window.FlatMMOPlus.sendMessage("SHORTCUT_KEY=F10")
+		},
+		{
+			key: "F11",
+			name: "Badge 3",
+			description: "Activates Badge 3",
+			category: "badges",
+			func: () => window.FlatMMOPlus.sendMessage("SHORTCUT_KEY=F11")
+		},
+		//Teleports
+		{
+			key: "N/A",
+			name: "Everbrook Teleport",
+			description: "Teleports to Everbrook",
+			category: "teleports",
+			func: () => window.FlatMMOPlus.sendMessage("USE_WORSHIP=teleport_everbrook")
+		},
+		{
+			key: "N/A",
+			name: "Mystic Vale Teleport",
+			description: "Teleports to Mystic Vale",
+			category: "teleports",
+			func: () => window.FlatMMOPlus.sendMessage("USE_WORSHIP=teleport_mysticvale")
+		},
+		{
+			key: "N/A",
+			name: "Omboko Teleport",
+			description: "Teleports to Omboko",
+			category: "teleports",
+			func: () => window.FlatMMOPlus.sendMessage("USE_WORSHIP=teleport_omboko")
+		},
+		{
+			key: "N/A",
+			name: "Dock Haven Teleport",
+			description: "Teleports to Dock Haven",
+			category: "teleports",
+			func: () => window.FlatMMOPlus.sendMessage("USE_WORSHIP=teleport_dock_haven")
+		},
+		{
+			key: "N/A",
+			name: "Jafa Teleport",
+			description: "Teleports to Jafa",
+			category: "teleports",
+			func: () => window.FlatMMOPlus.sendMessage("USE_WORSHIP=teleport_jafa_outpost")
+		},
+		{
+			key: "N/A",
+			name: "Frostvale Teleport",
+			description: "Teleports to Frostvale",
+			category: "teleports",
+			func: () => window.FlatMMOPlus.sendMessage("USE_WORSHIP=teleport_frostvale")
+		},
+		{
+			key: "N/A",
+			name: "Stuck",
+			description: "Teleports to /stuck",
+			category: "teleports",
+			func: () => window.FlatMMOPlus.sendMessage("CHAT=/stuck")
+		},
+		//Worship
+		{
+			key: "N/A",
+			name: "Remote Sell",
+			description: "Opens Sell Menu",
+			category: "worship",
+			func: () => window.FlatMMOPlus.sendMessage("USE_WORSHIP=remote_sell")
+		},
+		{
+			key: "N/A",
+			name: "Dig",
+			description: "Dig",
+			category: "worship",
+			func: () => window.FlatMMOPlus.sendMessage("USE_WORSHIP=dig")
+		},
+		{
+			key: "N/A",
+			name: "Timers",
+			description: "Opens Timers Menu",
+			category: "worship",
+			func: () => window.FlatMMOPlus.sendMessage("USE_WORSHIP=timers")
+		},
+		{
+			key: "N/A",
+			name: "Hell Burrying",
+			description: "Burries your bones",
+			category: "worship",
+			func: () => window.FlatMMOPlus.sendMessage("USE_WORSHIP=auto_hell_burying")
+		},
+		{
+			key: "N/A",
+			name: "Hunting Contact",
+			description: "Opens Hunting Perks Menu",
+			category: "worship",
+			func: () => window.FlatMMOPlus.sendMessage("USE_WORSHIP=hunting_contact")
+		},
+		{
+			key: "N/A",
+			name: "Mass Pickup",
+			description: "Picks all your items",
+			category: "worship",
+			func: () => window.FlatMMOPlus.sendMessage("USE_WORSHIP=mass_pickup")
+		},
+		{
+			key: "N/A",
+			name: "Focus",
+			description: "Increases Damage by 5 and Accuracy by 2",
+			category: "worship",
+			func: () => window.FlatMMOPlus.sendMessage("USE_WORSHIP=focus")
+		},
+		{
+			key: "N/A",
+			name: "Clarity",
+			description: "Increases Damage by 15 and Accuracy by 5",
+			category: "worship",
+			func: () => window.FlatMMOPlus.sendMessage("USE_WORSHIP=clarity")
+		},
+		//Gamehotkeys
+		{
+			key: "Enter",
+			name: "Enter",
+			description: "Enter",
+			private: true,
+			func: () => enter_pressed()
+		},
+		{
+			key: "Backspace",
+			name: "Backspace",
+			description: "Backspace",
+			private: true,
+			repeat: true,
+			func: (e) => {
+				//It doesn't need to check the activeElement because it won't run on input/textarea
+				if (chat_ele.value.trim().length > 0) {
+					chat_ele.value = chat_ele.value.substring(0, chat_ele.value.length - 1);
+				}
+				if (chat_ele.value.trim().length == 0) {
+					request_unfocus_chatbox();
+				}
+			}
+		},
+		{
+			key: "Escape",
+			name: "Escape",
+			description: "Escape",
+			private: true,
+			func: (e) => {
+				let closed = false;
+				for (const s of opened_modals) {
+					close_modal(s);
+					closed = true;
+				}
+				if (!closed) {
+					close_bank();
+					close_global_market();
+				}
+			}
+		},
+		//Scrolls
+		{
+			key: "N/A",
+			name: "Chef's House Scroll",
+			description: "Uses a scroll to teleport to Chef's House",
+			category: "Teleport Book",
+			func: () => {
+				window.FlatMMOPlus.sendMessage(`TELE_BOOK=chefs_house_teleport_scroll`);
+			}
+		},
+		{
+			key: "N/A",
+			name: "Thieves Hideout Scroll",
+			description: "Uses a scroll to teleport to Thieves Hideout",
+			category: "Teleport Book",
+			func: () => {
+				window.FlatMMOPlus.sendMessage(`TELE_BOOK=thieves_hideout_teleport_scroll`);
+			}
+		},
+		{
+			key: "N/A",
+			name: "Greenhouse Scroll",
+			description: "Uses a scroll to teleport to Greenhouse",
+			category: "Teleport Book",
+			func: () => {
+				window.FlatMMOPlus.sendMessage(`TELE_BOOK=greenhouse_teleport_scroll`);
+			}
+		},
+		{
+			key: "N/A",
+			name: "Rogue's Grave Scroll",
+			description: "Uses a scroll to teleport to Rogue's Grave",
+			category: "Teleport Book",
+			func: () => {
+				window.FlatMMOPlus.sendMessage(`TELE_BOOK=rogue_teleport_scroll`);
+			}
+		},
+		{
+			key: "N/A",
+			name: "Phantos Mansion Scroll",
+			description: "Uses a scroll to teleport to Phantos Mansion",
+			category: "Teleport Book",
+			func: () => {
+				window.FlatMMOPlus.sendMessage(`TELE_BOOK=phantos_teleport_scroll`);
+			}
+		},
+		//Menus
+		{
+			key: "N/A",
+			name: "View Bank",
+			description: "Opens Bank Panel",
+			category: "panels",
+			func: () => {
+				window.FlatMMOPlus.sendMessage(`VIEW_BANK`);
+			}
+		},
+		{
+			key: "N/A",
+			name: "View Hunting",
+			description: "Opens Hunting Panel",
+			category: "panels",
+			func: () => {
+				switch_panels('hunting');
+			}
+		},
+		{
+			key: "N/A",
+			name: "Contact Hunter",
+			description: "Contact Hunter",
+			category: "panels",
+			func: () => {
+				window.FlatMMOPlus.sendMessage("NPC_CHAT_OPTION=hunting_guide~1~1");
+			}
+		},
+		{
+			key: "N/A",
+			name: "View Collections",
+			description: "Opens Collections Panel",
+			category: "panels",
+			func: () => {
+				window.FlatMMOPlus.sendMessage('OPEN_COLLECTION_LOG');
+			}
+		},
+		{
+			key: "N/A",
+			name: "View Market",
+			description: "Opens Market Listing",
+			category: "panels",
+			func: () => {
+				window.open('https://market.flatmmo.com/market/listing/all/view/', '_blank')
+			}
+		},
+		{
+			key: "N/A",
+			name: "FlatStats",
+			description: "Opens Rann's FlatStats",
+			category: "panels",
+			func: () => {
+				window.open(`https://flatstats.ravenwoodsoftware.org/player/${Globals.local_username}`, "_blank");
+			}
+		}
+	]
+	let hotkeyOverride = {};
 
-    //This is used for hot updates
-    let plugins = {};
-    let panels = {};
-    let nextUniqueId = 1;
-    let customChatCommands = {
-        help: (command, data) => {
-            console.log("help", command, data);
-        }
-    };
-    let customChatHelp = {};
-    let currentPanel = "inventory";
-    let currentSettingsPanel = "sound";
-    let loggedIn = false;
-    let isFighting = false;
-    let original_onmessage;
-    let original_sendmessage;
-    let original_switch_panels;
-    let original_settings_modal_tab;
-    let flatnotifications = {};
+	//This is used for hot updates
+	let plugins = {};
+	let panels = {};
+	let nextUniqueId = 1;
+	let customChatCommands = {
+		help: (command, data) => {
+			console.log("help", command, data);
+		}
+	};
+	let customChatHelp = {};
+	let currentPanel = "inventory";
+	let currentSettingsPanel = "sound";
+	let loggedIn = false;
+	let isFighting = false;
+	let original_onmessage;
+	let original_sendmessage;
+	let original_switch_panels;
+	let original_settings_modal_tab;
+	let flatnotifications = {};
 
-    const pageWindow = typeof unsafeWindow !== 'undefined' ? unsafeWindow : window;
+	const pageWindow = typeof unsafeWindow !== 'undefined' ? unsafeWindow : window;
 
 	if (pageWindow.FlatMMOPlus) {
-        if(pageWindow.FlatMMOPlus.version >= VERSION) {
-            if (window !== pageWindow) {
-                window.AnimationSheetPlus = pageWindow.AnimationSheetPlus;
-                window.FlatMMOPlusPlugin = pageWindow.FlatMMOPlusPlugin;
-                window.FlatMMOPlus = pageWindow.FlatMMOPlus;
-            }
-            return;
-        }
-        plugins = pageWindow.FlatMMOPlus.plugins;
-        panels = pageWindow.FlatMMOPlus.panels;
-        nextUniqueId = pageWindow.FlatMMOPlus.nextUniqueId;
-        customChatCommands = pageWindow.FlatMMOPlus.customChatCommands;
-        customChatHelp = pageWindow.FlatMMOPlus.customChatHelp;
-        currentPanel = pageWindow.FlatMMOPlus.currentPanel;
-        currentSettingsPanel = pageWindow.FlatMMOPlus.currentSettingsPanel;
-        loggedIn = pageWindow.FlatMMOPlus.loggedIn;
-        isFighting = pageWindow.FlatMMOPlus.isFighting;
+		if (pageWindow.FlatMMOPlus.version >= VERSION) {
+			if (window !== pageWindow) {
+				window.AnimationSheetPlus = pageWindow.AnimationSheetPlus;
+				window.FlatMMOPlusPlugin = pageWindow.FlatMMOPlusPlugin;
+				window.FlatMMOPlus = pageWindow.FlatMMOPlus;
+			}
+			return;
+		}
+		plugins = pageWindow.FlatMMOPlus.plugins;
+		panels = pageWindow.FlatMMOPlus.panels;
+		nextUniqueId = pageWindow.FlatMMOPlus.nextUniqueId;
+		customChatCommands = pageWindow.FlatMMOPlus.customChatCommands;
+		customChatHelp = pageWindow.FlatMMOPlus.customChatHelp;
+		currentPanel = pageWindow.FlatMMOPlus.currentPanel;
+		currentSettingsPanel = pageWindow.FlatMMOPlus.currentSettingsPanel;
+		loggedIn = pageWindow.FlatMMOPlus.loggedIn;
+		isFighting = pageWindow.FlatMMOPlus.isFighting;
 
-        original_onmessage = pageWindow.FlatMMOPlus.original_onmessage || Globals.websocket.onmessage;
-        original_sendmessage = pageWindow.FlatMMOPlus.original_sendmessage || Globals.websocket.send;
-        original_switch_panels = pageWindow.FlatMMOPlus.original_switch_panels || window.switch_panels;
-        original_settings_modal_tab = pageWindow.FlatMMOPlus.original_settings_modal_tab || window.settings_modal_tab;
-        flatnotifications = pageWindow.FlatMMOPlus.notifications || {};
+		original_onmessage = pageWindow.FlatMMOPlus.original_onmessage || Globals.websocket.onmessage;
+		original_sendmessage = pageWindow.FlatMMOPlus.original_sendmessage || Globals.websocket.send;
+		original_switch_panels = pageWindow.FlatMMOPlus.original_switch_panels || window.switch_panels;
+		original_settings_modal_tab = pageWindow.FlatMMOPlus.original_settings_modal_tab || window.settings_modal_tab;
+		flatnotifications = pageWindow.FlatMMOPlus.notifications || {};
 
-        if (pageWindow.FlatMMOPlus.fmpKeyDown) {
-            pageWindow.removeEventListener("keydown", pageWindow.FlatMMOPlus.fmpKeyDown, false);
-        }
+		if (pageWindow.FlatMMOPlus.fmpKeyDown) {
+			pageWindow.removeEventListener("keydown", pageWindow.FlatMMOPlus.fmpKeyDown, false);
+		}
 
-        document.getElementById("ui-panel-flatmmoplus")?.remove();
-        document.getElementById("settings-modal-plugins-panel-btn")?.remove();
-        document.getElementById("settings-modal-plugins-panel")?.remove();
-        document.querySelector(".settings-ui tbody tr:last-child")?.remove()
+		document.getElementById("ui-panel-flatmmoplus")?.remove();
+		document.getElementById("settings-modal-plugins-panel-btn")?.remove();
+		document.getElementById("settings-modal-plugins-panel")?.remove();
+		document.querySelector(".settings-ui tbody tr:last-child")?.remove()
 	} else {
-        document.head.insertAdjacentHTML("beforeend", `<style>
+		document.head.insertAdjacentHTML("beforeend", `<style>
             .displaynone {
                 display: none !important;
             }
@@ -539,110 +557,110 @@
                 font-weight: bold;
             }
         </style>`);
-        //It won't break in case Smitty adds hotkey handler on vanilla
-        if(window["register_hotkey"] === undefined) {
-            //The new hotkey system does everything these does
-            window.removeEventListener("keypress", keypress_listener, false);
-            window.removeEventListener("keyup", keyup_listener, false);
-            window.removeEventListener("keydown", keydown_listener, false);
-            document.getElementById("chat-text-input").onkeypress = null
-            
-            //Record hotkey remap
-            window.addEventListener("click", (e) => {
-                const btn = e.target.closest("[data-hotkeystring]");
-                if(btn) {
-                    window.FlatMMOPlus.handler.hotkeyElement = btn;
-                    btn.innerText = "Recording";
-                }
-            })
-        }
-        original_onmessage = Globals.websocket.onmessage;
-        original_sendmessage = Globals.websocket.send;
-        original_switch_panels = window.switch_panels;
-        original_settings_modal_tab = window.settings_modal_tab;
+		//It won't break in case Smitty adds hotkey handler on vanilla
+		if (window["register_hotkey"] === undefined) {
+			//The new hotkey system does everything these does
+			window.removeEventListener("keypress", keypress_listener, false);
+			window.removeEventListener("keyup", keyup_listener, false);
+			window.removeEventListener("keydown", keydown_listener, false);
+			document.getElementById("chat-text-input").onkeypress = null
 
-    }
+			//Record hotkey remap
+			window.addEventListener("click", (e) => {
+				const btn = e.target.closest("[data-hotkeystring]");
+				if (btn) {
+					window.FlatMMOPlus.handler.hotkeyElement = btn;
+					btn.innerText = "Recording";
+				}
+			})
+		}
+		original_onmessage = Globals.websocket.onmessage;
+		original_sendmessage = Globals.websocket.send;
+		original_switch_panels = window.switch_panels;
+		original_settings_modal_tab = window.settings_modal_tab;
 
-	function logFancy(s, color="#00f7ff") {
-		console.log("%cFlatMMOPlus: %c"+s, `color: ${color}; font-weight: bold; font-size: 12pt;`, "color: silver; font-weight: normal; font-size: 10pt;");
 	}
 
-    /**
-     * Spritesheet, uses the same logic as the original spritesheet on the game, but without being locked using the game's cdn
-     */
-    class AnimationSheetPlus {
-        /**
-         * Creates a new spritesheet
-         * @param {string} filename 
-         * @param {number} frames 
-         * @param {number} speed 
-         * @param {string[]} images 
-         */
-        constructor(filename, frames, speed, images, waitImageLoad = false) {
-            this.filename = filename;
-            this.running = false;
-            this.frame_at = 0;
-            this.FRAMES = frames;
-            this.SPEED = speed;
-            this.speed_at = 0;
-            this.animation_tick_at = animation_tick;
-            this.images = []
-            for(var i = 1; i <= this.FRAMES; i++) {
-                let image = new Image();
-                image.src = images[i - 1]
-                this.images.push(image);
-            }
+	function logFancy(s, color = "#00f7ff") {
+		console.log("%cFlatMMOPlus: %c" + s, `color: ${color}; font-weight: bold; font-size: 12pt;`, "color: silver; font-weight: normal; font-size: 10pt;");
+	}
 
-            if(waitImageLoad === false) return this;
+	/**
+	 * Spritesheet, uses the same logic as the original spritesheet on the game, but without being locked using the game's cdn
+	 */
+	class AnimationSheetPlus {
+		/**
+		 * Creates a new spritesheet
+		 * @param {string} filename 
+		 * @param {number} frames 
+		 * @param {number} speed 
+		 * @param {string[]} images 
+		 */
+		constructor(filename, frames, speed, images, waitImageLoad = false) {
+			this.filename = filename;
+			this.running = false;
+			this.frame_at = 0;
+			this.FRAMES = frames;
+			this.SPEED = speed;
+			this.speed_at = 0;
+			this.animation_tick_at = animation_tick;
+			this.images = []
+			for (var i = 1; i <= this.FRAMES; i++) {
+				let image = new Image();
+				image.src = images[i - 1]
+				this.images.push(image);
+			}
 
-            return (async () => {
-                const loadPromises = this.images.map(img => {
-                    return new Promise((resolve) => {
-                        if (img.complete && img.naturalWidth !== 0) {
-                            resolve();
-                        } else {
-                            img.onload = () => resolve();
-                            img.onerror = () => resolve();
-                        }
-                    });
-                });
+			if (waitImageLoad === false) return this;
 
-                await Promise.all(loadPromises);
+			return (async () => {
+				const loadPromises = this.images.map(img => {
+					return new Promise((resolve) => {
+						if (img.complete && img.naturalWidth !== 0) {
+							resolve();
+						} else {
+							img.onload = () => resolve();
+							img.onerror = () => resolve();
+						}
+					});
+				});
 
-                return this; 
-            })();
-        }
+				await Promise.all(loadPromises);
 
-        /**
-         * Returns the next frame image
-         */
-        get_frame() {
-            if(this.FRAMES > 0) {
-                if(this.SPEED == this.speed_at) {
-                    //swtich frames
-                    if(this.animation_tick_at != animation_tick) {
-                        this.frame_at++;
-                        this.animation_tick_at = animation_tick;
-                    }
-                    
-                    if(this.FRAMES == this.frame_at) {
-                        this.frame_at = 0;
-                    }
-                    this.speed_at = 0;
-                } else {
-                    this.speed_at++;
-                }
-                return this.images[this.frame_at];
-            } else {
-                return this.images[0];
-            } 
-        }
-    }
+				return this;
+			})();
+		}
+
+		/**
+		 * Returns the next frame image
+		 */
+		get_frame() {
+			if (this.FRAMES > 0) {
+				if (this.SPEED == this.speed_at) {
+					//swtich frames
+					if (this.animation_tick_at != animation_tick) {
+						this.frame_at++;
+						this.animation_tick_at = animation_tick;
+					}
+
+					if (this.FRAMES == this.frame_at) {
+						this.frame_at = 0;
+					}
+					this.speed_at = 0;
+				} else {
+					this.speed_at++;
+				}
+				return this.images[this.frame_at];
+			} else {
+				return this.images[0];
+			}
+		}
+	}
 
 	class FlatMMOPlusPlugin {
 
 		constructor(id, opts) {
-			if(typeof id !== "string") {
+			if (typeof id !== "string") {
 				throw new TypeError("FlatMMOPlusPlugin constructor takes the following arguments: (id:string, opts?:object)");
 			}
 			this.id = id;
@@ -652,124 +670,124 @@
 		}
 
 		getConfig(name) {
-			if(!this.config) {
+			if (!this.config) {
 				FlatMMOPlus.loadPluginConfigs(this.id);
 			}
-			if(this.config) {
+			if (this.config) {
 				return this.config[name];
 			}
 		}
 
 		/*
-        onConfigsChanged() { }
-        onLogin() { }
-        onMessageReceived(data) { }
-        onChat(data) { }
+		onConfigsChanged() { }
+		onLogin() { }
+		onMessageReceived(data) { }
+		onChat(data) { }
 		onPanelChanged(panelBefore, panelAfter)
-        onMapChanged(mapBefore, mapAfter) { }
-        onInventoryChanged(inventoryBefore, inventoryAfter) { }
-        */
+		onMapChanged(mapBefore, mapAfter) { }
+		onInventoryChanged(inventoryBefore, inventoryAfter) { }
+		*/
 	}
 
-    class handlerPlugin extends FlatMMOPlusPlugin {
-        constructor() {
-            super("handler", {
-                about: {
-                    name: "Plugin Handler",
-                    version: VERSION,
-                    author: "Liam",
-                    description: "FlatMMO+ Configs"
-                },
-                /** @type {PluginConfig} */
-                config: [
-                    {
-                        id: "globalSettings",
-                        label: "Share settings across all profiles",
-                        type: "boolean",
-                        default: true
-                    },
-                    {
-                        id: "turnSettingsGlobal",
-                        label: "Copy this profile's options to all profiles",
-                        text: "Copy",
-                        type: "button",
-                        func: "FlatMMOPlus.handler.shareThisSettings",
-                        //class: "btnClass"
-                    },
-                    {
-                        id: "hoverNotifications",
-                        label: "Plugin Notifications Orbs",
-                        type: "boolean",
-                        default: false
-                    },
-                    {
-                        id: "hoverNotificationHeight",
-                        label: "Notification Orbs Height",
-                        type: "range",
-                        min: 2,
-                        max: 14,
-                        step: 1,
-                        default: 10,
-                    },
-                    {
-                        id: "hoverNotificationAlpha",
-                        label: "Notification Orbs Transparency",
-                        type: "range",
-                        min: 0,
-                        max: 100,
-                        default: 100
-                    }
-                ]
-            })
-            /** @type {HTMLInputElement|null} */
-            this.chatInput = document.getElementById("chat-text-input") || null;
-            /** @type {Set} */
-            this.hotkeyCategories = new Set();
-            /** @type {Object<string,Hotkey>} */
-            this.hotkeys = {};
-            /** @type {HTMLButtonElement|null} */
-            this.hotkeyElement = null;
-        }
-
-        /**
-         * Copies current profile settings to every other profile
-         */
-        shareThisSettings() {
-            let keys = {
-                main: Globals.local_username,
-                scripts: new Set(),
-                alts: new Set(),
-            }
-
-            for (const key in localStorage) {
-                const match = key.match(/flatmmoplus\.(.*?)(?:\.(.*?))?\.config/);
-                if(match === null) continue;
-
-                const id = match[1];
-
-                keys.scripts.add(id);
-
-                const username = match[2];
-                if(username && username !== Globals.local_username) {
-                    keys.alts.add(username);
-                }
-            }
-
-            keys.scripts.forEach(script => {
-                const value = localStorage.getItem(`flatmmoplus.${script}.${keys.main}.config`) || '{}';
-
-                keys.alts.forEach(profile => {
-                    localStorage.setItem(`flatmmoplus.${script}.${profile}.config`)
-                })
-            })
-        }
-    }
-
-    class FlatMMOPlus {
+	class handlerPlugin extends FlatMMOPlusPlugin {
 		constructor() {
-            this.name = ""
+			super("handler", {
+				about: {
+					name: "Plugin Handler",
+					version: VERSION,
+					author: "Liam",
+					description: "FlatMMO+ Configs"
+				},
+				/** @type {PluginConfig} */
+				config: [
+					{
+						id: "globalSettings",
+						label: "Share settings across all profiles",
+						type: "boolean",
+						default: true
+					},
+					{
+						id: "turnSettingsGlobal",
+						label: "Copy this profile's options to all profiles",
+						text: "Copy",
+						type: "button",
+						func: "FlatMMOPlus.handler.shareThisSettings",
+						//class: "btnClass"
+					},
+					{
+						id: "hoverNotifications",
+						label: "Plugin Notifications Orbs",
+						type: "boolean",
+						default: false
+					},
+					{
+						id: "hoverNotificationHeight",
+						label: "Notification Orbs Height",
+						type: "range",
+						min: 2,
+						max: 14,
+						step: 1,
+						default: 10,
+					},
+					{
+						id: "hoverNotificationAlpha",
+						label: "Notification Orbs Transparency",
+						type: "range",
+						min: 0,
+						max: 100,
+						default: 100
+					}
+				]
+			})
+			/** @type {HTMLInputElement|null} */
+			this.chatInput = document.getElementById("chat-text-input") || null;
+			/** @type {Set} */
+			this.hotkeyCategories = new Set();
+			/** @type {Object<string,Hotkey>} */
+			this.hotkeys = {};
+			/** @type {HTMLButtonElement|null} */
+			this.hotkeyElement = null;
+		}
+
+		/**
+		 * Copies current profile settings to every other profile
+		 */
+		shareThisSettings() {
+			let keys = {
+				main: Globals.local_username,
+				scripts: new Set(),
+				alts: new Set(),
+			}
+
+			for (const key in localStorage) {
+				const match = key.match(/flatmmoplus\.(.*?)(?:\.(.*?))?\.config/);
+				if (match === null) continue;
+
+				const id = match[1];
+
+				keys.scripts.add(id);
+
+				const username = match[2];
+				if (username && username !== Globals.local_username) {
+					keys.alts.add(username);
+				}
+			}
+
+			keys.scripts.forEach(script => {
+				const value = localStorage.getItem(`flatmmoplus.${script}.${keys.main}.config`) || '{}';
+
+				keys.alts.forEach(profile => {
+					localStorage.setItem(`flatmmoplus.${script}.${profile}.config`)
+				})
+			})
+		}
+	}
+
+	class FlatMMOPlus {
+		constructor() {
+			this.name = ""
 			this.version = VERSION;
-            /** @type {Object<string, FlatMMOPlusPlugin>} */
+			/** @type {Object<string, FlatMMOPlusPlugin>} */
 			this.plugins = plugins;
 			this.panels = panels;
 			this.debug = false;
@@ -779,1431 +797,1437 @@
 			this.currentPanel = currentPanel;
 			this.currentSettingsPanel = currentSettingsPanel;
 			this.loggedIn = loggedIn;
-            this.isFighting = isFighting;
-            this.in_combat_ticker = 0;
-            this.currentAction = this.currentAction;
-            this.original_onmessage = original_onmessage;
-            this.original_sendmessage = original_sendmessage;
-            this.original_switch_panels = original_switch_panels;
-            this.original_settings_modal_tab = original_settings_modal_tab;
-            this.notifications = flatnotifications;
-            this.level = [
-                0,0,108,177,265,380,527,717,956,1254,1622,2068,2605,3245,4000,4885,5913,7100,8464,10022,11794,13799,16060,18599,21442,24614,28145,32063,36400,41191,46470,52277,58652,65637,73279,81625,90728,100642,111424,123135,135841,149611,164516,180634,198047,216840,237105,258938,282440,307721,334893,364077,395399,428994,465003,503577,544871,589054,636300,686794,740732,798320,859775,925326,995213,1069691,1149027,1233503,1323417,1419081,1520824,1628993,1743952,1866086,1995798,2133515,2279683,2434772,2599278,2773721,2958649,3154637,3362289,3582243,3815166,4061762,4322767,4598959,4891153,5200203,5527011,5872521,6237725,6623665,7031436,7462185,7917120,8397507,8904674,9440017,10004999,10601158,11230106,11893534,12593217,13331018,14108890,14928883,15793144,16703929,17663602,18674641,19739647,20861344,22042590,23286382,24595860,25974317,27425202,28952134,30558903,32249481,34028033,35898920,37866713,39936202,42112405,44400579,46806231,49335129,51993317,54787124,57723179,60808425,64050133,67455918,71033752,74791986,78739361,82885031,87238578,91810037,96609909,101649191,106939392,112492559,118321304,124438823,130858933,137596089,144665421,152082764,159864685,168028523,176592418,185575354,194997190,204878707,215241643,226108743,237503800,249451703,261978489,275111393,288878903,303310817,318438300,334293948,350911852,368327667,386578678,405703877,425744040,446741808,468741765,491790534,515936862,541231719,567728396,595482609,624552610,654999299,686886341,720280294,755250734,791870395,830215305,870364937,912402361,956414404,1002491823,1050729473,1101226494,1154086502,1209417785,1267333518,1327951974,1391396753,1457797021,1527287754,1600009999
-            ];
+			this.isFighting = isFighting;
+			this.in_combat_ticker = 0;
+			this.currentAction = this.currentAction;
+			this.original_onmessage = original_onmessage;
+			this.original_sendmessage = original_sendmessage;
+			this.original_switch_panels = original_switch_panels;
+			this.original_settings_modal_tab = original_settings_modal_tab;
+			this.notifications = flatnotifications;
+			this.level = [
+				0, 0, 108, 177, 265, 380, 527, 717, 956, 1254, 1622, 2068, 2605, 3245, 4000, 4885, 5913, 7100, 8464, 10022, 11794, 13799, 16060, 18599, 21442, 24614, 28145, 32063, 36400, 41191, 46470, 52277, 58652, 65637, 73279, 81625, 90728, 100642, 111424, 123135, 135841, 149611, 164516, 180634, 198047, 216840, 237105, 258938, 282440, 307721, 334893, 364077, 395399, 428994, 465003, 503577, 544871, 589054, 636300, 686794, 740732, 798320, 859775, 925326, 995213, 1069691, 1149027, 1233503, 1323417, 1419081, 1520824, 1628993, 1743952, 1866086, 1995798, 2133515, 2279683, 2434772, 2599278, 2773721, 2958649, 3154637, 3362289, 3582243, 3815166, 4061762, 4322767, 4598959, 4891153, 5200203, 5527011, 5872521, 6237725, 6623665, 7031436, 7462185, 7917120, 8397507, 8904674, 9440017, 10004999, 10601158, 11230106, 11893534, 12593217, 13331018, 14108890, 14928883, 15793144, 16703929, 17663602, 18674641, 19739647, 20861344, 22042590, 23286382, 24595860, 25974317, 27425202, 28952134, 30558903, 32249481, 34028033, 35898920, 37866713, 39936202, 42112405, 44400579, 46806231, 49335129, 51993317, 54787124, 57723179, 60808425, 64050133, 67455918, 71033752, 74791986, 78739361, 82885031, 87238578, 91810037, 96609909, 101649191, 106939392, 112492559, 118321304, 124438823, 130858933, 137596089, 144665421, 152082764, 159864685, 168028523, 176592418, 185575354, 194997190, 204878707, 215241643, 226108743, 237503800, 249451703, 261978489, 275111393, 288878903, 303310817, 318438300, 334293948, 350911852, 368327667, 386578678, 405703877, 425744040, 446741808, 468741765, 491790534, 515936862, 541231719, 567728396, 595482609, 624552610, 654999299, 686886341, 720280294, 755250734, 791870395, 830215305, 870364937, 912402361, 956414404, 1002491823, 1050729473, 1101226494, 1154086502, 1209417785, 1267333518, 1327951974, 1391396753, 1457797021, 1527287754, 1600009999
+			];
 
-			if(localStorage.getItem(LOCAL_STORAGE_KEY_DEBUG) == "1") {
-                this.debug = true;
-            }
+			if (localStorage.getItem(LOCAL_STORAGE_KEY_DEBUG) == "1") {
+				this.debug = true;
+			}
 		}
-    }
+	}
 
-    /**
-     * I'm not sure why Smitty has both keydown and the deprecated keypress, I will merge both codes here 
-     * @param {KeyboardEvent} e
-     */
-    FlatMMOPlus.prototype.fmpKeyDown = function(e) {
-        //This should make sure inputs don't break
-        if(document.activeElement.nodeName === "INPUT" || document.activeElement.nodeName === "TEXTAREA" || document.activeElement.getAttribute("contenteditable") === "true") {
-            if(document.activeElement.id === "chat-text-input" && e.key === "Enter") {
-                enter_pressed()
-            }
-            return;
-        };
+	/**
+	 * I'm not sure why Smitty has both keydown and the deprecated keypress, I will merge both codes here 
+	 * @param {KeyboardEvent} e
+	 */
+	FlatMMOPlus.prototype.fmpKeyDown = function (e) {
+		//This should make sure inputs don't break
+		if (document.activeElement.nodeName === "INPUT" || document.activeElement.nodeName === "TEXTAREA" || document.activeElement.getAttribute("contenteditable") === "true") {
+			if (document.activeElement.id === "chat-text-input" && e.key === "Enter") {
+				enter_pressed()
+			}
+			return;
+		};
 
-        if(has_npc_chat_message_modal_open() && e.key === " ") {
-            document.getElementById("npc-chat-message-modal-continue-btn").click();
-            e.preventDefault();
-            return;
-        }
+		if (has_npc_chat_message_modal_open() && e.key === " ") {
+			document.getElementById("npc-chat-message-modal-continue-btn").click();
+			e.preventDefault();
+			return;
+		}
 
-        //This doesn't need a switch case
-        if(has_npc_chat_options_modal_open() && e.keyCode > 48 && e.keyCode < 58) {
-            //1 is 49
-            const value = e.keyCode - 49;
-            let wrapper = document.getElementById("npc-chat-options-modal-content");
-            let options = wrapper.getElementsByTagName("div");
-            if(options[value] && options[value].style.display != 'none') {
-                options[value].click();
-            }
-            return;
-        }
+		//This doesn't need a switch case
+		if (has_npc_chat_options_modal_open() && e.keyCode > 48 && e.keyCode < 58) {
+			//1 is 49
+			const value = e.keyCode - 49;
+			let wrapper = document.getElementById("npc-chat-options-modal-content");
+			let options = wrapper.getElementsByTagName("div");
+			if (options[value] && options[value].style.display != 'none') {
+				options[value].click();
+			}
+			return;
+		}
 
-        //Modifiers can't have hotkeys on them
-        if(e.key === "Shift" || e.key === "Control" || e.key === "Alt" || e.key === "Meta") return;
+		//Modifiers can't have hotkeys on them
+		if (e.key === "Shift" || e.key === "Control" || e.key === "Alt" || e.key === "Meta") return;
 
-        const stringKey = window.FlatMMOPlus.formatHotkey(e);
+		const stringKey = window.FlatMMOPlus.formatHotkey(e);
 
-        if(window.FlatMMOPlus.handler.hotkeyElement !== null) {
-            e.preventDefault();
-            window.FlatMMOPlus.remapHotkey(e, stringKey);
-            return;
-        }
+		if (window.FlatMMOPlus.handler.hotkeyElement !== null) {
+			e.preventDefault();
+			window.FlatMMOPlus.remapHotkey(e, stringKey);
+			return;
+		}
 
-        if(window.FlatMMOPlus.handler.hotkeys.hasOwnProperty(stringKey)) {
-            e.preventDefault();
-            window.FlatMMOPlus.handler.hotkeys[stringKey].forEach(h =>{
-                //Most hotkeys won't allow holding down to spam them
-                if(h.repeat || e.repeat == false) {
-                    h.func(e);
-                }
-            });
-            return;
-        }
+		if (window.FlatMMOPlus.handler.hotkeys.hasOwnProperty(stringKey)) {
+			e.preventDefault();
+			window.FlatMMOPlus.handler.hotkeys[stringKey].forEach(h => {
+				//Most hotkeys won't allow holding down to spam them
+				if (h.repeat || e.repeat == false) {
+					h.func(e);
+				}
+			});
+			return;
+		}
 
-        if(has_modal_open()) return;
-        if(document.activeElement.id != "body") {return;}
+		if (has_modal_open()) return;
+		if (document.activeElement.id != "body") { return; }
 
-        //Vanilla chat has a 100 characters limitation
-        if(LOCAL_CHAT_MAX_LENGTH <= chat_ele.value.length && this.handler.chatInput?.id === "chat-text-input") {
-            return;
-        }
+		//Vanilla chat has a 100 characters limitation
+		if (LOCAL_CHAT_MAX_LENGTH <= chat_ele.value.length && this.handler.chatInput?.id === "chat-text-input") {
+			return;
+		}
 
-        //Special keys won't be added
-        if(e.key.length > 1) return;
+		//Special keys won't be added
+		if (e.key.length > 1) return;
 
-        //Using key instead of code should fix any browser/keyboard issues
-        chat_ele.value += e.key;
-    }
+		//Using key instead of code should fix any browser/keyboard issues
+		chat_ele.value += e.key;
+	}
 
-    FlatMMOPlus.prototype.remapHotkey = function(e, stringKey) {
-        if(e.key === "Escape") {
-            stringKey = "N/A"
-        }
-        const hotkeyName = this.handler.hotkeyElement?.getAttribute("data-hotkeyname");
-        const hotkeyString = this.handler.hotkeyElement?.getAttribute("data-hotkeystring");
-        const hotkeyIndex = this.handler.hotkeys[hotkeyString]?.findIndex(h => h.name === hotkeyName)
+	FlatMMOPlus.prototype.remapHotkey = function (e, stringKey) {
+		if (e.key === "Escape") {
+			stringKey = "N/A"
+		}
+		const hotkeyName = this.handler.hotkeyElement?.getAttribute("data-hotkeyname");
+		const hotkeyString = this.handler.hotkeyElement?.getAttribute("data-hotkeystring");
+		const hotkeyIndex = this.handler.hotkeys[hotkeyString]?.findIndex(h => h.name === hotkeyName)
 
-        if(hotkeyIndex !== -1) {
-            const hotkey = this.handler.hotkeys[hotkeyString].splice(hotkeyIndex, 1);
-            if(this.handler.hotkeys[hotkeyString].length === 0) {
-                delete this.handler.hotkeys[hotkeyString];
-            }
+		if (hotkeyIndex !== -1) {
+			const hotkey = this.handler.hotkeys[hotkeyString].splice(hotkeyIndex, 1);
+			if (this.handler.hotkeys[hotkeyString].length === 0) {
+				delete this.handler.hotkeys[hotkeyString];
+			}
 
-            if(!this.handler.hotkeys.hasOwnProperty(stringKey)) {
-                this.handler.hotkeys[stringKey] = [];
-            }
+			if (!this.handler.hotkeys.hasOwnProperty(stringKey)) {
+				this.handler.hotkeys[stringKey] = [];
+			}
 
-            this.handler.hotkeys[stringKey].push(...hotkey);
-            this.handler.hotkeyElement.innerText = stringKey;
-            this.handler.hotkeyElement.setAttribute("data-hotkeystring", stringKey);
+			this.handler.hotkeys[stringKey].push(...hotkey);
+			this.handler.hotkeyElement.innerText = stringKey;
+			this.handler.hotkeyElement.setAttribute("data-hotkeystring", stringKey);
 
-            hotkeyOverride[hotkeyName] = stringKey;
-            localStorage.setItem("FMP-hotkeys", JSON.stringify(hotkeyOverride));
+			hotkeyOverride[hotkeyName] = stringKey;
+			localStorage.setItem("FMP-hotkeys", JSON.stringify(hotkeyOverride));
 
-            this.checkHotkeyConflicts();
-        }
+			this.checkHotkeyConflicts();
+		}
 
-        this.handler.hotkeyElement = null;
-    }
+		this.handler.hotkeyElement = null;
+	}
 
-    FlatMMOPlus.prototype.registerHotkeyCategory = function(category) {
-        const id = "fmp-hotkeys-category-" + category
-        if(document.getElementById(id)) return;
+	FlatMMOPlus.prototype.registerHotkeyCategory = function (category) {
+		const id = "fmp-hotkeys-category-" + category
+		if (document.getElementById(id)) return;
 
-        const container = document.createElement("div");
+		const container = document.createElement("div");
 
-        container.innerHTML = `<h1>${category}</h1>
+		container.innerHTML = `<h1>${category}</h1>
         <div class="fmpHotkeysCategory" id="${id}"></div>`
 
-        document.getElementById("ui-panel-hotkeys-content").append(container);
+		document.getElementById("ui-panel-hotkeys-content").append(container);
 
-        this.handler.hotkeyCategories.add(category);
-    }
+		this.handler.hotkeyCategories.add(category);
+	}
 
-    /**
-     * Registers a new hotkey, hotkeys can be overwriten or redeclared
-     * @param {Hotkey} hotkey 
-     */
-    FlatMMOPlus.prototype.registerHotkey = function(hotkey) {
-        if(typeof hotkey.func !== "function") {
-            console.error("You forgot the the hotkey.func or it is not a function")
-        }
-        //Modifiers are optional
-        hotkey.ctrlKey = hotkey.ctrlKey || false;
-        hotkey.altKey = hotkey.altKey || false;
-        hotkey.shiftKey = hotkey.shiftKey || false;
-        hotkey.metaKey = hotkey.metaKey || false;
+	/**
+	 * Registers a new hotkey, hotkeys can be overwriten or redeclared
+	 * @param {Hotkey} hotkey 
+	 */
+	FlatMMOPlus.prototype.registerHotkey = function (hotkey) {
+		if (typeof hotkey.func !== "function") {
+			console.error("You forgot the the hotkey.func or it is not a function")
+		}
+		//Modifiers are optional
+		hotkey.ctrlKey = hotkey.ctrlKey || false;
+		hotkey.altKey = hotkey.altKey || false;
+		hotkey.shiftKey = hotkey.shiftKey || false;
+		hotkey.metaKey = hotkey.metaKey || false;
 
-        let stringKey = this.formatHotkey(hotkey);
+		let stringKey = this.formatHotkey(hotkey);
 
-        //Users can modify the key
-        if(hotkeyOverride.hasOwnProperty(hotkey.name)) {
-            stringKey = hotkeyOverride[hotkey.name];
-        }
+		//Users can modify the key
+		if (hotkeyOverride.hasOwnProperty(hotkey.name)) {
+			stringKey = hotkeyOverride[hotkey.name];
+		}
 
-        //Plugins can override or redeclare keyboards
-        const oldEl = document.getElementById("fmp-hotkeysContainer-" + hotkey.name);
-        if(oldEl) {
-            oldEl.remove()
-        }
+		//Plugins can override or redeclare keyboards
+		const oldEl = document.getElementById("fmp-hotkeysContainer-" + hotkey.name);
+		if (oldEl) {
+			oldEl.remove()
+		}
 
-        //Some hotkeys should not show on hotkey menu
-        if(!hotkey.private) {
-            //Hotkey Panel has categories, if not specified it will be misc, if it doesn't exist it will add
-            hotkey.category = hotkey.category || "misc";
-            if(!this.handler.hotkeyCategories.has(hotkey.category)) {
-                this.registerHotkeyCategory(hotkey.category)
-            }
+		//Some hotkeys should not show on hotkey menu
+		if (!hotkey.private) {
+			//Hotkey Panel has categories, if not specified it will be misc, if it doesn't exist it will add
+			hotkey.category = hotkey.category || "misc";
+			if (!this.handler.hotkeyCategories.has(hotkey.category)) {
+				this.registerHotkeyCategory(hotkey.category)
+			}
 
-            const categoryId = "fmp-hotkeys-category-" + hotkey.category;
-            document.getElementById(categoryId).insertAdjacentHTML("beforeend", `<div id="fmp-hotkeysContainer-${hotkey.name}">
+			const categoryId = "fmp-hotkeys-category-" + hotkey.category;
+			document.getElementById(categoryId).insertAdjacentHTML("beforeend", `<div id="fmp-hotkeysContainer-${hotkey.name}">
                 <h3>${hotkey.name}</h3>
                 <p>${hotkey.description}</p>
                 <button class="fmp-hotkeys-buttons" id="fmp-hotkeys-${hotkey.name}" data-hotkeyname="${hotkey.name}" data-hotkeystring="${stringKey}">${stringKey}</button>
             </div>`)
-        }
+		}
 
-        //Conflicts are fine
-        if(!this.handler.hotkeys.hasOwnProperty(stringKey)) {
-            this.handler.hotkeys[stringKey] = [];
-        }
-        this.handler.hotkeys[stringKey].push(hotkey);
+		//Conflicts are fine
+		if (!this.handler.hotkeys.hasOwnProperty(stringKey)) {
+			this.handler.hotkeys[stringKey] = [];
+		}
+		this.handler.hotkeys[stringKey].push(hotkey);
 
-        this.checkHotkeyConflicts();
-    }
+		this.checkHotkeyConflicts();
+	}
 
-    //Some plugins may remove default hotkeys for some reason
-    FlatMMOPlus.prototype.deleteHotkey = function(hotkeyName) {
-        const el = document.getElementById("fmp-hotkeysContainer-" + hotkeyName);
-        if(el) {
-            el.remove()
-        }
+	//Some plugins may remove default hotkeys for some reason
+	FlatMMOPlus.prototype.deleteHotkey = function (hotkeyName) {
+		const el = document.getElementById("fmp-hotkeysContainer-" + hotkeyName);
+		if (el) {
+			el.remove()
+		}
 
-        //Remove it from hotkey map
-        this.handler.hotkeys = Object.fromEntries(
-            Object.entries(this.handler.hotkeys).map(([key, array]) => [
-                key, 
-                array.filter(h => h.name !== hotkeyName)
-            ])
-        )
+		//Remove it from hotkey map
+		this.handler.hotkeys = Object.fromEntries(
+			Object.entries(this.handler.hotkeys).map(([key, array]) => [
+				key,
+				array.filter(h => h.name !== hotkeyName)
+			])
+		)
 
-        this.checkHotkeyConflicts();
-    }
+		this.checkHotkeyConflicts();
+	}
 
-    FlatMMOPlus.prototype.formatHotkey = function(key) {
-        const parts = [];
-        if (key.ctrlKey) parts.push("Ctrl");
-        if (key.altKey) parts.push("Alt");
-        if (key.shiftKey) parts.push("Shift");
-        if (key.metaKey) parts.push("Meta");
-        parts.push(key.key.toUpperCase());
-        return parts.join(" + ");
-    };
+	FlatMMOPlus.prototype.formatHotkey = function (key) {
+		const parts = [];
+		if (key.ctrlKey) parts.push("Ctrl");
+		if (key.altKey) parts.push("Alt");
+		if (key.shiftKey) parts.push("Shift");
+		if (key.metaKey) parts.push("Meta");
+		parts.push(key.key.toUpperCase());
+		return parts.join(" + ");
+	};
 
-    FlatMMOPlus.prototype.checkHotkeyConflicts = function() {
-        for (const list of Object.values(this.handler.hotkeys)) {
-            const hasConflict = list.length > 1;
+	FlatMMOPlus.prototype.checkHotkeyConflicts = function () {
+		for (const list of Object.values(this.handler.hotkeys)) {
+			const hasConflict = list.length > 1;
 
-            list.forEach(h => {
-                const el = document.getElementById(`fmp-hotkeys-${h.name}`);
-                if (el) {
-                    el.classList.toggle("fmpHotkeysConflict", hasConflict);
-                }
-            });
-        }
-    }
-    
-	FlatMMOPlus.prototype.registerCustomChatCommand = function(command, f, help) {
-        if (Array.isArray(command)) {
-            command.forEach(cmd => this.registerCustomChatCommand(cmd, f, help))
-            return;
-        }
-        if(typeof command !== "string" || typeof f !== "function") {
-            throw new TypeError("FlatMMOPlus.registerCustomChatCommand takes the following arguments: (command:string, f:function)");
-        }
-        if(CHAT_COMMAND_NO_OVERRIDE.includes(command)) {
-            throw new Error(`Cannot override the following chat commands: ${CHAT_COMMAND_NO_OVERRIDE.join(", ")}`);
-        }
-        if(command in this.customChatCommands) {
-            console.warn(`FlatMMOPlus: re-registering custom chat command "${command}" which already exists.`);
-        }
-        this.customChatCommands[command] = f;
-        if(help && typeof help === "string") {
-            this.customChatHelp[command] = help.replace(/%COMMAND%/g, command);
-        } else {
-            delete this.customChatHelp[command];
-        }
-    }
+			list.forEach(h => {
+				const el = document.getElementById(`fmp-hotkeys-${h.name}`);
+				if (el) {
+					el.classList.toggle("fmpHotkeysConflict", hasConflict);
+				}
+			});
+		}
+	}
 
-    FlatMMOPlus.prototype.handleCustomChatCommand = function(command, message) {
-        // return true if command handler exists, false otherwise
-        const f = this.customChatCommands[command];
-        if(typeof f === "function") {
-            try {
-                f(command, message);
-            }
-            catch(err) {
-                console.error(`Error executing custom command "${command}"`, err);
-            }
-            return true;
-        }
-        return false;
-    }
+	FlatMMOPlus.prototype.registerCustomChatCommand = function (command, f, help) {
+		if (Array.isArray(command)) {
+			command.forEach(cmd => this.registerCustomChatCommand(cmd, f, help))
+			return;
+		}
+		if (typeof command !== "string" || typeof f !== "function") {
+			throw new TypeError("FlatMMOPlus.registerCustomChatCommand takes the following arguments: (command:string, f:function)");
+		}
+		if (CHAT_COMMAND_NO_OVERRIDE.includes(command)) {
+			throw new Error(`Cannot override the following chat commands: ${CHAT_COMMAND_NO_OVERRIDE.join(", ")}`);
+		}
+		if (command in this.customChatCommands) {
+			console.warn(`FlatMMOPlus: re-registering custom chat command "${command}" which already exists.`);
+		}
+		this.customChatCommands[command] = f;
+		if (help && typeof help === "string") {
+			this.customChatHelp[command] = help.replace(/%COMMAND%/g, command);
+		} else {
+			delete this.customChatHelp[command];
+		}
+	}
 
-    FlatMMOPlus.prototype.uniqueId = function() {
-        return this.nextUniqueId++;
-    }
+	FlatMMOPlus.prototype.handleCustomChatCommand = function (command, message) {
+		// return true if command handler exists, false otherwise
+		const f = this.customChatCommands[command];
+		if (typeof f === "function") {
+			try {
+				f(command, message);
+			}
+			catch (err) {
+				console.error(`Error executing custom command "${command}"`, err);
+			}
+			return true;
+		}
+		return false;
+	}
 
-    FlatMMOPlus.prototype.setDebug = function(debug) {
-        if(debug) {
-            this.debug = true;
-            localStorage.setItem(LOCAL_STORAGE_KEY_DEBUG, "1");
-        }
-        else {
-            this.debug = false;
-            localStorage.removeItem(LOCAL_STORAGE_KEY_DEBUG);
-        }
-    }
+	FlatMMOPlus.prototype.uniqueId = function () {
+		return this.nextUniqueId++;
+	}
 
-    FlatMMOPlus.prototype.setPluginConfigUIDirty = function(id, dirty, configId) {
-        if(typeof id !== "string" || typeof dirty !== "boolean") {
-            throw new TypeError("FlatMMOPlus.setPluginConfigUIDirty takes the following arguments: (id:string, dirty:boolean)");
-        }
-        const plugin = this.plugins[id];
-        if(configId) {
-            plugin.changedConfigs.add(configId);
-        }
-        const button = document.getElementById(`flatmmoplus-configbutton-${plugin.id}-apply`);
-        if(button) {
-            button.disabled = !dirty;
-        }
-    }
+	FlatMMOPlus.prototype.setDebug = function (debug) {
+		if (debug) {
+			this.debug = true;
+			localStorage.setItem(LOCAL_STORAGE_KEY_DEBUG, "1");
+		}
+		else {
+			this.debug = false;
+			localStorage.removeItem(LOCAL_STORAGE_KEY_DEBUG);
+		}
+	}
 
-    FlatMMOPlus.prototype.newListField = function(pluginId, configId, text = "New Field") {
-        if(typeof pluginId !== "string" || typeof configId !== "string" || typeof text !== "string") {
-            throw new TypeError("FlatMMOPlus.newListField takes the following arguments: (id:string, text:string)");
-        }
-        const plugin = this.plugins[pluginId];
-        const parentDiv = document.getElementById(`flatmmoplus-config-${pluginId}-${configId}`);
+	FlatMMOPlus.prototype.setPluginConfigUIDirty = function (id, dirty, configId) {
+		if (typeof id !== "string" || typeof dirty !== "boolean") {
+			throw new TypeError("FlatMMOPlus.setPluginConfigUIDirty takes the following arguments: (id:string, dirty:boolean)");
+		}
+		const plugin = this.plugins[id];
+		if (configId) {
+			plugin.changedConfigs.add(configId);
+		}
+		const button = document.getElementById(`flatmmoplus-configbutton-${plugin.id}-apply`);
+		if (button) {
+			button.disabled = !dirty;
+		}
+	}
 
-        const item = document.createElement("div");
-        const textDiv = document.createElement("div");
-        const closeSpan = document.createElement("span");
+	FlatMMOPlus.prototype.newListField = function (pluginId, configId, text = "New Field") {
+		if (typeof pluginId !== "string" || typeof configId !== "string" || typeof text !== "string") {
+			throw new TypeError("FlatMMOPlus.newListField takes the following arguments: (id:string, text:string)");
+		}
+		const plugin = this.plugins[pluginId];
+		const parentDiv = document.getElementById(`flatmmoplus-config-${pluginId}-${configId}`);
 
-        item.className = "fmp-list-item";
-        item.addEventListener("dblclick", function(e){
-            e.preventDefault();
-            textDiv.contentEditable = true;
-            textDiv.focus();
-        })
-        item.addEventListener("contextmenu", function(e) {
-            e.preventDefault();
-            textDiv.contentEditable = true;
-            textDiv.focus();
-        });
+		const item = document.createElement("div");
+		const textDiv = document.createElement("div");
+		const closeSpan = document.createElement("span");
 
-
-        textDiv.innerText = text;
-        textDiv.spellcheck = false;
-        textDiv.autocorrect = false;
-        textDiv.addEventListener("focusout", function(e) {
-            this.contentEditable = false;
-            plugin.changedConfigs.add(configId);
-            window.FlatMMOPlus.setPluginConfigUIDirty(pluginId, true, configId)
-        });
-
-        
-        closeSpan.innerText = "×";
-        closeSpan.className = "fmp-list-close";
-        closeSpan.addEventListener("click", function(){
-            item.remove();
-            window.FlatMMOPlus.setPluginConfigUIDirty(pluginId, true, configId)
-        })
-
-        item.appendChild(textDiv);
-        item.appendChild(closeSpan);
-        parentDiv.appendChild(item);
-
-        parentDiv.scrollTop = parentDiv.scrollHeight;
-
-        plugin.changedConfigs.add(configId);
-        window.FlatMMOPlus.setPluginConfigUIDirty(pluginId, true, configId)
-        if(text = "New Field") {
-            textDiv.contentEditable = true;
-            textDiv.focus();
-        }
-    }
-
-    FlatMMOPlus.prototype.newObjectField = function(pluginId, configId, key = "Key", value = "Value") {
-        if(typeof pluginId !== "string" || typeof configId !== "string" || typeof key !== "string") {
-            throw new TypeError("FlatMMOPlus.newObjectField takes the following arguments: (id:string, key:string, value:string)");
-        }
-        const plugin = this.plugins[pluginId];
-        const parentDiv = document.getElementById(`flatmmoplus-config-${pluginId}-${configId}`);
-
-        const item = document.createElement("div");
-        const keyDiv = document.createElement("div");
-        const valueDiv = document.createElement("div");
-        const closeSpan = document.createElement("span");
-
-        item.className = "fmp-list-item";
-        function editField(e) {
-            e.preventDefault();
-            const el = e.target;
-            el.contentEditable = true;
-            el.focus();
-        }
-        keyDiv.ondblclick = (e) => editField(e);
-        keyDiv.oncontextmenu = (e) => editField(e);
-        valueDiv.ondblclick = (e) => editField(e);
-        valueDiv.oncontextmenu = (e) => editField(e);
-
-        keyDiv.innerText = key;
-        keyDiv.spellcheck = false;
-        keyDiv.autocorrect = false;
-
-        valueDiv.innerText = value;
-        valueDiv.spellcheck = false;
-        valueDiv.autocorrect = false;
-
-        function focusOut(e) {
-            e.preventDefault();
-            const el = e.target;
-            el.contentEditable = false;
-            plugin.changedConfigs.add(configId);
-            window.FlatMMOPlus.setPluginConfigUIDirty(pluginId, true, configId)
-        }
-        keyDiv.onblur = (e) => focusOut(e);
-        valueDiv.onblur = (e) => focusOut(e);
-
-        closeSpan.innerText = "×";
-        closeSpan.className = "fmp-list-close";
-        closeSpan.addEventListener("click", function(){
-            item.remove();
-            window.FlatMMOPlus.setPluginConfigUIDirty(pluginId, true, configId)
-        })
-
-        item.appendChild(keyDiv);
-        item.appendChild(valueDiv);
-        item.appendChild(closeSpan);
-        parentDiv.appendChild(item);
-
-        parentDiv.scrollTop = parentDiv.scrollHeight;
-
-        plugin.changedConfigs.add(configId);
-        window.FlatMMOPlus.setPluginConfigUIDirty(pluginId, true, configId)
-        if(key = "Key") {
-            keyDiv.contentEditable = true;
-            keyDiv.focus();
-        }
-    }
-
-    FlatMMOPlus.prototype.newPriorityField = function(pluginId, configId, value = "New Item") {
-        if(typeof pluginId !== "string" || typeof configId !== "string" || typeof value !== "string") {
-            throw new TypeError("FlatMMOPlus.newPriorityField takes the following arguments: (pluginId: string, configId:string, value: string)");
-        }
-
-        const plugin = this.plugins[pluginId];
-        const config = plugin.opts.config.find(c => c.id == configId);
-        const parentDiv = document.getElementById(`flatmmoplus-config-${pluginId}-${configId}`);
-
-        const item = document.createElement("div");
-        const textDiv = document.createElement("div");
-
-        item.className = "fmp-priority-item fmp-list-item";
-        item.setAttribute("draggable", true);
+		item.className = "fmp-list-item";
+		item.addEventListener("dblclick", function (e) {
+			e.preventDefault();
+			textDiv.contentEditable = true;
+			textDiv.focus();
+		})
+		item.addEventListener("contextmenu", function (e) {
+			e.preventDefault();
+			textDiv.contentEditable = true;
+			textDiv.focus();
+		});
 
 
-        textDiv.innerText = value;
-        textDiv.spellcheck = false;
-        textDiv.autocorrect = false;
+		textDiv.innerText = text;
+		textDiv.spellcheck = false;
+		textDiv.autocorrect = false;
+		textDiv.addEventListener("focusout", function (e) {
+			this.contentEditable = false;
+			plugin.changedConfigs.add(configId);
+			window.FlatMMOPlus.setPluginConfigUIDirty(pluginId, true, configId)
+		});
 
 
-        item.appendChild(textDiv);
-        parentDiv.appendChild(item);
+		closeSpan.innerText = "×";
+		closeSpan.className = "fmp-list-close";
+		closeSpan.addEventListener("click", function () {
+			item.remove();
+			window.FlatMMOPlus.setPluginConfigUIDirty(pluginId, true, configId)
+		})
 
-        //Some lists may let users add/remove/edit items
-        if(config.canAddNew) {
-            const closeSpan = document.createElement("span");
+		item.appendChild(textDiv);
+		item.appendChild(closeSpan);
+		parentDiv.appendChild(item);
 
-            closeSpan.innerText = "×";
-            closeSpan.className = "fmp-list-close";
-            closeSpan.addEventListener("click", function(){
-                item.remove();
-                window.FlatMMOPlus.setPluginConfigUIDirty(pluginId, true, configId)
-            })
-            item.appendChild(closeSpan);
+		parentDiv.scrollTop = parentDiv.scrollHeight;
 
-            item.addEventListener("contextmenu", function(e) {
-                e.preventDefault();
-                textDiv.contentEditable = true;
-                textDiv.focus();
-            });
+		plugin.changedConfigs.add(configId);
+		window.FlatMMOPlus.setPluginConfigUIDirty(pluginId, true, configId)
+		if (text = "New Field") {
+			textDiv.contentEditable = true;
+			textDiv.focus();
+		}
+	}
 
-            textDiv.addEventListener("focusout", function(e) {
-                this.contentEditable = false;
-                plugin.changedConfigs.add(configId);
-                window.FlatMMOPlus.setPluginConfigUIDirty(pluginId, true, configId)
-            });
+	FlatMMOPlus.prototype.newObjectField = function (pluginId, configId, key = "Key", value = "Value") {
+		if (typeof pluginId !== "string" || typeof configId !== "string" || typeof key !== "string") {
+			throw new TypeError("FlatMMOPlus.newObjectField takes the following arguments: (id:string, key:string, value:string)");
+		}
+		const plugin = this.plugins[pluginId];
+		const parentDiv = document.getElementById(`flatmmoplus-config-${pluginId}-${configId}`);
 
-            if(value = "New Item") {
-                textDiv.contentEditable = true;
-                textDiv.focus();
-            }
-        }
+		const item = document.createElement("div");
+		const keyDiv = document.createElement("div");
+		const valueDiv = document.createElement("div");
+		const closeSpan = document.createElement("span");
 
-        parentDiv.scrollTop = parentDiv.scrollHeight;
+		item.className = "fmp-list-item";
+		function editField(e) {
+			e.preventDefault();
+			const el = e.target;
+			el.contentEditable = true;
+			el.focus();
+		}
+		keyDiv.ondblclick = (e) => editField(e);
+		keyDiv.oncontextmenu = (e) => editField(e);
+		valueDiv.ondblclick = (e) => editField(e);
+		valueDiv.oncontextmenu = (e) => editField(e);
 
-        plugin.changedConfigs.add(configId);
-        window.FlatMMOPlus.setPluginConfigUIDirty(pluginId, true, configId)
-    }
+		keyDiv.innerText = key;
+		keyDiv.spellcheck = false;
+		keyDiv.autocorrect = false;
 
-    FlatMMOPlus.prototype.loadPluginConfigs = function(id) {
-        if (typeof id !== "string") {
-            throw new TypeError("FlatMMOPlus.reloadPluginConfigs takes the following arguments: (id:string)");
-        }
-        let value;
-        const globalValue = localStorage.getItem(`flatmmoplus.${id}.config`) || "{}";
-        const accountValue = localStorage.getItem(`flatmmoplus.${id}.${Globals.local_username}.config`);
-        if(id !== "handler") {
-            const usesGlobal = this.handler.config.globalSettings || !Globals?.local_username;
-            
-            if(usesGlobal) {
-                value = globalValue;
-            } else if (accountValue == null) {
-                value = globalValue;
-                //Make sure it exists next time
-                localStorage.setItem(`flatmmoplus.${id}.${Globals.local_username}.config`, globalValue);
-            } else {
-                value = accountValue;
-            }
-        } else {
-            value = globalValue;
-        }
+		valueDiv.innerText = value;
+		valueDiv.spellcheck = false;
+		valueDiv.autocorrect = false;
 
-        const plugin = this.plugins[id];
-        const config = {};
-        let stored;
-        try {
-            stored = JSON.parse(value || "{}");
-        } catch(err) {
-            console.error(`Failed to load configs for plugin with id "${id} - will use defaults instead."`);
-            stored = {};
-        }
+		function focusOut(e) {
+			e.preventDefault();
+			const el = e.target;
+			el.contentEditable = false;
+			plugin.changedConfigs.add(configId);
+			window.FlatMMOPlus.setPluginConfigUIDirty(pluginId, true, configId)
+		}
+		keyDiv.onblur = (e) => focusOut(e);
+		valueDiv.onblur = (e) => focusOut(e);
 
-        if (plugin.opts.config && Array.isArray(plugin.opts.config)) {
-            plugin.opts.config.forEach(cfg => {
-                const el = document.getElementById(`flatmmoplus-config-${plugin.id}-${cfg.id}`);
-                let value = stored[cfg.id];
-                if (value == null || typeof value === "undefined") {
-                    value = cfg.default;
-                }
-                config[cfg.id] = value;
+		closeSpan.innerText = "×";
+		closeSpan.className = "fmp-list-close";
+		closeSpan.addEventListener("click", function () {
+			item.remove();
+			window.FlatMMOPlus.setPluginConfigUIDirty(pluginId, true, configId)
+		})
 
-                if (el) {
-                    if (CONFIG_TYPES_BOOLEAN.includes(cfg.type) && typeof value === "boolean") {
-                        el.checked = value;
-                    } else if (CONFIG_TYPES_INTEGER.includes(cfg.type) && typeof value === "number") {
-                        el.value = value;
-                    } else if (CONFIG_TYPES_FLOAT.includes(cfg.type) && typeof value === "number") {
-                        el.value = value;
-                    } else if (CONFIG_TYPES_RANGE.includes(cfg.type) && typeof value === "number") {
-                        el.value = value;
-                        document.getElementById(`flatmmoplus-config-${plugin.id}-${cfg.id}-value`).innerText = value
-                    } else if (CONFIG_TYPES_STRING.includes(cfg.type) && typeof value === "string") {
-                        el.value = value;
-                    } else if (CONFIG_TYPES_SELECT.includes(cfg.type) && typeof value === "string") {
-                        el.value = value;
-                    } else if (CONFIG_TYPES_COLOR.includes(cfg.type) && typeof value === "string") {
-                        el.value = value;
-                    } else if (CONFIG_TYPES_LIST.includes(cfg.type)) {
-                        el.innerHTML = "";
-                        if(typeof value === "string") {
-                            value = value.split(",")
-                            .map(item => item.trim())
-                            .filter(item=> item !== "");
-                            if(cfg.unique) {
-                                const valuesSet = new Set(value);
-                                value = Array.from(valuesSet);
-                            }
-                            config[cfg.id] = value;
-                        }
-                        value.forEach(item => {
-                            window.FlatMMOPlus.newListField(id, cfg.id, item);
-                        })
-                    } else if (CONFIG_TYPES_PRIORITY.includes(cfg.type)) {
-                        el.innerHTML = "";
-                        if (cfg.unique) {
-                            const valuesSet = new Set(value);
-                            value = Array.from(valuesSet);
-                        }
+		item.appendChild(keyDiv);
+		item.appendChild(valueDiv);
+		item.appendChild(closeSpan);
+		parentDiv.appendChild(item);
 
-                        console.log(value)
+		parentDiv.scrollTop = parentDiv.scrollHeight;
 
-                        value.forEach(item => {
-                            window.FlatMMOPlus.newPriorityField(id, cfg.id, item);
-                        })
-                    } else if (CONFIG_TYPES_RELATION.includes(cfg.type)) {
-                        el.innerHTML = "";
-                        for(let item in value) {
-                            window.FlatMMOPlus.newObjectField(id, cfg.id, item, value[item]);
-                        }
-                    } 
-                    if(cfg.onChange) {
-                        el.onchange = cfg.onChange;
-                    }
-                }
-            });
-        }
-        plugin.config = config;
-        plugin.changedConfigs.clear();
-        this.setPluginConfigUIDirty(id, false);
-        if (typeof plugin.onConfigsChanged === "function") {
-            plugin.onConfigsChanged();
-        }
-    }
+		plugin.changedConfigs.add(configId);
+		window.FlatMMOPlus.setPluginConfigUIDirty(pluginId, true, configId)
+		if (key = "Key") {
+			keyDiv.contentEditable = true;
+			keyDiv.focus();
+		}
+	}
 
-    FlatMMOPlus.prototype.savePluginConfigs = function(id) {
-        if (typeof id !== "string") {
-            throw new TypeError("FlatMMOPlus.savePluginConfigs takes the following arguments: (id:string)");
-        }
-        let key;
-        if(id !== "handler") {
-            key = this.handler.config.globalSettings ? `flatmmoplus.${id}.config` : `flatmmoplus.${id}.${Globals.local_username}.config`;
-        } else {
-            key = `flatmmoplus.${id}.config`;
-        }
-        const plugin = this.plugins[id];
-        const config = {};
-        if (plugin.opts.config && Array.isArray(plugin.opts.config)) {
-            plugin.opts.config.forEach(cfg => {
-                const el = document.getElementById(`flatmmoplus-config-${plugin.id}-${cfg.id}`);
-                if (CONFIG_TYPES_BOOLEAN.includes(cfg.type)) {
-                    config[cfg.id] = el.checked;
-                } else if (CONFIG_TYPES_INTEGER.includes(cfg.type)) {
-                    config[cfg.id] = parseInt(el.value);
-                } else if (CONFIG_TYPES_FLOAT.includes(cfg.type)) {
-                    config[cfg.id] = parseFloat(el.value);
-                } else if (CONFIG_TYPES_RANGE.includes(cfg.type)) {
-                    config[cfg.id] = parseFloat(el.value);
-                } else if (CONFIG_TYPES_STRING.includes(cfg.type)) {
-                    config[cfg.id] = el.value;
-                } else if (CONFIG_TYPES_SELECT.includes(cfg.type)) {
-                    config[cfg.id] = el.value;
-                } else if (CONFIG_TYPES_COLOR.includes(cfg.type)) {
-                    config[cfg.id] = el.value;
-                } else if (CONFIG_TYPES_LIST.includes(cfg.type)) {
-                    let values = [];
-                    document.querySelectorAll(`#flatmmoplus-config-${plugin.id}-${cfg.id} div div`).forEach(el => {
-                        values.push(el.innerText)
-                    })
+	FlatMMOPlus.prototype.newPriorityField = function (pluginId, configId, value = "New Item") {
+		if (typeof pluginId !== "string" || typeof configId !== "string" || typeof value !== "string") {
+			throw new TypeError("FlatMMOPlus.newPriorityField takes the following arguments: (pluginId: string, configId:string, value: string)");
+		}
 
-                    //This will remove duplicates
-                    if(cfg.unique) {
-                        const valuesSet = new Set(values);
-                        values = Array.from(valuesSet);
-                    }
-                    config[cfg.id] = values;
-                } else if (CONFIG_TYPES_PRIORITY.includes(cfg.type)) {
-                    let values = [];
-                    document.querySelectorAll(`#flatmmoplus-config-${plugin.id}-${cfg.id} div div`).forEach(el => {
-                        values.push(el.innerText)
-                    })
+		const plugin = this.plugins[pluginId];
+		const config = plugin.opts.config.find(c => c.id == configId);
+		const parentDiv = document.getElementById(`flatmmoplus-config-${pluginId}-${configId}`);
 
-                    //This will remove duplicates
-                    if(cfg.unique) {
-                        const valuesSet = new Set(values);
-                        values = Array.from(valuesSet);
-                    }
-                    config[cfg.id] = values;
-                } else if (CONFIG_TYPES_RELATION.includes(cfg.type)) {
-                    const values = {};
-                    document.querySelectorAll(`#flatmmoplus-config-${plugin.id}-${cfg.id}>div`).forEach(el => {
-                        values[el.children[0].innerText] = el.children[1].innerText;
-                    })
+		const item = document.createElement("div");
+		const textDiv = document.createElement("div");
 
-                    config[cfg.id] = values;
-                }
-            });
-        }
-        plugin.config = config;
-        localStorage.setItem(key, JSON.stringify(config));
-        this.setPluginConfigUIDirty(id, false);
-        if (typeof plugin.onConfigsChanged === "function") {
-            plugin.onConfigsChanged();
-        }
-        plugin.changedConfigs.clear();
-    }
+		item.className = "fmp-priority-item fmp-list-item";
+		item.setAttribute("draggable", true);
 
-    FlatMMOPlus.prototype.forceSavePluginConfigs = function(id) {
-        if (typeof id !== "string") {
-            throw new TypeError("FlatMMOPlus.forceSavePluginConfigs takes the following arguments: (id:string)");
-        }
-        const key = this.handler.config.globalSettings ? `flatmmoplus.${id}.config` : `flatmmoplus.${id}.${Globals.local_username}.config`;
 
-        localStorage.setItem(key, JSON.stringify(this.plugins[id].config));
-    }
-    
-    FlatMMOPlus.prototype.showWarning = function(message, color = "orange") {
-        add_to_chat("none", "none", "none", color, message);
-    }
+		textDiv.innerText = value;
+		textDiv.spellcheck = false;
+		textDiv.autocorrect = false;
 
-    FlatMMOPlus.prototype.addPanel = function(id, title, content, hasTabButton) {
-        if(typeof id !== "string" || typeof title !== "string" || (typeof content !== "string" && typeof content !== "function") ) {
-            throw new TypeError("FlatMMOPlus.addPanel takes the following arguments: (id:string, title:string, content:string|function)");
-        }
-        if(this.panels[id]) {
-            console.error("There already is a panel with this id");
-            return;
-        }
-        if(hasTabButton) {
-            const firstPanel = document.querySelector("#settings-modal-sound-panel");
-            firstPanel.insertAdjacentHTML("beforebegin", `<div class="settings-modal-panel-btn hover" onclick="settings_modal_tab('${id}')" id="settings-modal-${id}-panel-btn" style="margin-right: 10px;">${title}</div>`)
-        }
-        const lastPanel = document.querySelector("#settings-modal-mutes-panel");
-        lastPanel.insertAdjacentHTML("afterend",`
+
+		item.appendChild(textDiv);
+		parentDiv.appendChild(item);
+
+		//Some lists may let users add/remove/edit items
+		if (config.canAddNew) {
+			const closeSpan = document.createElement("span");
+
+			closeSpan.innerText = "×";
+			closeSpan.className = "fmp-list-close";
+			closeSpan.addEventListener("click", function () {
+				item.remove();
+				window.FlatMMOPlus.setPluginConfigUIDirty(pluginId, true, configId)
+			})
+			item.appendChild(closeSpan);
+
+			item.addEventListener("contextmenu", function (e) {
+				e.preventDefault();
+				textDiv.contentEditable = true;
+				textDiv.focus();
+			});
+
+			textDiv.addEventListener("focusout", function (e) {
+				this.contentEditable = false;
+				plugin.changedConfigs.add(configId);
+				window.FlatMMOPlus.setPluginConfigUIDirty(pluginId, true, configId)
+			});
+
+			if (value = "New Item") {
+				textDiv.contentEditable = true;
+				textDiv.focus();
+			}
+		}
+
+		parentDiv.scrollTop = parentDiv.scrollHeight;
+
+		plugin.changedConfigs.add(configId);
+		window.FlatMMOPlus.setPluginConfigUIDirty(pluginId, true, configId)
+	}
+
+	FlatMMOPlus.prototype.loadPluginConfigs = function (id) {
+		if (typeof id !== "string") {
+			throw new TypeError("FlatMMOPlus.reloadPluginConfigs takes the following arguments: (id:string)");
+		}
+		let value;
+		const globalValue = localStorage.getItem(`flatmmoplus.${id}.config`) || "{}";
+		const accountValue = localStorage.getItem(`flatmmoplus.${id}.${Globals.local_username}.config`);
+		if (id !== "handler") {
+			const usesGlobal = this.handler.config.globalSettings || !Globals?.local_username;
+
+			if (usesGlobal) {
+				value = globalValue;
+			} else if (accountValue == null) {
+				value = globalValue;
+				//Make sure it exists next time
+				localStorage.setItem(`flatmmoplus.${id}.${Globals.local_username}.config`, globalValue);
+			} else {
+				value = accountValue;
+			}
+		} else {
+			value = globalValue;
+		}
+
+		const plugin = this.plugins[id];
+		const config = {};
+		let stored;
+		try {
+			stored = JSON.parse(value || "{}");
+		} catch (err) {
+			console.error(`Failed to load configs for plugin with id "${id} - will use defaults instead."`);
+			stored = {};
+		}
+
+		if (plugin.opts.config && Array.isArray(plugin.opts.config)) {
+			plugin.opts.config.forEach(cfg => {
+				const el = document.getElementById(`flatmmoplus-config-${plugin.id}-${cfg.id}`);
+				let value = stored[cfg.id];
+				if (value == null || typeof value === "undefined") {
+					value = cfg.default;
+				}
+				config[cfg.id] = value;
+
+				if (el) {
+					if (CONFIG_TYPES_BOOLEAN.includes(cfg.type) && typeof value === "boolean") {
+						el.checked = value;
+					} else if (CONFIG_TYPES_INTEGER.includes(cfg.type) && typeof value === "number") {
+						el.value = value;
+					} else if (CONFIG_TYPES_FLOAT.includes(cfg.type) && typeof value === "number") {
+						el.value = value;
+					} else if (CONFIG_TYPES_RANGE.includes(cfg.type) && typeof value === "number") {
+						el.value = value;
+						document.getElementById(`flatmmoplus-config-${plugin.id}-${cfg.id}-value`).innerText = value
+					} else if (CONFIG_TYPES_STRING.includes(cfg.type) && typeof value === "string") {
+						el.value = value;
+					} else if (CONFIG_TYPES_SELECT.includes(cfg.type) && typeof value === "string") {
+						el.value = value;
+					} else if (CONFIG_TYPES_COLOR.includes(cfg.type) && typeof value === "string") {
+						el.value = value;
+					} else if (CONFIG_TYPES_LIST.includes(cfg.type)) {
+						el.innerHTML = "";
+						if (typeof value === "string") {
+							value = value.split(",")
+								.map(item => item.trim())
+								.filter(item => item !== "");
+							if (cfg.unique) {
+								const valuesSet = new Set(value);
+								value = Array.from(valuesSet);
+							}
+							config[cfg.id] = value;
+						}
+						value.forEach(item => {
+							window.FlatMMOPlus.newListField(id, cfg.id, item);
+						})
+					} else if (CONFIG_TYPES_PRIORITY.includes(cfg.type)) {
+						el.innerHTML = "";
+						if (cfg.unique) {
+							const valuesSet = new Set(value);
+							value = Array.from(valuesSet);
+						}
+
+						console.log(value)
+
+						value.forEach(item => {
+							window.FlatMMOPlus.newPriorityField(id, cfg.id, item);
+						})
+					} else if (CONFIG_TYPES_RELATION.includes(cfg.type)) {
+						el.innerHTML = "";
+						for (let item in value) {
+							window.FlatMMOPlus.newObjectField(id, cfg.id, item, value[item]);
+						}
+					}
+					if (cfg.onChange) {
+						el.onchange = cfg.onChange;
+					}
+				}
+			});
+		}
+		plugin.config = config;
+		plugin.changedConfigs.clear();
+		this.setPluginConfigUIDirty(id, false);
+		if (typeof plugin.onConfigsChanged === "function") {
+			plugin.onConfigsChanged();
+		}
+	}
+
+	FlatMMOPlus.prototype.savePluginConfigs = function (id) {
+		if (typeof id !== "string") {
+			throw new TypeError("FlatMMOPlus.savePluginConfigs takes the following arguments: (id:string)");
+		}
+		let key;
+		if (id !== "handler") {
+			key = this.handler.config.globalSettings ? `flatmmoplus.${id}.config` : `flatmmoplus.${id}.${Globals.local_username}.config`;
+		} else {
+			key = `flatmmoplus.${id}.config`;
+		}
+		const plugin = this.plugins[id];
+		const config = {};
+		if (plugin.opts.config && Array.isArray(plugin.opts.config)) {
+			plugin.opts.config.forEach(cfg => {
+				const el = document.getElementById(`flatmmoplus-config-${plugin.id}-${cfg.id}`);
+				if (CONFIG_TYPES_BOOLEAN.includes(cfg.type)) {
+					config[cfg.id] = el.checked;
+				} else if (CONFIG_TYPES_INTEGER.includes(cfg.type)) {
+					config[cfg.id] = parseInt(el.value);
+				} else if (CONFIG_TYPES_FLOAT.includes(cfg.type)) {
+					config[cfg.id] = parseFloat(el.value);
+				} else if (CONFIG_TYPES_RANGE.includes(cfg.type)) {
+					config[cfg.id] = parseFloat(el.value);
+				} else if (CONFIG_TYPES_STRING.includes(cfg.type)) {
+					config[cfg.id] = el.value;
+				} else if (CONFIG_TYPES_SELECT.includes(cfg.type)) {
+					config[cfg.id] = el.value;
+				} else if (CONFIG_TYPES_COLOR.includes(cfg.type)) {
+					config[cfg.id] = el.value;
+				} else if (CONFIG_TYPES_LIST.includes(cfg.type)) {
+					let values = [];
+					document.querySelectorAll(`#flatmmoplus-config-${plugin.id}-${cfg.id} div div`).forEach(el => {
+						values.push(el.innerText)
+					})
+
+					//This will remove duplicates
+					if (cfg.unique) {
+						const valuesSet = new Set(values);
+						values = Array.from(valuesSet);
+					}
+					config[cfg.id] = values;
+				} else if (CONFIG_TYPES_PRIORITY.includes(cfg.type)) {
+					let values = [];
+					document.querySelectorAll(`#flatmmoplus-config-${plugin.id}-${cfg.id} div div`).forEach(el => {
+						values.push(el.innerText)
+					})
+
+					//This will remove duplicates
+					if (cfg.unique) {
+						const valuesSet = new Set(values);
+						values = Array.from(valuesSet);
+					}
+					config[cfg.id] = values;
+				} else if (CONFIG_TYPES_RELATION.includes(cfg.type)) {
+					const values = {};
+					document.querySelectorAll(`#flatmmoplus-config-${plugin.id}-${cfg.id}>div`).forEach(el => {
+						values[el.children[0].innerText] = el.children[1].innerText;
+					})
+
+					config[cfg.id] = values;
+				}
+			});
+		}
+		plugin.config = config;
+		localStorage.setItem(key, JSON.stringify(config));
+		this.setPluginConfigUIDirty(id, false);
+		if (typeof plugin.onConfigsChanged === "function") {
+			plugin.onConfigsChanged();
+		}
+		plugin.changedConfigs.clear();
+	}
+
+	FlatMMOPlus.prototype.forceSavePluginConfigs = function (id) {
+		if (typeof id !== "string") {
+			throw new TypeError("FlatMMOPlus.forceSavePluginConfigs takes the following arguments: (id:string)");
+		}
+		const key = this.handler.config.globalSettings ? `flatmmoplus.${id}.config` : `flatmmoplus.${id}.${Globals.local_username}.config`;
+
+		localStorage.setItem(key, JSON.stringify(this.plugins[id].config));
+	}
+
+	FlatMMOPlus.prototype.showWarning = function (message, color = "orange") {
+		add_to_chat("none", "none", "none", color, message);
+	}
+
+	FlatMMOPlus.prototype.addPanel = function (id, title, content, hasTabButton) {
+		if (typeof id !== "string" || typeof title !== "string" || (typeof content !== "string" && typeof content !== "function")) {
+			throw new TypeError("FlatMMOPlus.addPanel takes the following arguments: (id:string, title:string, content:string|function)");
+		}
+		if (this.panels[id]) {
+			console.error("There already is a panel with this id");
+			return;
+		}
+		if (hasTabButton) {
+			const firstPanel = document.querySelector("#settings-modal-sound-panel");
+			firstPanel.insertAdjacentHTML("beforebegin", `<div class="settings-modal-panel-btn hover" onclick="settings_modal_tab('${id}')" id="settings-modal-${id}-panel-btn" style="margin-right: 10px;">${title}</div>`)
+		}
+		const lastPanel = document.querySelector("#settings-modal-mutes-panel");
+		lastPanel.insertAdjacentHTML("afterend",`
         <div class="settings-modal-panel" style="display: none" id="settings-modal-${id}-panel">
             <div id="ui-panel-${id}-content"></div>
         </div>
         `);
-        this.panels[id] = {
-            id: id,
-            title: title,
-            content: content
-        };
-        this.refreshPanel(id);
-    }
+		this.panels[id] = {
+			id: id,
+			title: title,
+			content: content
+		};
+		this.refreshPanel(id);
+	}
 
-    FlatMMOPlus.prototype.refreshPanel = function(id) {
-        if(typeof id !== "string") {
-            throw new TypeError("FlatMMOPlus.refreshPanel takes the following arguments: (id:string)");
-        }
-        const panel = this.panels[id];
-        if(!panel) {
-            throw new TypeError(`Error rendering panel with id="${id}" - panel has not be added.`);
-        }
-        let content = panel.content;
-        if(!["string", "function"].includes(typeof content)) {
-            throw new TypeError(`Error rendering panel with id="${id}" - panel.content must be a string or a function returning a string.`);
-        }
-        if(typeof content === "function") {
-            content = content();
-            if(typeof content !== "string") {
-                throw new TypeError(`Error rendering panel with id="${id}" - panel.content must be a string or a function returning a string.`);
-            }
-        }
-        const panelContent = document.getElementById(`ui-panel-${id}-content`);
-        panelContent.innerHTML = content;
-        if(id === "plugins") {
-            this.forEachPlugin(plugin => {
-                this.loadPluginConfigs(plugin.id);
-            });
-        }
-    }
+	FlatMMOPlus.prototype.refreshPanel = function (id) {
+		if (typeof id !== "string") {
+			throw new TypeError("FlatMMOPlus.refreshPanel takes the following arguments: (id:string)");
+		}
+		const panel = this.panels[id];
+		if (!panel) {
+			throw new TypeError(`Error rendering panel with id="${id}" - panel has not be added.`);
+		}
+		let content = panel.content;
+		if (!["string", "function"].includes(typeof content)) {
+			throw new TypeError(`Error rendering panel with id="${id}" - panel.content must be a string or a function returning a string.`);
+		}
+		if (typeof content === "function") {
+			content = content();
+			if (typeof content !== "string") {
+				throw new TypeError(`Error rendering panel with id="${id}" - panel.content must be a string or a function returning a string.`);
+			}
+		}
+		const panelContent = document.getElementById(`ui-panel-${id}-content`);
+		panelContent.innerHTML = content;
+		if (id === "plugins") {
+			this.forEachPlugin(plugin => {
+				this.loadPluginConfigs(plugin.id);
+			});
+		}
+	}
 
-    /**
-     * 
-     * @param {FlatMMOPlusPlugin} plugin 
-     */
-    FlatMMOPlus.prototype.registerPlugin = function(plugin) {
-        if(!(plugin instanceof FlatMMOPlusPlugin)) {
-            throw new TypeError("FlatMMOPlus.registerPlugin takes the following arguments: (plugin:FlatMMOPlusPlugin)");
-        }
-        if(plugin.id in this.plugins) {
-            throw new Error(`FlatMMOPlusPlugin with id "${plugin.id}" is already registered. Make sure your plugin id is unique!`);
-        }
+	/**
+	 * 
+	 * @param {FlatMMOPlusPlugin} plugin 
+	 */
+	FlatMMOPlus.prototype.registerPlugin = function (plugin) {
+		if (!(plugin instanceof FlatMMOPlusPlugin)) {
+			throw new TypeError("FlatMMOPlus.registerPlugin takes the following arguments: (plugin:FlatMMOPlusPlugin)");
+		}
+		if (plugin.id in this.plugins) {
+			throw new Error(`FlatMMOPlusPlugin with id "${plugin.id}" is already registered. Make sure your plugin id is unique!`);
+		}
 
-        this.plugins[plugin.id] = plugin;
-        let versionString = plugin.opts&&plugin.opts.about&&plugin.opts.about.version ? ` (v${plugin.opts.about.version})` : "";
-        logFancy(`registered plugin "${plugin.id}"${versionString}`);
+		this.plugins[plugin.id] = plugin;
+		let versionString = plugin.opts && plugin.opts.about && plugin.opts.about.version ? ` (v${plugin.opts.about.version})` : "";
+		logFancy(`registered plugin "${plugin.id}"${versionString}`);
 
-        //Calls onlogin when the plugin is loaded with delay
-        if(this.loggedIn) {
-            this.loadPluginConfigs(plugin.id);
-            plugin.onLogin();
-        }
-    }
+		//Calls onlogin when the plugin is loaded with delay
+		if (this.loggedIn) {
+			this.loadPluginConfigs(plugin.id);
+			plugin.onLogin();
+		}
 
-    FlatMMOPlus.prototype.forEachPlugin = function(f) {
-        if(typeof f !== "function") {
-            throw new TypeError("FlatMMOPlus.forEachPlugin takes the following arguments: (f:function)");
-        }
-        Object.values(this.plugins).forEach(plugin => {
-            try {
-                f(plugin);
-            }
-            catch(err) {
-                console.error(`Error occurred while executing function for plugin "${plugin.id}."`);
-                console.error(err);
-            }
-        });
-    }
+		this.forEachPlugin((p) => {
+			if (typeof p.onPluginLoad === "function") {
+				p.onPluginLoad(plugin);
+			}
+		});
+	}
 
-    FlatMMOPlus.prototype.setPanel = function(panel) {
-        if(typeof panel !== "string") {
-            throw new TypeError("FlatMMOPlus.setPanel takes the following arguments: (panel:string)");
-        }
-        window.settings_modal_tab(panel);
-    }
+	FlatMMOPlus.prototype.forEachPlugin = function (f) {
+		if (typeof f !== "function") {
+			throw new TypeError("FlatMMOPlus.forEachPlugin takes the following arguments: (f:function)");
+		}
+		Object.values(this.plugins).forEach(plugin => {
+			try {
+				f(plugin);
+			}
+			catch (err) {
+				console.error(`Error occurred while executing function for plugin "${plugin.id}."`);
+				console.error(err);
+			}
+		});
+	}
 
-    FlatMMOPlus.prototype.sendMessage = function(message) {
-        if(typeof message !== "string") {
-            throw new TypeError("FlatMMOPlus.sendMessage takes the following arguments: (message:string)");
-        }
-        if(Globals.websocket && Globals.websocket.readyState == 1) {
-            Globals.websocket.send(message);
-        }
-    }
+	FlatMMOPlus.prototype.setPanel = function (panel) {
+		if (typeof panel !== "string") {
+			throw new TypeError("FlatMMOPlus.setPanel takes the following arguments: (panel:string)");
+		}
+		window.settings_modal_tab(panel);
+	}
 
-    FlatMMOPlus.prototype.hideCustomPanels = function() {
-        Object.values(this.panels).forEach((panel) => {
-            const el = document.getElementById(`settings-modal-${panel.id}-panel`);
-            if(el) {
-                el.style.display = "none";
-            }
-            const btn = document.getElementById(`settings-modal-${panel.id}-panel-btn`);
-            if(btn) {
-                btn.style.backgroundColor = "";
-            }
-        });
-    }
+	FlatMMOPlus.prototype.sendMessage = function (message) {
+		if (typeof message !== "string") {
+			throw new TypeError("FlatMMOPlus.sendMessage takes the following arguments: (message:string)");
+		}
+		if (Globals.websocket && Globals.websocket.readyState == 1) {
+			Globals.websocket.send(message);
+		}
+	}
 
-    FlatMMOPlus.prototype.onMessageSent = function(message) {
-        if(this.debug) {
-            console.log(`FM+ onMessageSent: ${message}`);
-        }
-        if(!this.loggedIn) return false;
-        let interrupt = false;
-        this.forEachPlugin((plugin) => {
-            if(typeof plugin.onMessageSent === "function") {
-                if(plugin.onMessageSent(message)) {
-                    interrupt = true;
-                };
-            }
-        });
+	FlatMMOPlus.prototype.hideCustomPanels = function () {
+		Object.values(this.panels).forEach((panel) => {
+			const el = document.getElementById(`settings-modal-${panel.id}-panel`);
+			if (el) {
+				el.style.display = "none";
+			}
+			const btn = document.getElementById(`settings-modal-${panel.id}-panel-btn`);
+			if (btn) {
+				btn.style.backgroundColor = "";
+			}
+		});
+	}
 
-        return interrupt;
-    }
+	FlatMMOPlus.prototype.onMessageSent = function (message) {
+		if (this.debug) {
+			console.log(`FM+ onMessageSent: ${message}`);
+		}
+		if (!this.loggedIn) return false;
+		let interrupt = false;
+		this.forEachPlugin((plugin) => {
+			if (typeof plugin.onMessageSent === "function") {
+				if (plugin.onMessageSent(message)) {
+					interrupt = true;
+				};
+			}
+		});
 
-    FlatMMOPlus.prototype.onMessageReceived = function(data) {
-        if(this.debug) {
-            console.log(`FM+ onMessageReceived: ${data}`);
-        }
-        if(data) {
-            if(data.startsWith("LOGGED_IN")) {
-                this.onLogin();
-            }
-            if(!this.loggedIn) return;
-            this.forEachPlugin((plugin) => {
-                if(typeof plugin.onMessageReceived === "function") {
-                    plugin.onMessageReceived(data);
-                }
-            });
-            if (data.startsWith("YELL")) {
-                const split = data.substring("YELL=".length).split("~");
+		return interrupt;
+	}
 
-                const chatData = {
-                    username: split[0].slice(0, -7).trim(),
-                    tag: split[1],
-                    sigil: split[2],
-                    color: split[3],
-                    message: split[4],
-                    yell: true
-                }
-                this.onChat(chatData);
-            } else if (data.startsWith("CHAT_LOCAL_MESSAGE=")) {
-                const split = data.substring("CHAT_LOCAL_MESSAGE=".length).split("~");
-                let [sender, message] = split[1].split(" yelled: ");
-                //Server messages don't have the "yelled"
-                if (!message) {
-                    message = sender;
-                    sender = "";
-                }
-                const chatData = {
-                    username: sender,
-                    tag: "none",
-                    sigil: "none",
-                    color: split[0],
-                    message: message,
-                    yell: true
-                }
-                this.onChat(chatData);
+	FlatMMOPlus.prototype.onMessageReceived = function (data) {
+		if (this.debug) {
+			console.log(`FM+ onMessageReceived: ${data}`);
+		}
+		if (data) {
+			if (data.startsWith("LOGGED_IN")) {
+				this.onLogin();
+			}
+			if (!this.loggedIn) return;
+			this.forEachPlugin((plugin) => {
+				if (typeof plugin.onMessageReceived === "function") {
+					plugin.onMessageReceived(data);
+				}
+			});
+			if (data.startsWith("YELL")) {
+				const split = data.substring("YELL=".length).split("~");
 
-            } else if (data.startsWith("CHAT=")) {
-                const split = data.substring("CHAT=".length).split("~");
-                
-                const chatData = {
-                    username: split[0],
-                    tag: split[1],
-                    sigil: split[2],
-                    color: split[3],
-                    message: split[4],
-                    yell: false
-                }
-                this.onChat(chatData);
-            } else if (data.startsWith("REFRESH_PLAYER_HP_BAR=")) {
-                const split = data.substring("REFRESH_PLAYER_HP_BAR=".length).split("~");
-                if(split[0] === Globals.local_username) {
-                    if(this.isFighting && split[3] === "false") {
-                        this.onFightEnded();
-                    } else if (!this.isFighting && split[3] === "true") {
-                        this.onFightStarted();
-                    }
-                }
-            } else if (data.startsWith(`SET_PLAYER_ANIMATION=${Globals.local_username}`)) {
-                const split = data.substring("SET_PLAYER_ANIMATION=".length).split("~");
-                this.currentAction = split[1];
-                this.onActionChanged();
-            } else if (data.startsWith("CUSTOM")) {
-                const [sender, content] = data.substring("CUSTOM=".length).split("~");
-                let plugin = "unknown";
-                let command = "unknown";
-                let payload = content;
+				const chatData = {
+					username: split[0].slice(0, -7).trim(),
+					tag: split[1],
+					sigil: split[2],
+					color: split[3],
+					message: split[4],
+					yell: true
+				}
+				this.onChat(chatData);
+			} else if (data.startsWith("CHAT_LOCAL_MESSAGE=")) {
+				const split = data.substring("CHAT_LOCAL_MESSAGE=".length).split("~");
+				let [sender, message] = split[1].split(" yelled: ");
+				//Server messages don't have the "yelled"
+				if (!message) {
+					message = sender;
+					sender = "";
+				}
+				const chatData = {
+					username: sender,
+					tag: "none",
+					sigil: "none",
+					color: split[0],
+					message: message,
+					yell: true
+				}
+				this.onChat(chatData);
 
-                const splitContent = content.split(":");
-                if (splitContent.length >= 3) {
-                    plugin = splitContent[0];
-                    command = splitContent[1];
-                    payload = splitContent.slice(2).join(":");
-                }
-                this.onCustomReceived(sender, plugin, command, payload);
-            }
-        }
-    }
+			} else if (data.startsWith("CHAT=")) {
+				const split = data.substring("CHAT=".length).split("~");
 
-    FlatMMOPlus.prototype.onCustomReceived = function(sender, script, command, payload) {
-        if(this.debug) {
-            console.log(`FMMO+ onCustomReceived: ${sender} ${message}`);
-        }
+				const chatData = {
+					username: split[0],
+					tag: split[1],
+					sigil: split[2],
+					color: split[3],
+					message: split[4],
+					yell: false
+				}
+				this.onChat(chatData);
+			} else if (data.startsWith("REFRESH_PLAYER_HP_BAR=")) {
+				const split = data.substring("REFRESH_PLAYER_HP_BAR=".length).split("~");
+				if (split[0] === Globals.local_username) {
+					if (this.isFighting && split[3] === "false") {
+						this.onFightEnded();
+					} else if (!this.isFighting && split[3] === "true") {
+						this.onFightStarted();
+					}
+				}
+			} else if (data.startsWith(`SET_PLAYER_ANIMATION=${Globals.local_username}`)) {
+				const split = data.substring("SET_PLAYER_ANIMATION=".length).split("~");
+				this.currentAction = split[1];
+				this.onActionChanged();
+			} else if (data.startsWith("CUSTOM")) {
+				const [sender, content] = data.substring("CUSTOM=".length).split("~");
+				let plugin = "unknown";
+				let command = "unknown";
+				let payload = content;
 
-        if(!this.loggedIn) return;
-        this.forEachPlugin((plugin) => {
-            if (typeof plugin.onCustomReceived === "function") {
-                plugin.onCustomReceived(sender, script, command, payload);
-            }
-        })
-    }
+				const splitContent = content.split(":");
+				if (splitContent.length >= 3) {
+					plugin = splitContent[0];
+					command = splitContent[1];
+					payload = splitContent.slice(2).join(":");
+				}
+				this.onCustomReceived(sender, plugin, command, payload);
+			}
+		}
+	}
 
-    FlatMMOPlusPlugin.prototype.sendCustom = function(user, command, payload) {
-        let message = `CUSTOM=${user}~${this.id}`;
-        message += command ? `:${command}` : ":ping";
-        message += payload ? `:${payload}` : ":";
-        window.FlatMMOPlus.sendMessage(message);
-    }
+	FlatMMOPlus.prototype.onCustomReceived = function (sender, script, command, payload) {
+		if (this.debug) {
+			console.log(`FMMO+ onCustomReceived: ${sender} ${message}`);
+		}
 
-    FlatMMOPlus.prototype.sendCustomMessage = function(toPlayer, content) {
-        if(this.debug) {
-            console.log(`FMMO+ sendCustomMessage`, toPlayer, opts);
-        }
+		if (!this.loggedIn) return;
+		this.forEachPlugin((plugin) => {
+			if (typeof plugin.onCustomReceived === "function") {
+				plugin.onCustomReceived(sender, script, command, payload);
+			}
+		})
+	}
 
-        const message = `CUSTOM=${toPlayer}~${content}`;
-        this.sendMessage(message);
-    }
+	FlatMMOPlusPlugin.prototype.sendCustom = function (user, command, payload) {
+		let message = `CUSTOM=${user}~${this.id}`;
+		message += command ? `:${command}` : ":ping";
+		message += payload ? `:${payload}` : ":";
+		window.FlatMMOPlus.sendMessage(message);
+	}
 
-    FlatMMOPlus.prototype.onLogin = function() {
-        if(this.debug) {
-            console.log(`FM+ onLogin`);
-        }
-        logFancy("login detected");
-        
-        document.getElementById("chat").insertAdjacentHTML("beforeend",`<div style="color: white;">
+	FlatMMOPlus.prototype.sendCustomMessage = function (toPlayer, content) {
+		if (this.debug) {
+			console.log(`FMMO+ sendCustomMessage`, toPlayer, opts);
+		}
+
+		const message = `CUSTOM=${toPlayer}~${content}`;
+		this.sendMessage(message);
+	}
+
+	FlatMMOPlus.prototype.onLogin = function () {
+		if (this.debug) {
+			console.log(`FM+ onLogin`);
+		}
+		logFancy("login detected");
+
+		document.getElementById("chat").insertAdjacentHTML("beforeend",`<div style="color: white;">
             <span><strong style="color:cyan">FYI: </strong> Use the /help command to see information on available chat commands.</span>
             <br>
         </div>`)
 
-        setTimeout(() => {
-            Object.defineProperty(players[Globals.local_username], 'in_combat_ticker', {
-                get: function() {
-                    return FlatMMOPlus.in_combat_ticker;
-                },
-                set: function(newValue) {
-                    FlatMMOPlus.in_combat_ticker = newValue;
-                    if(newValue === 0) {
-                        window.FlatMMOPlus.onFightEnded();
-                    }
-                }
-            });
-        }, 3000);
+		setTimeout(() => {
+			Object.defineProperty(players[Globals.local_username], 'in_combat_ticker', {
+				get: function () {
+					return FlatMMOPlus.in_combat_ticker;
+				},
+				set: function (newValue) {
+					FlatMMOPlus.in_combat_ticker = newValue;
+					if (newValue === 0) {
+						window.FlatMMOPlus.onFightEnded();
+					}
+				}
+			});
+		}, 3000);
 
-        //Chat auto scroll is always true for now
-        chat_div_element.scrollTop = chat_div_element.scrollHeight;
+		//Chat auto scroll is always true for now
+		chat_div_element.scrollTop = chat_div_element.scrollHeight;
 
-        this.original_paintEffects = window.paint_effects;
+		this.original_paintEffects = window.paint_effects;
 
-        window.paint_effects = function() {
-            window.FlatMMOPlus.original_paintEffects();
+		window.paint_effects = function () {
+			window.FlatMMOPlus.original_paintEffects();
 
-            try {
-                window.FlatMMOPlus.onPaint();
-            } catch (error) {
-                console.warn("Error on FlatMMO+ onPaint", error.message)
-            }
-        };
+			try {
+				window.FlatMMOPlus.onPaint();
+			} catch (error) {
+				console.warn("Error on FlatMMO+ onPaint", error.message)
+			}
+		};
 
-        this.originalLayer1 = window.paint_layer_1;
-        window.paint_layer_1 = function() {
-            window.FlatMMOPlus.originalLayer1();
+		this.originalLayer1 = window.paint_layer_1;
+		window.paint_layer_1 = function () {
+			window.FlatMMOPlus.originalLayer1();
 
-            try {
-                window.FlatMMOPlus.onPaintObjects();
-            } catch (error) {
-                console.warn("Error on FlatMMO+ paint_layer_1", error.message)
-            }
-        };
+			try {
+				window.FlatMMOPlus.onPaintObjects();
+			} catch (error) {
+				console.warn("Error on FlatMMO+ paint_layer_1", error.message)
+			}
+		};
 
-        this.originalGroundItems = window.paint_ground_items;
-        window.paint_ground_items = function() {
-            window.FlatMMOPlus.originalGroundItems();
+		this.originalGroundItems = window.paint_ground_items;
+		window.paint_ground_items = function () {
+			window.FlatMMOPlus.originalGroundItems();
 
-            try {
-                window.FlatMMOPlus.onPaintNpcs();
-            } catch (error) {
-                console.warn("Error on FlatMMO+ paint_ground_items", error.message)
-            }
-        };
+			try {
+				window.FlatMMOPlus.onPaintNpcs();
+			} catch (error) {
+				console.warn("Error on FlatMMO+ paint_ground_items", error.message)
+			}
+		};
 
-        this.forEachPlugin((plugin) => {
-            if(plugin.id !== "handler") {this.loadPluginConfigs(plugin.id)};
-            if(typeof plugin.onLogin === "function") {
-                plugin.onLogin();
-            }
-        });
-        this.loggedIn = true;
-    }
+		this.forEachPlugin((plugin) => {
+			if (plugin.id !== "handler") { this.loadPluginConfigs(plugin.id) };
+			if (typeof plugin.onLogin === "function") {
+				plugin.onLogin();
+			}
+		});
+		this.loggedIn = true;
+	}
 
-    FlatMMOPlus.prototype.onChat = function(data) {
-        if(this.debug) {
-            console.log(`FM+ onChat`, data);
-        }
-        if(!this.loggedIn) return;
-        this.forEachPlugin((plugin) => {
-            if(typeof plugin.onChat === "function") {
-                plugin.onChat(data);
-            }
-        });
-    }
+	FlatMMOPlus.prototype.onChat = function (data) {
+		if (this.debug) {
+			console.log(`FM+ onChat`, data);
+		}
+		if (!this.loggedIn) return;
+		this.forEachPlugin((plugin) => {
+			if (typeof plugin.onChat === "function") {
+				plugin.onChat(data);
+			}
+		});
+	}
 
-    FlatMMOPlus.prototype.addNotification = function(name, imageSrc, title = "", text = "", ticks = 900, color = "white", bgColor = "black", titleColor, progressColor = "red") {
-        const img = new Image();
-        img.src = imageSrc;
-        img.onload = () => {
-            this.notifications[name] = {
-                image: img,
-                title,
-                text,
-                color,
-                titleColor: titleColor || color,
-                bgColor,
-                progressColor,
-                ticksFull: ticks,
-                ticks
-            }
-        }
-    }
+	FlatMMOPlus.prototype.addNotification = function (name, imageSrc, title = "", text = "", ticks = 900, color = "white", bgColor = "black", titleColor, progressColor = "red") {
+		const img = new Image();
+		img.src = imageSrc;
+		img.onload = () => {
+			this.notifications[name] = {
+				image: img,
+				title,
+				text,
+				color,
+				titleColor: titleColor || color,
+				bgColor,
+				progressColor,
+				ticksFull: ticks,
+				ticks
+			}
+		}
+	}
 
-    FlatMMOPlus.prototype.paintNotifications = function() {
-        if(!this.loggedIn) return;
-        const nots = Object.keys(this.notifications);
-        if(nots.length === 0) return;
-        if(this.handler.config.hoverNotifications) {
-             this.paintHoverNotifications(nots);
-        } else {
-            this.paintBlockNotifications();
-        }
-    }
+	FlatMMOPlus.prototype.paintNotifications = function () {
+		if (!this.loggedIn) return;
+		const nots = Object.keys(this.notifications);
+		if (nots.length === 0) return;
+		if (this.handler.config.hoverNotifications) {
+			this.paintHoverNotifications(nots);
+		} else {
+			this.paintBlockNotifications();
+		}
+	}
 
-    FlatMMOPlus.prototype.paintHoverNotifications = function(notifications) {
-        const CIRCLE_R   = 22;
-        const ARC_R      = 30;
-        const ARC_W      = 5;
-        const SPACING    = 12;
-        const WIDGET_W   = ARC_R * 2 + SPACING;
-        const FADE_TICKS = 60;
+	FlatMMOPlus.prototype.paintHoverNotifications = function (notifications) {
+		const CIRCLE_R = 22;
+		const ARC_R = 30;
+		const ARC_W = 5;
+		const SPACING = 12;
+		const WIDGET_W = ARC_R * 2 + SPACING;
+		const FADE_TICKS = 60;
 
-        // Center the row of widgets horizontally and vertically
-        const totalW = notifications.length * WIDGET_W - SPACING;
-        let cx = canvasWidth / 2 - totalW / 2 + ARC_R;
-        const CY = this.handler.config.hoverNotificationHeight * TILE_SIZE - (ARC_R + ARC_W + 20);
+		// Center the row of widgets horizontally and vertically
+		const totalW = notifications.length * WIDGET_W - SPACING;
+		let cx = canvasWidth / 2 - totalW / 2 + ARC_R;
+		const CY = this.handler.config.hoverNotificationHeight * TILE_SIZE - (ARC_R + ARC_W + 20);
 
-        const mx = mouse_over_now.x;
-        const my = mouse_over_now.y;
-        let tooltip = null; // {cx, text} — drawn last so it's always on top
+		const mx = mouse_over_now.x;
+		const my = mouse_over_now.y;
+		let tooltip = null; // {cx, text} — drawn last so it's always on top
 
-        for (let notification in this.notifications) {
-            const not = this.notifications[notification];
-            not.ticks--;
+		for (let notification in this.notifications) {
+			const not = this.notifications[notification];
+			not.ticks--;
 
-            if(not.ticks <= 0) {
-                delete this.notifications[notification];
-                return;
-            }
+			if (not.ticks <= 0) {
+				delete this.notifications[notification];
+				return;
+			}
 
-            const alpha = this.handler.config.hoverNotificationAlpha === 100 ? not.ticks < FADE_TICKS ? Math.max(0, not.ticks / FADE_TICKS) : 1.0 : this.handler.config.hoverNotificationAlpha;
+			const alpha = this.handler.config.hoverNotificationAlpha === 100 ? not.ticks < FADE_TICKS ? Math.max(0, not.ticks / FADE_TICKS) : 1.0 : this.handler.config.hoverNotificationAlpha;
 
-            ctx.save();
-            ctx.globalAlpha = alpha;
+			ctx.save();
+			ctx.globalAlpha = alpha;
 
-            // Dark backing disc
-            ctx.beginPath();
-            ctx.arc(cx, CY, ARC_R + ARC_W, 0, Math.PI * 2);
-            ctx.fillStyle = "rgba(0,0,0,0.6)";
-            ctx.fill();
+			// Dark backing disc
+			ctx.beginPath();
+			ctx.arc(cx, CY, ARC_R + ARC_W, 0, Math.PI * 2);
+			ctx.fillStyle = "rgba(0,0,0,0.6)";
+			ctx.fill();
 
-            // Clip icon to inner circle
-            ctx.save();
-            ctx.beginPath();
-            ctx.arc(cx, CY, CIRCLE_R, 0, Math.PI * 2);
-            ctx.clip();
-            const imgWidth = CIRCLE_R * 2;
-            ctx.drawImage(not.image, cx - CIRCLE_R, CY - CIRCLE_R, imgWidth, imgWidth * (not.image.naturalHeight / not.image.naturalWidth));
-            ctx.restore();
+			// Clip icon to inner circle
+			ctx.save();
+			ctx.beginPath();
+			ctx.arc(cx, CY, CIRCLE_R, 0, Math.PI * 2);
+			ctx.clip();
+			const imgWidth = CIRCLE_R * 2;
+			ctx.drawImage(not.image, cx - CIRCLE_R, CY - CIRCLE_R, imgWidth, imgWidth * (not.image.naturalHeight / not.image.naturalWidth));
+			ctx.restore();
 
-            // Empty arc track
-            ctx.beginPath();
-            ctx.arc(cx, CY, ARC_R, -Math.PI / 2, Math.PI * 1.5);
-            ctx.strokeStyle = "rgba(255,255,255,0.15)";
-            ctx.lineWidth   = ARC_W;
-            ctx.lineCap     = "butt";
-            ctx.stroke();
+			// Empty arc track
+			ctx.beginPath();
+			ctx.arc(cx, CY, ARC_R, -Math.PI / 2, Math.PI * 1.5);
+			ctx.strokeStyle = "rgba(255,255,255,0.15)";
+			ctx.lineWidth = ARC_W;
+			ctx.lineCap = "butt";
+			ctx.stroke();
 
-            // Filled progress arc (clockwise from top)
-            const endAngle = -Math.PI / 2 + (not.ticks / not.ticksFull) * Math.PI * 2;
-            ctx.beginPath();
-            ctx.arc(cx, CY, ARC_R, -Math.PI / 2, endAngle);
-            ctx.strokeStyle = not.progressColor;
-            ctx.lineWidth   = ARC_W;
-            ctx.lineCap     = "round";
-            ctx.stroke();
+			// Filled progress arc (clockwise from top)
+			const endAngle = -Math.PI / 2 + (not.ticks / not.ticksFull) * Math.PI * 2;
+			ctx.beginPath();
+			ctx.arc(cx, CY, ARC_R, -Math.PI / 2, endAngle);
+			ctx.strokeStyle = not.progressColor;
+			ctx.lineWidth = ARC_W;
+			ctx.lineCap = "round";
+			ctx.stroke();
 
-            ctx.restore();
+			ctx.restore();
 
-            // Queue tooltip if mouse is hovering this orb
-            const dx = mx - cx, dy = my - CY;
-            if (dx * dx + dy * dy <= (ARC_R + ARC_W) * (ARC_R + ARC_W)) {
-                tooltip = { cx, not };
-            }
+			// Queue tooltip if mouse is hovering this orb
+			const dx = mx - cx, dy = my - CY;
+			if (dx * dx + dy * dy <= (ARC_R + ARC_W) * (ARC_R + ARC_W)) {
+				tooltip = { cx, not };
+			}
 
-            cx += WIDGET_W;
-        }
+			cx += WIDGET_W;
+		}
 
-        // Draw tooltip on top of all orbs
-        if (tooltip) {
-            const tx   = tooltip.cx;
-            const ty   = CY - (ARC_R + ARC_W + 14);
-            ctx.save();
-            const PAD = 16;
-            ctx.textAlign   = "center";
-            const tw = ctx.measureText(tooltip.not.title).width;
-            const txw = ctx.measureText(tooltip.not.text).width;
-            const rectW = tw > txw ? tw : txw;
-            const th = 16;
-            const txh = 13;
-            ctx.font        = "16px sans-serif";
-            ctx.fillStyle   = tooltip.not.bgColor;
-            ctx.fillRect(tx - rectW / 2 - PAD, ty - th - PAD / 2, rectW + PAD * 2, th + txh + PAD);
-            ctx.fillStyle   = tooltip.not.titleColor;
-            ctx.fillText(tooltip.not.title, tx, ty);
-            ctx.fillStyle   = tooltip.not.color;
-            ctx.font        = "13px sans-serif";
-            ctx.fillText(tooltip.not.text, tx, ty + th);
-            ctx.restore();
-        }
-    }
+		// Draw tooltip on top of all orbs
+		if (tooltip) {
+			const tx = tooltip.cx;
+			const ty = CY - (ARC_R + ARC_W + 14);
+			ctx.save();
+			const PAD = 16;
+			ctx.textAlign = "center";
+			const tw = ctx.measureText(tooltip.not.title).width;
+			const txw = ctx.measureText(tooltip.not.text).width;
+			const rectW = tw > txw ? tw : txw;
+			const th = 16;
+			const txh = 13;
+			ctx.font = "16px sans-serif";
+			ctx.fillStyle = tooltip.not.bgColor;
+			ctx.fillRect(tx - rectW / 2 - PAD, ty - th - PAD / 2, rectW + PAD * 2, th + txh + PAD);
+			ctx.fillStyle = tooltip.not.titleColor;
+			ctx.fillText(tooltip.not.title, tx, ty);
+			ctx.fillStyle = tooltip.not.color;
+			ctx.font = "13px sans-serif";
+			ctx.fillText(tooltip.not.text, tx, ty + th);
+			ctx.restore();
+		}
+	}
 
-    FlatMMOPlus.prototype.paintBlockNotifications = function() {
-        const PADDING = 10;
-        let yOffset = 0;
-        let y = 13 * TILE_SIZE;
-        for (let notification in this.notifications) {
-            const not = this.notifications[notification];
-            if(not.ticks <= 0) {
-                delete this.notifications[notification];
-                return;
-            }
-            not.ticks--;
-            ctx.font = "20px serif";
-            ctx.fillStyle = "white";
-            ctx.globalAlpha = 0.2;
-            ctx.fillRect(21 * TILE_SIZE, y - yOffset, TILE_SIZE * 3 - PADDING, TILE_SIZE - PADDING);
-            ctx.globalAlpha = 1.0;
-            ctx.drawImage(not.image, 21 * TILE_SIZE + PADDING, y + 10 - yOffset, 32, 32); 
-            ctx.fillStyle = not.color;
-            ctx.fillText(not.title, 21 * TILE_SIZE + 50, y + 20 - yOffset);
-            ctx.font = "16px serif";
-            ctx.fillText(not.text, 21 * TILE_SIZE + 50, y + 40 - yOffset);
-            yOffset += TILE_SIZE;
-        }
-    }
+	FlatMMOPlus.prototype.paintBlockNotifications = function () {
+		const PADDING = 10;
+		let yOffset = 0;
+		let y = 13 * TILE_SIZE;
+		for (let notification in this.notifications) {
+			const not = this.notifications[notification];
+			if (not.ticks <= 0) {
+				delete this.notifications[notification];
+				return;
+			}
+			not.ticks--;
+			ctx.font = "20px serif";
+			ctx.fillStyle = "white";
+			ctx.globalAlpha = 0.2;
+			ctx.fillRect(21 * TILE_SIZE, y - yOffset, TILE_SIZE * 3 - PADDING, TILE_SIZE - PADDING);
+			ctx.globalAlpha = 1.0;
+			ctx.drawImage(not.image, 21 * TILE_SIZE + PADDING, y + 10 - yOffset, 32, 32);
+			ctx.fillStyle = not.color;
+			ctx.fillText(not.title, 21 * TILE_SIZE + 50, y + 20 - yOffset);
+			ctx.font = "16px serif";
+			ctx.fillText(not.text, 21 * TILE_SIZE + 50, y + 40 - yOffset);
+			yOffset += TILE_SIZE;
+		}
+	}
 
-    //After vanilla paint
-    FlatMMOPlus.prototype.onPaint = function() {
-        if(this.debug) {
-            console.log("FM+ onPaint");
-        }
+	//After vanilla paint
+	FlatMMOPlus.prototype.onPaint = function () {
+		if (this.debug) {
+			console.log("FM+ onPaint");
+		}
 
-        this.forEachPlugin((plugin) => {
-            if(typeof plugin.onPaint === "function") {
-                plugin.onPaint();
-            }
-        });
+		this.forEachPlugin((plugin) => {
+			if (typeof plugin.onPaint === "function") {
+				plugin.onPaint();
+			}
+		});
 
-        this.paintNotifications();
-    }
+		this.paintNotifications();
+	}
 
-    //Between paint_layer_1 and paint_map_objects_lower_shadows
-    FlatMMOPlus.prototype.onPaintObjects = function() {
-        if(this.debug) {
-            console.log("FM+ onPaintObjects");
-        }
-        this.forEachPlugin((plugin) => {
-            if(typeof plugin.onPaintObjects === "function") {
-                plugin.onPaintObjects();
-            }
-        });
-    }
+	//Between paint_layer_1 and paint_map_objects_lower_shadows
+	FlatMMOPlus.prototype.onPaintObjects = function () {
+		if (this.debug) {
+			console.log("FM+ onPaintObjects");
+		}
+		this.forEachPlugin((plugin) => {
+			if (typeof plugin.onPaintObjects === "function") {
+				plugin.onPaintObjects();
+			}
+		});
+	}
 
-    //Between paint_ground_items and paint_npcs
-    FlatMMOPlus.prototype.onPaintNpcs = function() {
-        if(this.debug) {
-            console.log("FM+ onPaintNpcs");
-        }
-        this.forEachPlugin((plugin) => {
-            if(typeof plugin.onPaintNpcs === "function") {
-                plugin.onPaintNpcs();
-            }
-        });
-    }
+	//Between paint_ground_items and paint_npcs
+	FlatMMOPlus.prototype.onPaintNpcs = function () {
+		if (this.debug) {
+			console.log("FM+ onPaintNpcs");
+		}
+		this.forEachPlugin((plugin) => {
+			if (typeof plugin.onPaintNpcs === "function") {
+				plugin.onPaintNpcs();
+			}
+		});
+	}
 
-    FlatMMOPlus.prototype.onPanelChanged = function(panelBefore, panelAfter) {
-        if(this.debug) {
-            console.log(`FM+ onPanelChanged "${panelBefore}" -> "${panelAfter}"`);
-        }
-        if(!this.loggedIn) return;
-        this.forEachPlugin((plugin) => {
-            if(typeof plugin.onPanelChanged === "function") {
-                plugin.onPanelChanged(panelBefore, panelAfter);
-            }
-        });
-    }
-    
-    FlatMMOPlus.prototype.onSettingsPanelChanged = function(panelBefore, panelAfter) {
-        if(this.debug) {
-            console.log(`FM+ onSettingsPanelChanged "${panelBefore}" -> "${panelAfter}"`);
-        }
-        if(!this.loggedIn) return;
-        if(panelAfter === "plugins") {
-            this.refreshPanel("plugins");
-        }
-        this.forEachPlugin((plugin) => {
-            if(typeof plugin.onSettingsPanelChanged === "function") {
-                plugin.onSettingsPanelChanged(panelBefore, panelAfter);
-            }
-        });
-    }
-    
-    FlatMMOPlus.prototype.onMapChanged = function(mapBefore, mapAfter) {
-        if(this.debug) {
-            console.log(`FMMO+ onMapChanged "${mapBefore}" -> "${mapAfter}"`);
-        }
-        if(!this.loggedIn) return;
-        this.forEachPlugin((plugin) => {
-            if(typeof plugin.onMapChanged === "function") {
-                plugin.onMapChanged(mapBefore, mapAfter);
-            }
-        });
-    }
+	FlatMMOPlus.prototype.onPanelChanged = function (panelBefore, panelAfter) {
+		if (this.debug) {
+			console.log(`FM+ onPanelChanged "${panelBefore}" -> "${panelAfter}"`);
+		}
+		if (!this.loggedIn) return;
+		this.forEachPlugin((plugin) => {
+			if (typeof plugin.onPanelChanged === "function") {
+				plugin.onPanelChanged(panelBefore, panelAfter);
+			}
+		});
+	}
 
-    FlatMMOPlus.prototype.onInventoryChanged = function(inventoryBefore, inventoryAfter) {
-        if(this.debug) {
-            console.log(`FMMO+ onInventoryChanged "${inventoryBefore}" -> "${inventoryAfter}"`);
-        }
-        if(!this.loggedIn) return;
-        this.forEachPlugin((plugin) => {
-            if(typeof plugin.onInventoryChanged === "function") {
-                plugin.onInventoryChanged(inventoryBefore, inventoryAfter);
-            }
-        });
-    }
+	FlatMMOPlus.prototype.onSettingsPanelChanged = function (panelBefore, panelAfter) {
+		if (this.debug) {
+			console.log(`FM+ onSettingsPanelChanged "${panelBefore}" -> "${panelAfter}"`);
+		}
+		if (!this.loggedIn) return;
+		if (panelAfter === "plugins") {
+			this.refreshPanel("plugins");
+		}
+		this.forEachPlugin((plugin) => {
+			if (typeof plugin.onSettingsPanelChanged === "function") {
+				plugin.onSettingsPanelChanged(panelBefore, panelAfter);
+			}
+		});
+	}
 
-    FlatMMOPlus.prototype.onDamageTaken = function(hpBefore, hpAfter) {
-        if(this.debug) {
-            console.log(`FMMO+ onDamageTaken "${hpBefore}" -> "${hpAfter}"`);
-        }
-        if(!this.loggedIn) return;
-        this.forEachPlugin((plugin) => {
-            if(typeof plugin.onDamageTaken === "function") {
-                plugin.onDamageTaken(hpBefore, hpAfter);
-            }
-        });
-    }
+	FlatMMOPlus.prototype.onMapChanged = function (mapBefore, mapAfter) {
+		if (this.debug) {
+			console.log(`FMMO+ onMapChanged "${mapBefore}" -> "${mapAfter}"`);
+		}
+		if (!this.loggedIn) return;
+		this.forEachPlugin((plugin) => {
+			if (typeof plugin.onMapChanged === "function") {
+				plugin.onMapChanged(mapBefore, mapAfter);
+			}
+		});
+	}
 
-    FlatMMOPlus.prototype.onFightStarted = function() {
-        if(this.debug) {
-            console.log(`FMMO+ onFightStarted`);
-        }
-        if(!this.loggedIn) return;
-        this.isFighting = true;
-        this.forEachPlugin((plugin) => {
-            if(typeof plugin.onFightStarted === "function") {
-                plugin.onFightStarted();
-            }
-        });
-    }
-    
-    FlatMMOPlus.prototype.onFightEnded = function() {
-        if(this.debug) {
-            console.log(`FMMO+ onFightEnded`);
-        }
-        if(!this.loggedIn) return;
-        this.isFighting = false;
-        this.forEachPlugin((plugin) => {
-            if(typeof plugin.onFightEnded === "function") {
-                plugin.onFightEnded();
-            }
-        });
-    }
+	FlatMMOPlus.prototype.onInventoryChanged = function (inventoryBefore, inventoryAfter) {
+		if (this.debug) {
+			console.log(`FMMO+ onInventoryChanged "${inventoryBefore}" -> "${inventoryAfter}"`);
+		}
+		if (!this.loggedIn) return;
+		this.forEachPlugin((plugin) => {
+			if (typeof plugin.onInventoryChanged === "function") {
+				plugin.onInventoryChanged(inventoryBefore, inventoryAfter);
+			}
+		});
+	}
 
-    FlatMMOPlus.prototype.onActionChanged = function() {
-        if(this.debug) {
-            console.log(`FMMO+ onActionChanged`);
-        }
-        if(!this.loggedIn) return;
-        this.forEachPlugin((plugin) => {
-            if(typeof plugin.onActionChanged === "function") {
-                plugin.onActionChanged();
-            }
-        });
-    }
+	FlatMMOPlus.prototype.onDamageTaken = function (hpBefore, hpAfter) {
+		if (this.debug) {
+			console.log(`FMMO+ onDamageTaken "${hpBefore}" -> "${hpAfter}"`);
+		}
+		if (!this.loggedIn) return;
+		this.forEachPlugin((plugin) => {
+			if (typeof plugin.onDamageTaken === "function") {
+				plugin.onDamageTaken(hpBefore, hpAfter);
+			}
+		});
+	}
 
-    FlatMMOPlus.prototype.init = function(){
-        //Tries to hook into the websocket messages
-        const hookIntoOnMessage = () => {
-            try {
-                if (typeof this.original_onmessage === "function") {
-                    Globals.websocket.onmessage = (event) => {
-                        if(event.data.startsWith("SET_MAP")) {
-                            const mapBefore = current_map;
-                            this.original_onmessage(event);
-                            const mapAfter = current_map;
-                            this.onMapChanged(mapBefore, mapAfter);
-                            return;
-                        } else if (event.data.startsWith("SET_INVENTORY_ITEMS")) {
-                            const inventoryBefore = items;
-                            this.original_onmessage(event);
-                            const inventoryAfter = items;
-                            this.onInventoryChanged(inventoryBefore, inventoryAfter);
-                            return;
-                        } else if (event.data.startsWith(`REFRESH_PLAYER_HP_BAR=${Globals.local_username}`)) {
-                            const hpBefore = players[Globals.local_username].hp;
-                            this.original_onmessage(event);
-                            const hpAfter = players[Globals.local_username].hp;
-                            if(hpAfter < hpBefore) {
-                                this.onDamageTaken(hpBefore, hpAfter);
-                            }
-                        }
-                        this.original_onmessage(event);
-                        this.onMessageReceived(event.data);
-                    }
-                }
-                if(typeof this.original_sendmessage === "function") {
-                    Globals.websocket.send = (message) => {
-                        let canSend = !this.onMessageSent(message);
-                        if(canSend) {
-                            this.original_sendmessage.call(Globals.websocket, message);
-                        }
-                    }
-                }
-                return true;
-            } catch (err) {
-                console.error("Had trouble hooking into websocket...");
-                return false;
-            }
-        }
-        //This will call itthis
-        (function(){
-            if(!hookIntoOnMessage()) {
-                // try once more
-                setTimeout(hookIntoOnMessage, 40);
-            }
-        })()
+	FlatMMOPlus.prototype.onFightStarted = function () {
+		if (this.debug) {
+			console.log(`FMMO+ onFightStarted`);
+		}
+		if (!this.loggedIn) return;
+		this.isFighting = true;
+		this.forEachPlugin((plugin) => {
+			if (typeof plugin.onFightStarted === "function") {
+				plugin.onFightStarted();
+			}
+		});
+	}
 
-        //Prevents duplicated hoykeys in case Smitty adds hoykey remap on vanilla
-        if(window["register_hotkey"] === undefined) {
-            window.addEventListener("keydown", this.fmpKeyDown, false);
-            this.addPanel("hotkeys", "Hotkeys", "", true);
-            //Remove vanilla keyboard menu
-            document.getElementById("settings-modal-keyboard-panel-btn").style.display = "none";
-        } else {
-            //Plugins using it shouldn't break if hotkeys are added on vanilla
-            FlatMMOPlus.prototype.registerHotkeyCategory = window.register_hotkey_category;
-            FlatMMOPlus.prototype.registerHotkey = window.register_hotkey;
-            FlatMMOPlus.prototype.deleteHotkey = window.delete_hotkey;
-        }
-        window.enter_pressed = function() {
-            const message = chat_ele.value.trim();
-            if (message === "") return;
+	FlatMMOPlus.prototype.onFightEnded = function () {
+		if (this.debug) {
+			console.log(`FMMO+ onFightEnded`);
+		}
+		if (!this.loggedIn) return;
+		this.isFighting = false;
+		this.forEachPlugin((plugin) => {
+			if (typeof plugin.onFightEnded === "function") {
+				plugin.onFightEnded();
+			}
+		});
+	}
 
-            chat_ele.value = "";
-            request_unfocus_chatbox();
+	FlatMMOPlus.prototype.onActionChanged = function () {
+		if (this.debug) {
+			console.log(`FMMO+ onActionChanged`);
+		}
+		if (!this.loggedIn) return;
+		this.forEachPlugin((plugin) => {
+			if (typeof plugin.onActionChanged === "function") {
+				plugin.onActionChanged();
+			}
+		});
+	}
 
-            if(message.startsWith("/")) {
-                const space = message.indexOf(" ");
-                let command;
-                let data;
-                if (space <= 0) {
-                    command = message.substring(1);
-                    data = "";
-                } else {
-                    command = message.substring(1, space);
-                    data = message.substring(space + 1);
-                }
+	FlatMMOPlus.prototype.init = function () {
+		//Tries to hook into the websocket messages
+		const hookIntoOnMessage = () => {
+			try {
+				if (typeof this.original_onmessage === "function") {
+					Globals.websocket.onmessage = (event) => {
+						if (event.data.startsWith("SET_MAP")) {
+							const mapBefore = current_map;
+							this.original_onmessage(event);
+							const mapAfter = current_map;
+							this.onMapChanged(mapBefore, mapAfter);
+							return;
+						} else if (event.data.startsWith("SET_INVENTORY_ITEMS")) {
+							const inventoryBefore = items;
+							this.original_onmessage(event);
+							const inventoryAfter = items;
+							this.onInventoryChanged(inventoryBefore, inventoryAfter);
+							return;
+						} else if (event.data.startsWith(`REFRESH_PLAYER_HP_BAR=${Globals.local_username}`)) {
+							const hpBefore = players[Globals.local_username].hp;
+							this.original_onmessage(event);
+							const hpAfter = players[Globals.local_username].hp;
+							if (hpAfter < hpBefore) {
+								this.onDamageTaken(hpBefore, hpAfter);
+							}
+						}
+						this.original_onmessage(event);
+						this.onMessageReceived(event.data);
+					}
+				}
+				if (typeof this.original_sendmessage === "function") {
+					Globals.websocket.send = (message) => {
+						let canSend = !this.onMessageSent(message);
+						if (canSend) {
+							this.original_sendmessage.call(Globals.websocket, message);
+						}
+					}
+				}
+				return true;
+			} catch (err) {
+				console.error("Had trouble hooking into websocket...");
+				return false;
+			}
+		}
+		//This will call itthis
+		(function () {
+			if (!hookIntoOnMessage()) {
+				// try once more
+				setTimeout(hookIntoOnMessage, 40);
+			}
+		})()
 
-                //FMP only excutes if this is a valid command, so there is no reason to check if it exists
-                if (window.FlatMMOPlus.handleCustomChatCommand(command, data)) {
-                    return;
-                }
-            }
-            //If it is not a valid command or isn't a command at all it will send the message
-            Globals.websocket.send('CHAT=' + message);
-        }
+		//Prevents duplicated hoykeys in case Smitty adds hoykey remap on vanilla
+		if (window["register_hotkey"] === undefined) {
+			window.addEventListener("keydown", this.fmpKeyDown, false);
+			this.addPanel("hotkeys", "Hotkeys", "", true);
+			//Remove vanilla keyboard menu
+			document.getElementById("settings-modal-keyboard-panel-btn").style.display = "none";
+		} else {
+			//Plugins using it shouldn't break if hotkeys are added on vanilla
+			FlatMMOPlus.prototype.registerHotkeyCategory = window.register_hotkey_category;
+			FlatMMOPlus.prototype.registerHotkey = window.register_hotkey;
+			FlatMMOPlus.prototype.deleteHotkey = window.delete_hotkey;
+		}
+		window.enter_pressed = function () {
+			const message = chat_ele.value.trim();
+			if (message === "") return;
 
-        document.getElementById("canvas").insertAdjacentHTML("beforeend",'<div id="FMPNotifications"></div>')
+			chat_ele.value = "";
+			request_unfocus_chatbox();
 
-        // hook into switch_panels, which is called when the main panel is changed. This is used for custom panels.
-        window.switch_panels = (id) => {
-            let panelBefore = this.currentPanel;
-            this.original_switch_panels(id);
-            this.currentPanel = id;
-            let panelAfter = id;
-            this.onPanelChanged(panelBefore, panelAfter);
-        }
-        
-        window.settings_modal_tab = (id) => {
-            let panelBefore = this.currentSettingsPanel;
-            this.hideCustomPanels();
-            //I'm using links because some panels don't have a button
-            if(document.getElementById(`settings-modal-${id}-panel-btn`)) {
-                this.original_settings_modal_tab(id);
-            } else {
-                this.original_settings_modal_tab("links");
-                document.getElementById('settings-modal-links-panel-btn').style.backgroundColor = '';
-                document.getElementById('settings-modal-links-panel').style.display = 'none'
-                document.getElementById(`settings-modal-${id}-panel`).style.display = '';
-            }
+			if (message.startsWith("/")) {
+				const space = message.indexOf(" ");
+				let command;
+				let data;
+				if (space <= 0) {
+					command = message.substring(1);
+					data = "";
+				} else {
+					command = message.substring(1, space);
+					data = message.substring(space + 1);
+				}
 
-            this.currentSettingsPanel = id;
-            let panelAfter = id;
-            this.onSettingsPanelChanged(panelBefore, panelAfter);
-        }
+				//FMP only excutes if this is a valid command, so there is no reason to check if it exists
+				if (window.FlatMMOPlus.handleCustomChatCommand(command, data)) {
+					return;
+				}
+			}
+			//If it is not a valid command or isn't a command at all it will send the message
+			Globals.websocket.send('CHAT=' + message);
+		}
 
-        this.addPanel("plugins", "Plugins", () => {
-            let content = "";
-            this.forEachPlugin(plugin => {
-                let id = plugin.id;
-                let name = "An FlatMMO+ Plugin!";
-                let description = "";
-                let author = "unknown";
-                if(plugin.opts.about) {
-                    let about = plugin.opts.about;
-                    name = about.name || name;
-                    description = about.description || description;
-                    author = about.author || author;
-                }
-                content += `
+		document.getElementById("canvas").insertAdjacentHTML("beforeend", '<div id="FMPNotifications"></div>')
+
+		// hook into switch_panels, which is called when the main panel is changed. This is used for custom panels.
+		window.switch_panels = (id) => {
+			let panelBefore = this.currentPanel;
+			this.original_switch_panels(id);
+			this.currentPanel = id;
+			let panelAfter = id;
+			this.onPanelChanged(panelBefore, panelAfter);
+		}
+
+		window.settings_modal_tab = (id) => {
+			let panelBefore = this.currentSettingsPanel;
+			this.hideCustomPanels();
+			//I'm using links because some panels don't have a button
+			if (document.getElementById(`settings-modal-${id}-panel-btn`)) {
+				this.original_settings_modal_tab(id);
+			} else {
+				this.original_settings_modal_tab("links");
+				document.getElementById('settings-modal-links-panel-btn').style.backgroundColor = '';
+				document.getElementById('settings-modal-links-panel').style.display = 'none'
+				document.getElementById(`settings-modal-${id}-panel`).style.display = '';
+			}
+
+			this.currentSettingsPanel = id;
+			let panelAfter = id;
+			this.onSettingsPanelChanged(panelBefore, panelAfter);
+		}
+
+		this.addPanel("plugins", "Plugins", () => {
+			let content = "";
+			this.forEachPlugin(plugin => {
+				let id = plugin.id;
+				let name = "An FlatMMO+ Plugin!";
+				let description = "";
+				let author = "unknown";
+				if (plugin.opts.about) {
+					let about = plugin.opts.about;
+					name = about.name || name;
+					description = about.description || description;
+					author = about.author || author;
+				}
+				content += `
                 <div id="flatmmoplus-plugin-box-${id}" class="flatmmoplus-plugin-box">
                     <div style="display:flex;justify-content: space-between; align-items:center;">
                         <div>
-                            <strong style="font-size: large;"><u>${name||id}</u></strong>(by ${author})<br />
+                            <strong style="font-size: large;"><u>${name || id}</u></strong>(by ${author})<br />
                             <span>${description}</span><br />
                         </div>
                         ${plugin.opts.config ? `<div class="flatmmoplus-plugin-settings-button">
@@ -2213,73 +2237,73 @@
                     <div class="flatmmoplus-plugin-config-section displaynone">
                         <hr style="grid-column: span 2">
                 `;
-                if(plugin.opts.config && Array.isArray(plugin.opts.config)) {
-                    plugin.opts.config.forEach(cfg => {
-                        if(CONFIG_TYPES_LABEL.includes(cfg.type)) {
-                            content += `<h5 style="grid-column: span 2; margin-bottom: 0; font-weight: 600">${cfg.label}</h5>`;
-                        } else if (CONFIG_TYPES_PANEL.includes(cfg.type)) {
-                            content += `<div onclick="FlatMMOPlus.setPanel('${cfg.panel}')" style="cursor: pointer;">
+				if (plugin.opts.config && Array.isArray(plugin.opts.config)) {
+					plugin.opts.config.forEach(cfg => {
+						if (CONFIG_TYPES_LABEL.includes(cfg.type)) {
+							content += `<h5 style="grid-column: span 2; margin-bottom: 0; font-weight: 600">${cfg.label}</h5>`;
+						} else if (CONFIG_TYPES_PANEL.includes(cfg.type)) {
+							content += `<div onclick="FlatMMOPlus.setPanel('${cfg.panel}')" style="cursor: pointer;">
                                 <h2 style="text-align: center;">${cfg.label}</h2>
                             </div>`
-                        } else if(CONFIG_TYPES_BOOLEAN.includes(cfg.type)) {
-                            content += `
+						} else if (CONFIG_TYPES_BOOLEAN.includes(cfg.type)) {
+							content += `
                                 <div>
                                     <label for="flatmmoplus-config-${plugin.id}-${cfg.id}">${cfg.label || cfg.id}</label>
                                     <input id="flatmmoplus-config-${plugin.id}-${cfg.id}" type="checkbox" onchange="FlatMMOPlus.setPluginConfigUIDirty('${id}', true, '${cfg.id}')" />
                                 </div>
                                 `;
-                        }
-                        else if(CONFIG_TYPES_INTEGER.includes(cfg.type)) {
-                            content += `
+						}
+						else if (CONFIG_TYPES_INTEGER.includes(cfg.type)) {
+							content += `
                                 <div>
                                     <label for="flatmmoplus-config-${plugin.id}-${cfg.id}">${cfg.label || cfg.id}</label>
                                     <input id="flatmmoplus-config-${plugin.id}-${cfg.id}" type="number" step="1" min="${cfg.min || ''}" max="${cfg.max || ''}" onchange="FlatMMOPlus.setPluginConfigUIDirty('${id}', true, '${cfg.id}')" />
                                 </div>
                                 `;
-                        }
-                        else if(CONFIG_TYPES_FLOAT.includes(cfg.type)) {
-                            content += `
+						}
+						else if (CONFIG_TYPES_FLOAT.includes(cfg.type)) {
+							content += `
                                 <div>
                                     <label for="flatmmoplus-config-${plugin.id}-${cfg.id}">${cfg.label || cfg.id}</label>
                                     <input id="flatmmoplus-config-${plugin.id}-${cfg.id}" type="number" step="${cfg.step || ''}" min="${cfg.min || ''}" max="${cfg.max || ''}" onchange="FlatMMOPlus.setPluginConfigUIDirty('${id}', true, '${cfg.id}');" />
                                 </div>
                                 `;
-                        } else if (CONFIG_TYPES_RANGE.includes(cfg.type)) {
-                            content += `<div>
+						} else if (CONFIG_TYPES_RANGE.includes(cfg.type)) {
+							content += `<div>
                                 <label for="flatmmoplus-config-${plugin.id}-${cfg.id}">${cfg.label || cfg.id}</label>
                                 <div>
                                     <input id="flatmmoplus-config-${plugin.id}-${cfg.id}" type="range" step="${cfg.step || ''}" min="${cfg.min || ''}" max="${cfg.max || ''}" onchange="FlatMMOPlus.setPluginConfigUIDirty('${id}', true, '${cfg.id}');" oninput="document.getElementById('flatmmoplus-config-${plugin.id}-${cfg.id}-value').innerText = this.value" />
                                     <span id="flatmmoplus-config-${plugin.id}-${cfg.id}-value"></span>
                                 </div>
                             </div>`;
-                        }
-                        else if(CONFIG_TYPES_STRING.includes(cfg.type)) {
-                            content += `
+						}
+						else if (CONFIG_TYPES_STRING.includes(cfg.type)) {
+							content += `
                                 <div>
                                     <label for="flatmmoplus-config-${plugin.id}-${cfg.id}">${cfg.label || cfg.id}</label>
                                     <textarea id="flatmmoplus-config-${plugin.id}-${cfg.id}" type="text" maxlength="${cfg.max || ''}" onchange="FlatMMOPlus.setPluginConfigUIDirty('${id}', true, '${cfg.id}')" rows="5" autocomplete="off" spellcheck="false"></textarea>
                                 </div>
                                 `;
-                        }
-                        else if(CONFIG_TYPES_COLOR.includes(cfg.type)) {
-                            content += `
+						}
+						else if (CONFIG_TYPES_COLOR.includes(cfg.type)) {
+							content += `
                                 <div>
                                     <label for="flatmmoplus-config-${plugin.id}-${cfg.id}">${cfg.label || cfg.id}</label>
                                     <input id="flatmmoplus-config-${plugin.id}-${cfg.id}" type="color" onchange="FlatMMOPlus.setPluginConfigUIDirty('${id}', true, '${cfg.id}')" />
                                 </div>
                                 `;
-                        }
-                        else if(CONFIG_TYPES_LIST.includes(cfg.type)) {
-                            content += `
+						}
+						else if (CONFIG_TYPES_LIST.includes(cfg.type)) {
+							content += `
                                 <div>
                                     <label>${cfg.label || cfg.id}</label>
                                     <div class="fmp-list-div" id="flatmmoplus-config-${plugin.id}-${cfg.id}"></div>
                                     <button style="cursor:pointer;font-size: 1rem;" onclick="FlatMMOPlus.newListField('${plugin.id}', '${cfg.id}')">Add new field</button>
                                 </div>
                                 `;
-                        }
-                        else if(CONFIG_TYPES_RELATION.includes(cfg.type)) {
-                            content += `
+						}
+						else if (CONFIG_TYPES_RELATION.includes(cfg.type)) {
+							content += `
                                 <div>
                                     <label>${cfg.label || cfg.id}</label>
                                     <div class="fmp-objectLabel">
@@ -2290,217 +2314,217 @@
                                     <button style="cursor:pointer;font-size: 1rem;" onclick="FlatMMOPlus.newObjectField('${plugin.id}', '${cfg.id}')">Add new field</button>
                                 </div>
                                 `;
-                        }
-                        else if(CONFIG_TYPES_PRIORITY.includes(cfg.type)) {
-                            content += `
+						}
+						else if (CONFIG_TYPES_PRIORITY.includes(cfg.type)) {
+							content += `
                                 <div>
                                     <label>${cfg.label || cfg.id}</label>
                                     <div class="fmp-priority-div" id="flatmmoplus-config-${plugin.id}-${cfg.id}" data-pluginid="${plugin.id}" data-configid="${cfg.id}"></div>
                                     ${cfg.canAddNew ? `<button style="cursor:pointer;font-size: 1rem;" onclick="FlatMMOPlus.newPriorityField('${plugin.id}', '${cfg.id}')">Add new field</button>` : ""}
                                 </div>
                                 `;
-                        }
-                        else if(CONFIG_TYPES_SELECT.includes(cfg.type)) {
-                            content += `
+						}
+						else if (CONFIG_TYPES_SELECT.includes(cfg.type)) {
+							content += `
                                 <div>
                                     <label for="flatmmoplus-config-${plugin.id}-${cfg.id}">${cfg.label || cfg.id}</label>
                                     <div>
                                         <select id="flatmmoplus-config-${plugin.id}-${cfg.id}" onchange="FlatMMOPlus.setPluginConfigUIDirty('${id}', true,'${cfg.id}')">
                                 `;
-                            if(cfg.options && Array.isArray(cfg.options)) {
-                                cfg.options.forEach(option => {
-                                    if(typeof option === "string") {
-                                        content += `<option value="${option}">${option}</option>`;
-                                    }
-                                    else {
-                                        content += `<option value="${option.value}">${option.label || option.value}</option>`;
-                                    }
+							if (cfg.options && Array.isArray(cfg.options)) {
+								cfg.options.forEach(option => {
+									if (typeof option === "string") {
+										content += `<option value="${option}">${option}</option>`;
+									}
+									else {
+										content += `<option value="${option.value}">${option.label || option.value}</option>`;
+									}
 
-                                });
-                            }
-                            content += `
+								});
+							}
+							content += `
                                         </select>
                                     </div>
                                 </div>`;
-                        }
-                        else if (CONFIG_TYPES_BUTTON.includes(cfg.type)) {
-                            content += `
+						}
+						else if (CONFIG_TYPES_BUTTON.includes(cfg.type)) {
+							content += `
                                 <div>
                                     <label>${cfg.label || cfg.id}</label>
                                     <button onclick="${cfg.func}()" style="cursor: pointer;" class="${cfg.class || "fmpConfigBtn"}" style="text-align: center;">${cfg.text}</button>
                                 </div>
                             `;
-                        }
-                    });
-                    content += `
+						}
+					});
+					content += `
                     <div style="grid-column: span 2">
                         <button id="flatmmoplus-configbutton-${plugin.id}-reload" onclick="FlatMMOPlus.loadPluginConfigs('${id}')">Reload</button>
                         <button id="flatmmoplus-configbutton-${plugin.id}-apply" onclick="FlatMMOPlus.savePluginConfigs('${id}')">Apply</button>
                     </div>
                     `;
-                }
-                content += "</div>";
-                content += "</div>";
-            });
+				}
+				content += "</div>";
+				content += "</div>";
+			});
 
-            return content;
-        }, true);
+			return content;
+		}, true);
 
-        this.handler = new handlerPlugin()
-    
-        this.registerPlugin(this.handler);
-        this.loadPluginConfigs("handler")
-        
-        
-        /** Priority Config Type */
-        document.addEventListener('dragstart', (e) => {
-            if (e.target.classList.contains('fmp-priority-item')) {
-                e.target.classList.add('fmp-priority-dragging');
-            }
-        });
-        document.addEventListener('dragend', (e) => {
-            if (e.target.classList.contains('fmp-priority-item')) {
-                e.target.classList.remove('fmp-priority-dragging');
-            }
-        });
-        document.addEventListener("dragover", (e) => {
-            const currentItem = e.target.closest(".fmp-priority-item");
-            if (!currentItem) return;
+		this.handler = new handlerPlugin()
 
-            e.preventDefault()
-
-            const draggingItem = document.querySelector(".fmp-priority-dragging")
-
-            const list = currentItem.closest(".fmp-priority-div");
-            
-            if(!draggingItem || !list || list !== draggingItem.parentElement) {
-                return;
-            };
+		this.registerPlugin(this.handler);
+		this.loadPluginConfigs("handler")
 
 
-            const siblings = [...list.querySelectorAll('.fmp-priority-item:not(.fmp-priority-dragging)')];
+		/** Priority Config Type */
+		document.addEventListener('dragstart', (e) => {
+			if (e.target.classList.contains('fmp-priority-item')) {
+				e.target.classList.add('fmp-priority-dragging');
+			}
+		});
+		document.addEventListener('dragend', (e) => {
+			if (e.target.classList.contains('fmp-priority-item')) {
+				e.target.classList.remove('fmp-priority-dragging');
+			}
+		});
+		document.addEventListener("dragover", (e) => {
+			const currentItem = e.target.closest(".fmp-priority-item");
+			if (!currentItem) return;
 
-            const nextSibling = siblings.find(sibling => {
-                const box = sibling.getBoundingClientRect();
-                return e.clientY <= box.top + box.height / 2;
-            });
+			e.preventDefault()
 
-            if (nextSibling) {
-                list.insertBefore(draggingItem, nextSibling);
-            } else {
-                list.appendChild(draggingItem);
-            }
+			const draggingItem = document.querySelector(".fmp-priority-dragging")
 
-            const pluginId = list.getAttribute("data-pluginid");
-            const configId = list.getAttribute("data-configid");
-            window.FlatMMOPlus.plugins[pluginId].changedConfigs.add(configId);
-            window.FlatMMOPlus.setPluginConfigUIDirty(pluginId, true, configId);
-        });
+			const list = currentItem.closest(".fmp-priority-div");
 
-        //Prevents duplicated hoykeys in case Smitty adds hoykey remap on vanilla
-        if(window["register_hotkey"] === undefined) {
-            /*Hotkeys Setup*/
-            hotkeyOverride = JSON.parse(localStorage.getItem("FMP-hotkeys") || '{}');
-            defaultHotkeys.forEach(hotkey => window.FlatMMOPlus.registerHotkey(hotkey));
-            document.getElementById("fmp-hotkeysContainer-Preset 1").insertAdjacentHTML("beforeend", `<button onclick="Globals.websocket.send('SAVE_PRESET=F6')"><img src="images/icons/save.png"> Save Preset</button>`);
-            document.getElementById("fmp-hotkeysContainer-Preset 2").insertAdjacentHTML("beforeend", `<button onclick="Globals.websocket.send('SAVE_PRESET=F7')"><img src="images/icons/save.png"> Save Preset</button>`);
-            document.getElementById("fmp-hotkeysContainer-Preset 3").insertAdjacentHTML("beforeend", `<button onclick="Globals.websocket.send('SAVE_PRESET=F8')"><img src="images/icons/save.png"> Save Preset</button>`);
-        }
+			if (!draggingItem || !list || list !== draggingItem.parentElement) {
+				return;
+			};
 
 
-        
-        logFancy(`(v${this.version}) initialized.`);
-        if(this.loggedIn === false && Object.keys(item_sell_prices).length !== 0) {
-            this.onLogin();
-        }
-    }
+			const siblings = [...list.querySelectorAll('.fmp-priority-item:not(.fmp-priority-dragging)')];
+
+			const nextSibling = siblings.find(sibling => {
+				const box = sibling.getBoundingClientRect();
+				return e.clientY <= box.top + box.height / 2;
+			});
+
+			if (nextSibling) {
+				list.insertBefore(draggingItem, nextSibling);
+			} else {
+				list.appendChild(draggingItem);
+			}
+
+			const pluginId = list.getAttribute("data-pluginid");
+			const configId = list.getAttribute("data-configid");
+			window.FlatMMOPlus.plugins[pluginId].changedConfigs.add(configId);
+			window.FlatMMOPlus.setPluginConfigUIDirty(pluginId, true, configId);
+		});
+
+		//Prevents duplicated hoykeys in case Smitty adds hoykey remap on vanilla
+		if (window["register_hotkey"] === undefined) {
+			/*Hotkeys Setup*/
+			hotkeyOverride = JSON.parse(localStorage.getItem("FMP-hotkeys") || '{}');
+			defaultHotkeys.forEach(hotkey => window.FlatMMOPlus.registerHotkey(hotkey));
+			document.getElementById("fmp-hotkeysContainer-Preset 1").insertAdjacentHTML("beforeend", `<button onclick="Globals.websocket.send('SAVE_PRESET=F6')"><img src="images/icons/save.png"> Save Preset</button>`);
+			document.getElementById("fmp-hotkeysContainer-Preset 2").insertAdjacentHTML("beforeend", `<button onclick="Globals.websocket.send('SAVE_PRESET=F7')"><img src="images/icons/save.png"> Save Preset</button>`);
+			document.getElementById("fmp-hotkeysContainer-Preset 3").insertAdjacentHTML("beforeend", `<button onclick="Globals.websocket.send('SAVE_PRESET=F8')"><img src="images/icons/save.png"> Save Preset</button>`);
+		}
+
+
+
+		logFancy(`(v${this.version}) initialized.`);
+		if (this.loggedIn === false && Object.keys(item_sell_prices).length !== 0) {
+			this.onLogin();
+		}
+	}
 
 	// Add to window and init
-    window.AnimationSheetPlus = AnimationSheetPlus;
-    window.FlatMMOPlusPlugin = FlatMMOPlusPlugin;
-    window.FlatMMOPlus = new FlatMMOPlus();
+	window.AnimationSheetPlus = AnimationSheetPlus;
+	window.FlatMMOPlusPlugin = FlatMMOPlusPlugin;
+	window.FlatMMOPlus = new FlatMMOPlus();
 
-    if (typeof unsafeWindow !== 'undefined' && window !== unsafeWindow) {
-        unsafeWindow.AnimationSheetPlus = window.AnimationSheetPlus;
-        unsafeWindow.FlatMMOPlusPlugin = window.FlatMMOPlusPlugin;
-        unsafeWindow.FlatMMOPlus = window.FlatMMOPlus;
-    }
+	if (typeof unsafeWindow !== 'undefined' && window !== unsafeWindow) {
+		unsafeWindow.AnimationSheetPlus = window.AnimationSheetPlus;
+		unsafeWindow.FlatMMOPlusPlugin = window.FlatMMOPlusPlugin;
+		unsafeWindow.FlatMMOPlus = window.FlatMMOPlus;
+	}
 
-	window.FlatMMOPlus.customChatCommands["help"] = (command, data='') => {
-        let help;
-        if(data && data!="help") {
-            let helpContent = window.FlatMMOPlus.customChatHelp[data.trim()] || "No help content was found for this command.";
+	window.FlatMMOPlus.customChatCommands["help"] = (command, data = '') => {
+		let help;
+		if (data && data != "help") {
+			let helpContent = window.FlatMMOPlus.customChatHelp[data.trim()] || "No help content was found for this command.";
 			help = `<div style="color: white;">
               	<strong><u>Command Help:</u></strong><br />
 				<span><strong style="color:cyan">/${data}:</strong> <span>${helpContent}</span>
 				<br>`
-        }
-        else {
+		}
+		else {
 			help = `<div style="color: white;">
               	<strong><u>Command Help:</u></strong><br />
-              	<strong>Available Commands:</strong> <span>${Object.keys(window.FlatMMOPlus.customChatCommands).sort().map(s => "/"+s).join(" ")}</span><br />
+              	<strong>Available Commands:</strong> <span>${Object.keys(window.FlatMMOPlus.customChatCommands).sort().map(s => "/" + s).join(" ")}</span><br />
               	<span>Use the /help command for more information about a specific command: /help &lt;command&gt;</span>
 			</div>`
-        }
-        window.FlatMMOPlus.showWarning(help, "white");
-        //Chat auto scroll is always true for now
+		}
+		window.FlatMMOPlus.showWarning(help, "white");
+		//Chat auto scroll is always true for now
 		chat_div_element.scrollTop = chat_div_element.scrollHeight;
-    };
+	};
 
 	//flatChat overrides this
-	window.FlatMMOPlus.registerCustomChatCommand(["clear", "clean"], (command, data='') => {
-        document.getElementById("chat").innerHTML = "";
-    }, "Clears all messages in chat.");
+	window.FlatMMOPlus.registerCustomChatCommand(["clear", "clean"], (command, data = '') => {
+		document.getElementById("chat").innerHTML = "";
+	}, "Clears all messages in chat.");
 
-	window.FlatMMOPlus.registerCustomChatCommand(["y", "yell"], (command, data='') => {
-        Globals.websocket.send('CHAT=/yell ' + data);
-    }, "Chat to everyone on server.<br><strong>Usage:</strong> /yell [message]");
+	window.FlatMMOPlus.registerCustomChatCommand(["y", "yell"], (command, data = '') => {
+		Globals.websocket.send('CHAT=/yell ' + data);
+	}, "Chat to everyone on server.<br><strong>Usage:</strong> /yell [message]");
 
-	window.FlatMMOPlus.registerCustomChatCommand("pm", (command, data='') => {
-        Globals.websocket.send('CHAT=/pm ' + data);
-    }, "Send a private message to someone.<br><strong>Usage:</strong> /pm [username] [message]");
+	window.FlatMMOPlus.registerCustomChatCommand("pm", (command, data = '') => {
+		Globals.websocket.send('CHAT=/pm ' + data);
+	}, "Send a private message to someone.<br><strong>Usage:</strong> /pm [username] [message]");
 
-	window.FlatMMOPlus.registerCustomChatCommand("stuck", (command, data='') => {
-        Globals.websocket.send('CHAT=/stuck');
-    }, "`Use if your character is stuck and cannot move.");
+	window.FlatMMOPlus.registerCustomChatCommand("stuck", (command, data = '') => {
+		Globals.websocket.send('CHAT=/stuck');
+	}, "`Use if your character is stuck and cannot move.");
 
-    window.FlatMMOPlus.registerCustomChatCommand(["players","who"], (command, data='') => {
-        Globals.websocket.send('CHAT=/players');
-    }, "Show all players online.");
+	window.FlatMMOPlus.registerCustomChatCommand(["players", "who"], (command, data = '') => {
+		Globals.websocket.send('CHAT=/players');
+	}, "Show all players online.");
 
-    window.FlatMMOPlus.registerCustomChatCommand("ohelp", (command, data='') => {
-        Globals.websocket.send(`CHAT=/help`);
-    }, `Shows the original vanilla /help`);
+	window.FlatMMOPlus.registerCustomChatCommand("ohelp", (command, data = '') => {
+		Globals.websocket.send(`CHAT=/help`);
+	}, `Shows the original vanilla /help`);
 
-    window.FlatMMOPlus.registerCustomChatCommand("collections", () => {
-        Globals.websocket.send(`CHAT=/collections`);
-    }, `Access to your collection log`);
+	window.FlatMMOPlus.registerCustomChatCommand("collections", () => {
+		Globals.websocket.send(`CHAT=/collections`);
+	}, `Access to your collection log`);
 
-    window.FlatMMOPlus.registerCustomChatCommand("detach", () => {
-        document.getElementById("chat").style.display = "none";
-        document.querySelector('[data-settings="hide_chat"]').checked = true;
-        openChatPopup();
-    }, `Detach the chat from the window`);
+	window.FlatMMOPlus.registerCustomChatCommand("detach", () => {
+		document.getElementById("chat").style.display = "none";
+		document.querySelector('[data-settings="hide_chat"]').checked = true;
+		openChatPopup();
+	}, `Detach the chat from the window`);
 
-    window.FlatMMOPlus.registerCustomChatCommand("timers", () => {
-        openTimersPopup();
-    }, `Opens timers menu`);
+	window.FlatMMOPlus.registerCustomChatCommand("timers", () => {
+		openTimersPopup();
+	}, `Opens timers menu`);
 
-    window.FlatMMOPlus.registerCustomChatCommand("autoyell", (command, data="on") => {
-        Globals.websocket.send("CHAT=/autoyell " + data);
-    }, `Turns auto yell on`);
+	window.FlatMMOPlus.registerCustomChatCommand("autoyell", (command, data = "on") => {
+		Globals.websocket.send("CHAT=/autoyell " + data);
+	}, `Turns auto yell on`);
 
-    window.FlatMMOPlus.registerCustomChatCommand("tick", () => {
-        window.FlatMMOPlus.showWarning(`The current action takes ${progress_bar_target + 1} ticks (${(progress_bar_target + 1) / 2} seconds)`);
-    }, `Shows the time needed to complete the current action`);
+	window.FlatMMOPlus.registerCustomChatCommand("tick", () => {
+		window.FlatMMOPlus.showWarning(`The current action takes ${progress_bar_target + 1} ticks (${(progress_bar_target + 1) / 2} seconds)`);
+	}, `Shows the time needed to complete the current action`);
 
-    window.FlatMMOPlus.registerCustomChatCommand("trade", (command, data='') => {
-        if (data === "") {
-            window.FlatMMOPlus.showWarning("You need to specify the username", "red");
-            return;
-        }
-        Globals.websocket.send("SEND_TRADE_REQUEST=" + data.replaceAll("_", " "));
-    }, `Send a trade request if the player is in the same map.<br><b>Usage:</b>/trade [username]`);
+	window.FlatMMOPlus.registerCustomChatCommand("trade", (command, data = '') => {
+		if (data === "") {
+			window.FlatMMOPlus.showWarning("You need to specify the username", "red");
+			return;
+		}
+		Globals.websocket.send("SEND_TRADE_REQUEST=" + data.replaceAll("_", " "));
+	}, `Send a trade request if the player is in the same map.<br><b>Usage:</b>/trade [username]`);
 
 	window.FlatMMOPlus.init();
 })();

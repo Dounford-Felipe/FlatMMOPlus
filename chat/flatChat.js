@@ -1,17 +1,17 @@
 // ==UserScript==
 // @name         FlatChat
 // @namespace    com.dounford.flatmmo.flatChat
-// @version      2.5
+// @version      2.5.1.1
 // @description  Better chat for FlatMMO
 // @author       Dounford
 // @license      MIT
 // @match        *://flatmmo.com/play.php*
 // @grant        none
-// @require      https://update.greasyfork.org/scripts/544062/FlatMMOPlus.js
+// @require      https://update.greasyfork.org/scripts/544062/FlatMMOPlus.js?anticache=20261024
 // @require      https://cdnjs.cloudflare.com/ajax/libs/anchorme/2.1.2/anchorme.min.js
 // ==/UserScript==
 
-(function() {
+(function () {
 	'use strict';
 
 	/**
@@ -44,50 +44,51 @@
 	])
 	const defaultThemes = {
 		dark: {
-            chatBackground: "#191b24",
-            /*Top bar*/
-            topBarBackground: "#131c37",
-            tabsBackground: "#393a5b",
-            activeTabBackground: "#4357af",
-            hoverTabBackground: "#D3D3D3",
-            tabsTextColor: "#e7e7e7",
-            unreadMessagesBackground: "#000090",
-            unreadMessagesTextColor: "#e7e7e7",
-            /*Channels*/
-            oddMessageBackground: "#191b24",
-            evenMessageBackground: "#191b24",
-            messageTimeColor: "#ffffff",
-            messageSenderUsernameColor: "#ffffff",
-            regularMessageColor: "#E1E1E1",
-            serverMessageColor: "#6495ED",
-            milestoneMessageColor: "#FF1493",
-            warningMessageColor: "#FF0000",
-            restMessageColor: "#00FF00",
-            lvlUpMessageColor: "#008000",
-            areaChangeMessageColor: "#00FFFF",
-            pmReceivedMessageColor: "#ffdea1",
-            pmSentMessageColor: "#78ffb5",
-            pingBackground: "#3F51B5",
-            pingTextColor: "#ffffff",
+			chatBackground: "#191b24",
+			/*Top bar*/
+			topBarBackground: "#131c37",
+			tabsBackground: "#393a5b",
+			activeTabBackground: "#4357af",
+			hoverTabBackground: "#D3D3D3",
+			tabsTextColor: "#e7e7e7",
+			unreadMessagesBackground: "#000090",
+			unreadMessagesTextColor: "#e7e7e7",
+			/*Channels*/
+			oddMessageBackground: "#191b24",
+			evenMessageBackground: "#191b24",
+			messageTimeColor: "#ffffff",
+			messageSenderUsernameColor: "#ffffff",
+			regularMessageColor: "#E1E1E1",
+			serverMessageColor: "#6495ED",
+			milestoneMessageColor: "#FF1493",
+			warningMessageColor: "#FF0000",
+			restMessageColor: "#00FF00",
+			lvlUpMessageColor: "#008000",
+			areaChangeMessageColor: "#00FFFF",
+			pmReceivedMessageColor: "#ffdea1",
+			pmSentMessageColor: "#78ffb5",
+			pingBackground: "#3F51B5",
+			pingTextColor: "#ffffff",
 			tooltipBorder: "#808080",
 			tooltipBackground: "#aaaaaa",
 			tooltipTextColor: "#000000",
-            /*Bottom bar*/
-            chatBarBackground: "#131419",
-            usernameBottomBar: "#C0C0C0",
-            chatBarTextColor: "#ffffff",
-            buttonsBackground: "#000090",
-            buttonsTextColor: "#C0C0C0",
-            /*Context Menu*/
-            contextMenuBackground: "#191b24",
-            contextMenuUsernameColor: "#C0C0C0",
-            contextMenuButtonBackground: "#000090",
-            contextMenuWarningButtonBackground: "#ff0000",
-            contextMenuTextColor: "#ffffff",
-            /*Misc*/
-            hyperlinkTextColor: "#00FFFF",
-            visitedHyperlinkTextColor: "#00FFFF",
-        },
+			/*Bottom bar*/
+			chatBarBackground: "#131419",
+			usernameBottomBar: "#C0C0C0",
+			chatBarTextColor: "#ffffff",
+			buttonsBackground: "#000090",
+			buttonsTextColor: "#C0C0C0",
+			/*Context Menu*/
+			contextMenuBackground: "#191b24",
+			contextMenuUsernameColor: "#C0C0C0",
+			contextMenuButtonBackground: "#000090",
+			contextMenuWarningButtonBackground: "#ff0000",
+			contextMenuGoodButtonBackground: "#029000",
+			contextMenuTextColor: "#ffffff",
+			/*Misc*/
+			hyperlinkTextColor: "#00FFFF",
+			visitedHyperlinkTextColor: "#00FFFF",
+		},
 		light: {
 			chatBackground: "#F5F7FA",
 			/*Top bar*/
@@ -128,6 +129,7 @@
 			contextMenuUsernameColor: "#34495E",
 			contextMenuButtonBackground: "#4A90E2",
 			contextMenuWarningButtonBackground: "#E74C3C",
+			contextMenuGoodButtonBackground: "#029000",
 			contextMenuTextColor: "#2C3E50",
 			/*Misc*/
 			hyperlinkTextColor: "#2980B9",
@@ -173,6 +175,7 @@
 			contextMenuUsernameColor: "#cdd6f4",
 			contextMenuButtonBackground: "#191b24",
 			contextMenuWarningButtonBackground: "#f38ba8",
+			contextMenuGoodButtonBackground: "#029000",
 			contextMenuTextColor: "#cdd6f4",
 			/*Misc*/
 			hyperlinkTextColor: "#cba6f7",
@@ -219,6 +222,7 @@
 		contextMenuUsernameColor: "Context Menu Username",
 		contextMenuButtonBackground: "Context Menu Button Background",
 		contextMenuWarningButtonBackground: "Context Menu Warning Button Background",
+		contextMenuGoodButtonBackground: "Context Menu Green Button Background",
 		contextMenuTextColor: "Context Menu Text",
 		/*Misc*/
 		hyperlinkTextColor: "Hyperlink Color",
@@ -377,32 +381,32 @@
 			color: "white"
 		},
 		dodge: {
-            blocked: "No Dodges Available.",
-            name: "dodge",
-            image: "https://flatmmo.com/images/worship/run.png",
-            title: "",
-            text: "",
-            ticks: 0,
-            color: "white"
-        },
+			blocked: "No Dodges Available.",
+			name: "dodge",
+			image: "https://flatmmo.com/images/worship/run.png",
+			title: "",
+			text: "",
+			ticks: 0,
+			color: "white"
+		},
 		agility: {
-            blocked: "You dodge the attack and gain",
-            name: "agility",
-            image: "https://flatmmo.com/images/worship/run.png",
-            title: "",
-            text: "",
-            ticks: 0,
-            color: "white"
-        },
+			blocked: "You dodge the attack and gain",
+			name: "agility",
+			image: "https://flatmmo.com/images/worship/run.png",
+			title: "",
+			text: "",
+			ticks: 0,
+			color: "white"
+		},
 		superstorm: {
-            blocked: "storm spirit point",
-            name: "superstorm",
-            image: "https://flatmmo.com/images/worship/run.png",
-            title: "",
-            text: "",
-            ticks: 0,
-            color: "white"
-        },
+			blocked: "storm spirit point",
+			name: "superstorm",
+			image: "https://flatmmo.com/images/worship/run.png",
+			title: "",
+			text: "",
+			ticks: 0,
+			color: "white"
+		},
 	}
 
 	class flatChatPlugin extends FlatMMOPlusPlugin {
@@ -410,7 +414,7 @@
 			super("flatChat", {
 				about: {
 					name: "FlatChat",
-					version: "2.4.3",
+					version: "2.5.1.1",
 					author: "Liam",
 					description: "Improved chat for FlatMMO"
 				},
@@ -462,9 +466,9 @@
 						label: "Theme",
 						type: "select",
 						options: [
-							{value: "light", label: "Light"},
-							{value: "dark", label: "Dark"},
-							{value: "mocha", label: "Mocha by Mae"}
+							{ value: "light", label: "Light" },
+							{ value: "dark", label: "Dark" },
+							{ value: "mocha", label: "Mocha by Mae" }
 						],
 						default: "dark"
 					},
@@ -506,13 +510,13 @@
 						label: "Chat Position",
 						type: "select",
 						options: [
-							{value: "detached", label: "Own Window (Detached)"},
-							{value: "bottomRight", label: "Bottom Right"},
-							{value: "bottomLeft", label: "Bottom Left"},
-							{value: "topRight", label: "Top Right"},
-							{value: "topLeft", label: "Top Left"},
-							{value: "outside", label: "Outside Canvas"},
-							{value: "outsideSideTab", label: "Outside Canvas (Side Tabs)"},
+							{ value: "detached", label: "Own Window (Detached)" },
+							{ value: "bottomRight", label: "Bottom Right" },
+							{ value: "bottomLeft", label: "Bottom Left" },
+							{ value: "topRight", label: "Top Right" },
+							{ value: "topLeft", label: "Top Left" },
+							{ value: "outside", label: "Outside Canvas" },
+							{ value: "outsideSideTab", label: "Outside Canvas (Side Tabs)" },
 						],
 						default: "bottomRight"
 					},
@@ -521,9 +525,9 @@
 						label: "Default Profile",
 						type: "select",
 						options: [
-							{value: "ingame", label: "In-game Profile"},
-							{value: "page", label: "Profile Page"},
-							{value: "stats", label: "FlatMMO Stats"},
+							{ value: "ingame", label: "In-game Profile" },
+							{ value: "page", label: "Profile Page" },
+							{ value: "stats", label: "FlatMMO Stats" },
 						],
 						default: "ingame"
 					},
@@ -556,9 +560,9 @@
 						label: "Default PM Chat Tab",
 						type: "select",
 						options: [
-							{value: "whisper", label: "Whisper"},
-							{value: "local", label: "Local"},
-							{value: "global", label: "Global"},
+							{ value: "whisper", label: "Whisper" },
+							{ value: "local", label: "Local" },
+							{ value: "global", label: "Global" },
 						],
 						default: "whisper"
 					},
@@ -575,7 +579,7 @@
 						label: "Fetch Player Lvls",
 						type: "btn",
 						text: "Fetch",
-                        func: () => {FlatMMOPlus.plugins.flatChat.fetchTotalLvls}
+						func: () => { FlatMMOPlus.plugins.flatChat.fetchTotalLvls }
 					},
 					{
 						id: "ignoredLvlPlayers",
@@ -587,7 +591,7 @@
 						id: "shortcuts",
 						label: "Shortcuts List (Use the key between [])",
 						type: "object",
-						default: {gz: "gratz"},
+						default: { gz: "gratz" },
 						key: "Shortcut",
 						value: "Message"
 					},
@@ -595,7 +599,7 @@
 						id: "nicknames",
 						label: "Nicknames List",
 						type: "object",
-						default: {dounbot2: "dounbot", felipewolf: "Liam"},
+						default: { dounbot2: "dounbot", felipewolf: "Liam" },
 						key: "Username",
 						value: "Nickname"
 					},
@@ -635,7 +639,7 @@
 			this.fcElement = null;
 			this.detachedChat = null;
 
-			this.defaultChannels = new Set(["channel_local","channel_global","channel_pings","channel_whisper"])
+			this.defaultChannels = new Set(["channel_local", "channel_global", "channel_pings", "channel_whisper"])
 			this.channels = {};
 			this.currentChannel = "channel_local";
 
@@ -664,8 +668,8 @@
 			this.addContextBtns();
 			this.loadChannels();
 			this.switchChannel("local", false);
-			this.messagesWaiting.forEach((message)=>{
-				if(message.username === "") {
+			this.messagesWaiting.forEach((message) => {
+				if (message.username === "") {
 					this.showServerMessage(message);
 					return
 				}
@@ -673,6 +677,7 @@
 			});
 			this.defineCommands();
 			ding.volume = this.config.pingVolume / 100;
+
 			this.addThemeEditor();
 			this.changeThemeEditor();
 			FlatMMOPlus.showWarning("Welcome to flatmmo.com", "orange");
@@ -681,10 +686,10 @@
 			FlatMMOPlus.showWarning(`<span><strong style="color:cyan">FYI: </strong> Use the /help command to see information on available chat commands.</span>`, "white");
 			this.configurePosition();
 
-			if(this.config.lvlChat !== 0) {
+			if (this.config.lvlChat !== 0) {
 				const lastFetch = Number(localStorage.getItem("FlatChat-LastFetch"));
 				const list = localStorage.getItem("FlatChat-LastFetchList");
-				if(Date.now() - lastFetch >= 86400000 || !list) {
+				if (Date.now() - lastFetch >= 86400000 || !list) {
 					this.fetchTotalLvls()
 				} else {
 					this.playerWithTotalLvl = new Set(JSON.parse(list))
@@ -703,21 +708,21 @@
 
 			const parser = new DOMParser();
 			const doc = parser.parseFromString(htmlString, 'text/html');
-			
+
 
 			//It will only run until the minimun lvl is reached
 			const scLevels = doc.querySelectorAll(".hiscore-table-block:nth-child(1) tbody tr");
-			for (let tr of scLevels){
-				if(Number(tr.cells[3].textContent) < minimumLvl) break;
+			for (let tr of scLevels) {
+				if (Number(tr.cells[3].textContent) < minimumLvl) break;
 				this.playerWithTotalLvl.add(tr.cells[1].textContent.trim())
 			}
 
 			const hcLevels = doc.querySelectorAll(".hiscore-table-block:nth-child(2) tbody tr");
-			for (let tr of hcLevels){
-				if(Number(tr.cells[3].textContent) < minimumLvl) break;
+			for (let tr of hcLevels) {
+				if (Number(tr.cells[3].textContent) < minimumLvl) break;
 				this.playerWithTotalLvl.add(tr.cells[1].textContent.trim())
 			}
-			
+
 			localStorage.setItem("FlatChat-LastFetch", Date.now().toString());
 			localStorage.setItem("FlatChat-LastFetchList", JSON.stringify(Array.from(this.playerWithTotalLvl)));
 
@@ -742,18 +747,18 @@
 
 			if (data.color === "pink" && data.message.startsWith("[PM")) {
 				let match = data.message.match(/\[PM (?:to|from) (.*?)\](.*)/);
-				if(match) {
-					if(data.message.startsWith("[PM to")) {
+				if (match) {
+					if (data.message.startsWith("[PM to")) {
 						data.color = "pmSent";
 					} else {
 						data.color = "pmReceived";
 					}
 					data.username = match[1].trim().replaceAll(" ", "_");
 					data.message = match[2].trim();
-					if(this.config.ignoredPlayers.includes(data.username)) {
+					if (this.config.ignoredPlayers.includes(data.username)) {
 						return
 					}
-					if(this.config["alwaysTabsPM"] && !this.channels["private_" + data.username]) {
+					if (this.config["alwaysTabsPM"] && !this.channels["private_" + data.username]) {
 						this.newChannel(data.username, true)
 					}
 					data.channel = this.channels["private_" + data.username] ? "private_" + data.username : "channel_" + this.config.defaultPmChat;
@@ -763,8 +768,8 @@
 				}
 			};
 
-			if(FlatMMOPlus.loggedIn) {
-				if(data.username === "") {
+			if (FlatMMOPlus.loggedIn) {
+				if (data.username === "") {
 					this.showServerMessage(data);
 					return
 				}
@@ -785,21 +790,21 @@
 					} break;
 					case "theme": {
 						this.fcElement.classList.forEach(className => {
-							if(className.startsWith("flatChatTheme-")) {
+							if (className.startsWith("flatChatTheme-")) {
 								this.fcElement.classList.remove(className);
 							}
 						})
 						this.fcElement.classList.add("flatChatTheme-" + this.config.theme);
 					} break;
 					case "pingChat": {
-						if(this.config.pingChat) {
+						if (this.config.pingChat) {
 							this.fcElement.querySelector(".flatChatTab[data-channel='channel_pings']").classList.remove("displaynone")
 						} else {
 							this.fcElement.querySelector(".flatChatTab[data-channel='channel_pings']").classList.add("displaynone")
 						}
 					} break;
 					case "defaultPmChat": {
-						if(this.config.defaultPmChat === "whisper") {
+						if (this.config.defaultPmChat === "whisper") {
 							this.fcElement.querySelector(".flatChatTab[data-channel='channel_whisper']").classList.remove("displaynone")
 						} else {
 							this.fcElement.querySelector(".flatChatTab[data-channel='channel_whisper']").classList.add("displaynone")
@@ -820,20 +825,20 @@
 					} break;
 					case "chatOpacity": {
 						this.fcElement.style.setProperty("--fc-chatOpacity", this.config.chatOpacity / 100);
-						if(this.config.chatOpacity < 100) {
+						if (this.config.chatOpacity < 100) {
 							this.fcElement.classList.add("flatChatDimmed");
 						} else {
 							this.fcElement.classList.remove("flatChatDimmed");
 						}
 					} break;
 					case "lvlChat": {
-						if(this.config.lvlChat !== 0) {
+						if (this.config.lvlChat !== 0) {
 							this.fetchTotalLvls()
 						}
 					} break;
 					case "ignoredLvlPlayers": {
 						const list = localStorage.getItem("FlatChat-LastFetchList");
-						if(!list) {
+						if (!list) {
 							this.fetchTotalLvls();
 							break;
 						}
@@ -850,13 +855,13 @@
 		}
 
 		removeOriginalChat() {
-			add_to_chat = function(){};
-			refresh_chat_div = function(){};
-			paint_chat = function(){};
+			add_to_chat = function () { };
+			refresh_chat_div = function () { };
+			paint_chat = function () { };
 			document.getElementById("chat").style.display = "none";
 			document.querySelector(".chat-input").style.display = "none"
 
-			window.FlatMMOPlus.registerCustomChatCommand(["clear","clean"], (command, data='') => {
+			window.FlatMMOPlus.registerCustomChatCommand(["clear", "clean"], (command, data = '') => {
 				this.fcElement.querySelector(`#flatChatChannels [data-channel=${FlatMMOPlus.plugins.flatChat.currentChannel}]`).innerHTML = "";
 			}, `Clears all messages in chat.`);
 
@@ -866,7 +871,7 @@
 				this.watchIgnorePlayersWords("ignoredPlayers", user);
 			}
 
-			FlatMMOPlus.__proto__.showWarning = function(message, color = "aquamarine") {
+			FlatMMOPlus.__proto__.showWarning = function (message, color = "aquamarine") {
 				const data = {
 					username: "",
 					tag: "none",
@@ -1037,7 +1042,7 @@
 				}
 			}
 			.flatChatBtn {
-				background-color: var(--fc-buttonsBackground) !important;
+				background: var(--fc-buttonsBackground) !important;
 				color: var(--fc-buttonsTextColor) !important;
 				border: 0 !important;
 				padding: 5px;
@@ -1115,10 +1120,13 @@
 				font-size: var(--fc-messageFontSize);
 			}
 			.flatChatContextBtn {
-				background-color: var(--fc-contextMenuButtonBackground) !important;
+				background: var(--fc-contextMenuButtonBackground, #000090) !important;
 			}
 			.flatChatContextWarningBtn {
-				background-color: var(--fc-contextMenuWarningButtonBackground) !important;
+				background: var(--fc-contextMenuWarningButtonBackground, #ff0000) !important;
+			}
+			.flatChatContextGoodBtn {
+				background: var(--fc-contextMenuGoodButtonBackground, #029000) !important;
 			}
 			#flatChatCopyUsername {
 				visibility: hidden;
@@ -1160,7 +1168,7 @@
 			document.head.append(style);
 
 			//Get saved themes
-			if(localStorage.getItem("flatChat2-themes")) {
+			if (localStorage.getItem("flatChat2-themes")) {
 				this.themes = JSON.parse(localStorage.getItem("flatChat2-themes"));
 			}
 
@@ -1174,7 +1182,7 @@
 			for (let theme in this.themes) {
 				this.addTheme(theme)
 				this.opts.config[6].options = this.opts.config[6].options.filter(t => t.value !== theme)
-				this.opts.config[6].options.push({value: theme, label: this.toTitleCase(theme)})
+				this.opts.config[6].options.push({ value: theme, label: this.toTitleCase(theme) })
 			}
 		}
 
@@ -1217,20 +1225,20 @@
 			this.fcElement.style.setProperty("--fc-chatHeight", this.config.chatHeight + "px")
 			this.fcElement.style.setProperty("--fc-chatOpacity", this.config.chatOpacity / 100)
 			let currentTheme = this.config.theme
-			if(this.themes[currentTheme]) {
+			if (this.themes[currentTheme]) {
 				this.fcElement.classList = "flatChat flatChatTheme-" + this.config.theme;
 			} else {
 				this.config.theme = "dark";
 				this.fcElement.classList = "flatChat flatChatTheme-dark";
 				this.saveConfig();
 			}
-			if(this.config.chatOpacity < 100) {
+			if (this.config.chatOpacity < 100) {
 				this.fcElement.classList.add("flatChatDimmed");
 			}
 
 			document.getElementById("chat").insertAdjacentElement("beforebegin", this.fcElement);
 
-			this.fcElement.querySelector("#flatChatExpandBtn").addEventListener("click", ()=>{
+			this.fcElement.querySelector("#flatChatExpandBtn").addEventListener("click", () => {
 				this.fcElement.querySelector("#flatChatExpandBtn").classList.toggle("flatChatTopBarCollapsed");
 				this.fcElement.querySelector("#flatChatMainArea").toggleAttribute("closed");
 			})
@@ -1272,7 +1280,7 @@
 
 			const channelsDiv = this.fcElement.querySelector("#flatChatChannels");
 
-			channelsDiv.onwheel = (event)=>{
+			channelsDiv.onwheel = (event) => {
 				this.scrollChannel(event);
 			}
 
@@ -1283,22 +1291,22 @@
 					e.preventDefault()
 					const username = sender.dataset.sender;
 
-					const contestUser = this.fcElement.querySelector("#flatChatContextUsername");					
+					const contestUser = this.fcElement.querySelector("#flatChatContextUsername");
 					contestUser.setAttribute("data-user", username);
 					contestUser.innerText = username;
-					
+
 					const contextMenu = this.fcElement.querySelector("#flatChatContextMenu");
 					contextMenu.style.visibility = "visible";
 				}
 			});
 
-			this.fcElement.querySelector("#flatChatContextMenu").addEventListener("click", (e) => {this.contextMenu(e)})
+			this.fcElement.querySelector("#flatChatContextMenu").addEventListener("click", (e) => { this.contextMenu(e) })
 
 			this.addDocumentEvents(document);
 
-			this.fcElement.querySelector("#flatChatInput").addEventListener("blur", function(){
-				setTimeout(function() {
-					if(FlatMMOPlus.plugins.flatChat.config["alwaysOnFocus"] && document.activeElement.tagName !== "INPUT" && document.activeElement.contentEditable !== "true"){
+			this.fcElement.querySelector("#flatChatInput").addEventListener("blur", function () {
+				setTimeout(function () {
+					if (FlatMMOPlus.plugins.flatChat.config["alwaysOnFocus"] && document.activeElement.tagName !== "INPUT" && document.activeElement.contentEditable !== "true") {
 						this.fcElement.querySelector("#flatChatInput").focus({
 							preventScroll: true
 						})
@@ -1321,7 +1329,7 @@
 				if (e.key === "Tab" && e.target.closest('#flatChat')) {
 					e.preventDefault();
 					let sibling = null;
-					if(e.shiftKey) {
+					if (e.shiftKey) {
 						sibling = this.fcElement.querySelector(".flatChatTabActive").previousElementSibling || this.fcElement.querySelector("#flatChatTabs").lastElementChild;
 					} else {
 						sibling = this.fcElement.querySelector(".flatChatTabActive").nextElementSibling || this.fcElement.querySelector("#flatChatTabs").firstElementChild;
@@ -1336,24 +1344,24 @@
 					return;
 				}
 				const input = this.fcElement.querySelector("#flatChatInput");
-				if(documentElement.activeElement === input) {
-					if(e.key === "Enter") {
-						if(has_modal_open()) return;
+				if (documentElement.activeElement === input) {
+					if (e.key === "Enter") {
+						if (has_modal_open()) return;
 						this.sendMessage();
 					}
 
 					//Navigate between sent messages
 					if (e.key === "ArrowUp" && input.selectionStart === 0) {
-						if(this.historyPosition + 1 === this.chatHistory.length) {return}
+						if (this.historyPosition + 1 === this.chatHistory.length) { return }
 						input.value = this.chatHistory[++this.historyPosition] || "";
 						input.selectionStart = input.value.length
 					} else if (e.key === "ArrowDown" && input.selectionStart === input.value.length) {
-						if(this.historyPosition - 1 < -1) {return}
+						if (this.historyPosition - 1 < -1) { return }
 						input.value = this.chatHistory[--this.historyPosition] || "";
 						input.selectionStart = input.value.length
 					}
-				} else if(e.key === "Enter") {
-					if(has_modal_open()) return;
+				} else if (e.key === "Enter") {
+					if (has_modal_open()) return;
 					input.focus({
 						preventScroll: true
 					})
@@ -1369,12 +1377,12 @@
 					try {
 						await documentElement.defaultView.navigator.clipboard.writeText(username.replaceAll("_", " "));
 					} catch (error) {
-						
+
 					}
 
 					const copyMessage = this.fcElement.querySelector("#flatChatCopyUsername");
 					copyMessage.style.visibility = "visible"
-					setTimeout(()=>{copyMessage.style.visibility = "hidden"}, 1000);
+					setTimeout(() => { copyMessage.style.visibility = "hidden" }, 1000);
 				}
 			});
 		}
@@ -1384,13 +1392,13 @@
 				const input = this.fcElement.querySelector("#flatChatInput");
 				input.value = "/pm " + username + " ";
 				input.focus();
-			}, false);
+			}, "");
 			this.addContextButton("tabMessage", "Message (Tab)", (username) => {
 				this.newChannel(username, true);
 				this.switchChannel(username, true);
-			}, false);
+			}, "");
 			this.addContextButton("profile", "Profile", (username) => {
-				switch(this.config.profilePage) {
+				switch (this.config.profilePage) {
 					case "ingame": {
 						Globals.websocket.send("RIGHT_CLICKED_PLAYER=" + username.replaceAll("_", " "));
 					} break;
@@ -1401,32 +1409,32 @@
 						window.open(`https://flatstats.ravenwoodsoftware.org/player/${username.replaceAll("_", " ")}`, '_blank');
 					} break;
 				}
-			}, false);
+			}, "");
 			this.addContextButton("trade", "Trade", (username) => {
 				Globals.websocket.send("SEND_TRADE_REQUEST=" + username.replaceAll("_", " "));
-			}, false);
+			}, "");
 			this.addContextButton("stalk", "Stalk", (username) => {
 				this.watchIgnorePlayersWords("watchedPlayers", username);
-			}, true);
+			}, "Warning");
 			this.addContextButton("ignore", "Ignore", (username) => {
 				this.watchIgnorePlayersWords("ignoredPlayers", username);
-			}, true);
+			}, "Warning");
 		}
 
 		configurePosition() {
-			if(this.config.chatPosition === "detached") {
+			if (this.config.chatPosition === "detached") {
 				this.detach();
 				return;
-			} else if(this.detachedChat) {
+			} else if (this.detachedChat) {
 				this.reattach();
 			}
 
-			if(this.config.chatPosition === "outsideSideTab") {
+			if (this.config.chatPosition === "outsideSideTab") {
 				flatChat.classList.add("flatChatSideTabs");
 				flatChat.style.position = "unset";
 			} else {
 				flatChat.classList.remove("flatChatSideTabs");
-				if(this.config.chatPosition === "outside") {
+				if (this.config.chatPosition === "outside") {
 					flatChat.style.position = "unset";
 				} else {
 					flatChat.style.position = "absolute";
@@ -1436,7 +1444,7 @@
 		}
 
 		detach() {
-			if(this.detachedChat && !this.detachedChat.closed) {
+			if (this.detachedChat && !this.detachedChat.closed) {
 				this.detachedChat.focus();
 				return;
 			}
@@ -1447,7 +1455,7 @@
 			);
 
 			this.fcElement.classList.add("flatChatPopup");
-			this.detachedChat.document.head.insertAdjacentHTML("beforeend","<title>Flat Chat</title>")
+			this.detachedChat.document.head.insertAdjacentHTML("beforeend", "<title>Flat Chat</title>")
 			document.head.querySelectorAll("style").forEach(style => {
 				this.detachedChat.document.head.appendChild(style.cloneNode(true));
 			})
@@ -1464,7 +1472,7 @@
 			}
 
 			window.onbeforeunload = () => {
-				if(this.detachedChat && !this.detachedChat.closed) {
+				if (this.detachedChat && !this.detachedChat.closed) {
 					this.detachedChat.close();
 					this.config.chatPosition = "detached";
 					this.saveConfig();
@@ -1480,9 +1488,9 @@
 		}
 
 		addTheme(theme) {
-			if(!this.themes[theme]) {return};
+			if (!this.themes[theme]) { return };
 			let themeSyle;
-			if(document.querySelector("#fc-themeStyle-" + theme)) {
+			if (document.querySelector("#fc-themeStyle-" + theme)) {
 				themeSyle = document.querySelector("#fc-themeStyle-" + theme)
 				themeSyle.innerHTML = "";
 			} else {
@@ -1498,7 +1506,7 @@
 		}
 
 		addThemeEditor() {
-			FlatMMOPlus.addPanel("flatChat-ThemeEditor", "Theme Editor", ()=>{
+			FlatMMOPlus.addPanel("flatChat-ThemeEditor", "Theme Editor", () => {
 				let content = `
 				<style>
 					#ui-panel-flatChat-ThemeEditor-content {
@@ -1527,7 +1535,7 @@
 					}
 				</style>
 				<select id="flatChat-ThemeEditor-theme" onchange="FlatMMOPlus.plugins.flatChat.changeThemeEditor()">`
-				FlatMMOPlus.plugins.flatChat.opts.config[6].options.forEach(theme=>{
+				FlatMMOPlus.plugins.flatChat.opts.config[6].options.forEach(theme => {
 					content += `<option value="${theme.value}">${theme.label}</option>`
 				})
 				content += "</select>"
@@ -1562,11 +1570,11 @@
 
 		saveTheme() {
 			const theme = document.getElementById("fc-themeName-editor").value;
-			if(!theme) {return};
+			if (!theme) { return };
 			const themeName = this.toCamelCase(theme);
 
 			//Make sure it doesn't duplicate
-			if(this.themes[themeName]) {
+			if (this.themes[themeName]) {
 				this.opts.config[6].options = this.opts.config[6].options.filter(t => t.value !== themeName)
 				document.querySelector(`#flatChat-ThemeEditor-theme option[value=${themeName}]`).remove();
 			} else {
@@ -1576,19 +1584,19 @@
 			for (let option in this.themes.dark) {
 				const value = document.getElementById("fc-" + option + "-editor").value;
 				this.themes[themeName][option] = value;
-				if((option === "messageTimeColor" || option === "messageSenderUsernameColor") && value == "#ffffff") {
+				if ((option === "messageTimeColor" || option === "messageSenderUsernameColor") && value == "#ffffff") {
 					this.themes[themeName][option] = "unset";
 				}
 			}
 
 
-			this.opts.config[6].options.push({value: themeName, label: theme})
+			this.opts.config[6].options.push({ value: themeName, label: theme })
 
 			document.getElementById("flatChat-ThemeEditor-theme").innerHTML += `<option value="${themeName}">${theme}</option>`
 			document.getElementById("flatChat-ThemeEditor-theme").value = themeName;
 
 			//Change to new theme
-			this.config.theme =  themeName;
+			this.config.theme = themeName;
 			const flatChat = document.getElementById("flatChat");
 			flatChat.classList = "flatChat flatChatTheme-" + this.config.theme;
 			this.saveConfig();
@@ -1603,10 +1611,10 @@
 			console.log(theme)
 
 			//Return if it doesn't exist
-			if(!this.themes[theme]) {return};
+			if (!this.themes[theme]) { return };
 
 			//Default themes can't be removed, they will be go back to default instead
-			if(theme in defaultThemes)  {
+			if (theme in defaultThemes) {
 				this.themes[theme] = structuredClone(defaultThemes[theme]);
 				this.changeThemeEditor();
 				this.saveTheme();
@@ -1630,7 +1638,7 @@
 				document.getElementById("fc-themeStyle-" + theme).remove();
 			}
 
-			this.config.theme =  "dark";
+			this.config.theme = "dark";
 			const flatChat = document.getElementById("flatChat");
 			flatChat.classList = "flatChat flatChatTheme-dark";
 		}
@@ -1639,7 +1647,7 @@
 			const themeString = document.getElementById("fc-import-editor").value;
 			try {
 				const themeObj = JSON.parse(themeString);
-				if(!themeObj.name) {return};
+				if (!themeObj.name) { return };
 				document.getElementById("fc-themeName-editor").value = this.toTitleCase(themeObj.name);
 				for (let option in themeObj.theme) {
 					document.getElementById("fc-" + option + "-editor").value = themeObj.theme[option]
@@ -1652,12 +1660,12 @@
 
 		exportTheme() {
 			const theme = document.getElementById("flatChat-ThemeEditor-theme").value;
-			const themeString = JSON.stringify({name: theme, "theme": this.themes[theme]});
+			const themeString = JSON.stringify({ name: theme, "theme": this.themes[theme] });
 			document.getElementById("fc-import-editor").value = themeString;
 		}
 
 		defineCommands() {
-			window.FlatMMOPlus.registerCustomChatCommand(["players","who"], (command, data='') => {
+			window.FlatMMOPlus.registerCustomChatCommand(["players", "who"], (command, data = '') => {
 				if (this.currentChannel === "channel_global") {
 					Globals.websocket.send('CHAT=/players');
 				} else if (this.currentChannel === "channel_local") {
@@ -1667,8 +1675,8 @@
 				}
 			}, `Show all players in room or global.`);
 
-			window.FlatMMOPlus.registerCustomChatCommand("detach", (command, data='') => {
-				if(this.config.chatPosition === "detached") {
+			window.FlatMMOPlus.registerCustomChatCommand("detach", (command, data = '') => {
+				if (this.config.chatPosition === "detached") {
 					this.config.chatPosition = "bottomRight";
 					this.saveConfig();
 					this.reattach();
@@ -1680,7 +1688,7 @@
 			}, "Detach/Reattach the chat from the window");
 
 			//Pm will only open a tab if a message is not specified
-			window.FlatMMOPlus.registerCustomChatCommand("pm", (command, data='') => {
+			window.FlatMMOPlus.registerCustomChatCommand("pm", (command, data = '') => {
 				if (data === "") {
 					FlatMMOPlus.showWarning("You need to specify the username", "red");
 					return;
@@ -1697,7 +1705,7 @@
 				}
 			}, `Send a private message to someone.<br><strong>Usage:</strong> /pm [username] [message]`);
 
-			window.FlatMMOPlus.registerCustomChatCommand("r", (command, data='') => {
+			window.FlatMMOPlus.registerCustomChatCommand("r", (command, data = '') => {
 				if (this.lastPM === "") {
 					return
 				}
@@ -1712,7 +1720,7 @@
 			}, `Auto respond the last pm.`);
 
 			//pm* will always open a new tab
-			window.FlatMMOPlus.registerCustomChatCommand("pm*", (command, data='') => {
+			window.FlatMMOPlus.registerCustomChatCommand("pm*", (command, data = '') => {
 				if (data === "") {
 					FlatMMOPlus.showWarning("You need to specify the username", "red");
 					return;
@@ -1730,15 +1738,15 @@
 				}
 			}, `Opens a private channel in a new tab.<br><b>Usage:</b>/pm* [username] <message (optional)>`);
 
-			window.FlatMMOPlus.registerCustomChatCommand("page", (command, data='') => {
+			window.FlatMMOPlus.registerCustomChatCommand("page", (command, data = '') => {
 				if (data === "") {
-					window.open(`https://flatstats.ravenwoodsoftware.org/player/${Globals.local_username}`,"_blank")
+					window.open(`https://flatstats.ravenwoodsoftware.org/player/${Globals.local_username}`, "_blank")
 					return;
 				}
-				window.open(`https://flatstats.ravenwoodsoftware.org/player/${data}`,"_blank");
+				window.open(`https://flatstats.ravenwoodsoftware.org/player/${data}`, "_blank");
 			}, `Opens the Player Profile Page in a new tab.<br><b>Usage:</b>/page [username]`);
 
-			window.FlatMMOPlus.registerCustomChatCommand("profile", (command, data='') => {
+			window.FlatMMOPlus.registerCustomChatCommand("profile", (command, data = '') => {
 				if (data === "") {
 					FlatMMOPlus.showWarning("You need to specify the username", "red");
 					return;
@@ -1746,12 +1754,12 @@
 				Globals.websocket.send("RIGHT_CLICKED_PLAYER=" + data.replaceAll("_", " "));
 			}, `Opens the player profile.<br><b>Usage:</b>/profile [username]`);
 
-			window.FlatMMOPlus.registerCustomChatCommand("leave", (command, data='') => {
+			window.FlatMMOPlus.registerCustomChatCommand("leave", (command, data = '') => {
 				if (data === "") {
 					this.closeChannel();
 					return;
 				};
-				if(data in this.channels) {
+				if (data in this.channels) {
 					this.closeChannel(data);
 				};
 			}, `Closes a chat tab.<br><b>Usage:</b>/leave <channel (optional)>`);
@@ -1759,7 +1767,7 @@
 
 		newChannel(channel, isPrivate) {
 			const channelName = (isPrivate ? "private_" : "channel_") + channel;
-			if(this.channels[channelName]) {return};
+			if (this.channels[channelName]) { return };
 			this.channels[channelName] = {
 				name: channel,
 				isPrivate,
@@ -1780,14 +1788,14 @@
 				this.switchChannel(channel, isPrivate);
 			}
 
-			this.fcElement.querySelector("#flatChatChannels").insertAdjacentHTML("beforeend",`<div class="flatChatChannel" data-channel="${channelName}" style="display:none"></div>`);
-			if(isPrivate) {
+			this.fcElement.querySelector("#flatChatChannels").insertAdjacentHTML("beforeend", `<div class="flatChatChannel" data-channel="${channelName}" style="display:none"></div>`);
+			if (isPrivate) {
 				const privateChannel = this.fcElement.querySelector(`#flatChatChannels [data-channel=${channelName}]`);
 				privateChannel.insertAdjacentHTML("beforeend",`
 				<div class="fc-lvlUpMessages"><strong>${this.getDateStr()}</strong><span>New chat with ${channel}</span></div>`)
 				this.fcElement.querySelectorAll(`[data-channel=${this.config.defaultPmChat}] .fc-pmReceivedMessages,.fc-pmSentMessages`).forEach(el => {
-				const match = el.innerText.match(/(?:>|<) (?:\[[0-9][0-9]:[0-9][0-9]])?(.*?):/)
-					if(match && match[1] === channel) {
+					const match = el.innerText.match(/(?:>|<) (?:\[[0-9][0-9]:[0-9][0-9]])?(.*?):/)
+					if (match && match[1] === channel) {
 						privateChannel.appendChild(el);
 					}
 				})
@@ -1797,7 +1805,7 @@
 
 		closeChannel(channel) {
 			const oldChannel = channel || this.currentChannel;
-			if(this.defaultChannels.has(oldChannel)) {
+			if (this.defaultChannels.has(oldChannel)) {
 				return;
 			}
 
@@ -1812,7 +1820,7 @@
 
 		saveChannels() {
 			const channels = Object.keys(this.channels);
-			localStorage.setItem("flatChat-channels",JSON.stringify(channels))
+			localStorage.setItem("flatChat-channels", JSON.stringify(channels))
 		}
 
 		loadChannels() {
@@ -1820,7 +1828,7 @@
 
 			//It should not be possible to remove default channels, but just in case
 			this.defaultChannels.forEach(channel => {
-				if(!channels.includes(channel)) {
+				if (!channels.includes(channel)) {
 					channels.push(channel)
 				}
 			})
@@ -1833,12 +1841,12 @@
 				}
 			})
 
-			if(this.config.pingChat) {
+			if (this.config.pingChat) {
 				this.fcElement.querySelector(".flatChatTab[data-channel='channel_pings']")?.classList.remove("displaynone")
 			} else {
 				this.fcElement.querySelector(".flatChatTab[data-channel='channel_pings']")?.classList.add("displaynone")
 			}
-			if(this.config.defaultPmChat === "whisper") {
+			if (this.config.defaultPmChat === "whisper") {
 				this.fcElement.querySelector(".flatChatTab[data-channel='channel_whisper']")?.classList.remove("displaynone")
 			} else {
 				this.fcElement.querySelector(".flatChatTab[data-channel='channel_whisper']")?.classList.add("displaynone")
@@ -1849,7 +1857,7 @@
 				if (message) {
 					const id = message.dataset.mid;
 					const channelName = message.dataset.channelname;
-					const isPrivate = channelName.slice(0,7) === "private";
+					const isPrivate = channelName.slice(0, 7) === "private";
 					const channel = channelName.slice(8);
 
 					this.switchChannel(channel, isPrivate)
@@ -1925,9 +1933,9 @@
 			this.saveConfig();
 		}
 
-		addContextButton(action, text, func, isWarningBtn) {
+		addContextButton(action, text, func, btnType) {
 			this.contextActions[action] = func;
-			document.getElementById("flatChatContextMenu").insertAdjacentHTML("beforeend", `<button data-action="${action}" class="${isWarningBtn ? "flatChatContextWarningBtn" : "flatChatContextBtn"}">${text}</button>`)
+			document.getElementById("flatChatContextMenu").insertAdjacentHTML("beforeend", `<button data-action="${action}" class="flatChatContext${btnType}Btn">${text}</button>`)
 		}
 
 		contextMenu(e) {
@@ -1942,7 +1950,7 @@
 		}
 
 		updateUnread(channel) {
-			if(channel !== this.currentChannel) {
+			if (channel !== this.currentChannel) {
 				const unreadMessages = ++this.channels[channel].unreadMessages;
 				const unreadDiv = this.fcElement.querySelector(`.flatChatTab[data-channel=${channel}] .flatChatUnread`);
 				unreadDiv.innerText = unreadMessages
@@ -1965,14 +1973,14 @@
 			// }
 
 			//If for some reason the channel does not exist
-			if(!data.channel in this.channels) {
+			if (!data.channel in this.channels) {
 				data.channel = "channel_local"
 			}
 
 			let message = data.message;
 
 			for (const not in textToNotification) {
-				if(message.includes(textToNotification[not].blocked)) {
+				if (message.includes(textToNotification[not].blocked)) {
 					this.updateNotification(message, not);
 					this.showNotification(not);
 					return;
@@ -2016,11 +2024,11 @@
 			});
 
 			//If the message contains any ignored word it will ignore the message or mark as spoiler
-			if(this.config.ignoredWords.some(word => message.includes(word))) {
-				if(this.config["hideUnwanted"]) {
+			if (this.config.ignoredWords.some(word => message.includes(word))) {
+				if (this.config["hideUnwanted"]) {
 					messageSpan.style.cursor = "pointer";
 					messageSpan.classList.add("flatChatHidden");
-					messageSpan.onclick = ()=>{
+					messageSpan.onclick = () => {
 						messageSpan.classList.toggle("flatChatHidden")
 					}
 				} else {
@@ -2034,10 +2042,10 @@
 			messageArea.appendChild(messageContainer);
 
 			//Trim old messages if over the limit
-			if(this.config.maxMessages > 0) {
-					console.log(this.config.maxMessages)
+			if (this.config.maxMessages > 0) {
+				console.log(this.config.maxMessages)
 
-				while(messageArea.children.length > this.config.maxMessages) {
+				while (messageArea.children.length > this.config.maxMessages) {
 					messageArea.removeChild(messageArea.firstElementChild);
 				}
 			}
@@ -2062,12 +2070,12 @@
 			//     channel: "private_dounford"
 			//     usernameColor: "red"
 			// }
-			
+
 			//In case there is a minimun lvl set it will ignore low level players
-			if(this.config.lvlChat !== 0 && !this.playerWithTotalLvl.has(data.username)) return;
+			if (this.config.lvlChat !== 0 && !this.playerWithTotalLvl.has(data.username)) return;
 
 			//If for some reason the channel does not exist
-			if(!data.channel in this.channels) {
+			if (!data.channel in this.channels) {
 				data.channel = "channel_local"
 			}
 
@@ -2081,7 +2089,7 @@
 			}
 
 			//If the message sender is blocked the message will be ignored
-			if(this.config.ignoredPlayers.includes(data.username)) {
+			if (this.config.ignoredPlayers.includes(data.username)) {
 				return;
 			}
 
@@ -2096,7 +2104,7 @@
 				isPing = this.config.pingChat;
 				messageContainer.className = "fc-pingMessages";
 				//Ignore ping is just about the sound
-				if(!this.config.ignorePings) {
+				if (!this.config.ignorePings) {
 					ding.play();
 				}
 			}
@@ -2121,7 +2129,7 @@
 			if (data.tag && data.tag !== "none") {
 				let tag = document.createElement("span");
 
-				if(data.tag === "investor_plus") data.tag = "investor-plus"
+				if (data.tag === "investor_plus") data.tag = "investor-plus"
 
 				tag.innerText = data.tag === "investor-gold" ? "GOLD INVESTOR" : data.tag === "investor-plus" ? "INVESTOR" : data.tag === "moderator" ? "MOD" : data.tag.toUpperCase();
 
@@ -2148,7 +2156,7 @@
 			if (data.username) {
 				const senderStrong = document.createElement("strong");
 				let username = data.username.replaceAll("_", " ");
-				if(isPm && data.color === "pmSent") {
+				if (isPm && data.color === "pmSent") {
 					username = Globals.local_username;
 				}
 				username = this.config.nicknames[username] || username;
@@ -2157,12 +2165,12 @@
 				senderStrong.setAttribute("data-sender", data.username.replaceAll(" ", "_"));
 				messageContainer.appendChild(senderStrong);
 
-				if(this.config.watchedPlayers.includes(data.username) && !isPm) {
+				if (this.config.watchedPlayers.includes(data.username) && !isPm) {
 					messageContainer.className = "fc-pingMessages";
 				}
 			} else {
 				for (const not in textToNotification) {
-					if(message.includes(textToNotification[not].blocked)) {
+					if (message.includes(textToNotification[not].blocked)) {
 						this.updateNotification(message, not);
 						this.showNotification(not);
 						return;
@@ -2172,7 +2180,7 @@
 
 			const messageSpan = document.createElement('span');
 			const match = message.match(/My (.*?) level is: (.*?) \((.*?) xp\)/);
-			if(match) {
+			if (match) {
 				const [_, skill, level, xp] = match;
 				this.createLevelTooltip(messageSpan, this.toTitleCase(skill), level, xp);
 			} else if (html) {
@@ -2192,11 +2200,11 @@
 			});
 
 			//If the message contains any ignored word it will ignore the message or mark as spoiler
-			if(this.config.ignoredWords.some(word => message.includes(word))) {
-				if(this.config["hideUnwanted"]) {
+			if (this.config.ignoredWords.some(word => message.includes(word))) {
+				if (this.config["hideUnwanted"]) {
 					messageSpan.style.cursor = "pointer";
 					messageSpan.classList.add("flatChatHidden");
-					messageSpan.onclick = ()=>{
+					messageSpan.onclick = () => {
 						messageSpan.classList.toggle("flatChatHidden")
 					}
 				} else {
@@ -2208,7 +2216,7 @@
 			const messageArea = this.fcElement.querySelector(`#flatChatChannels [data-channel=${data.channel}]`);
 			messageArea.appendChild(messageContainer);
 			//Clones the message on the ping channel
-			if(isPing) {
+			if (isPing) {
 				const pingElement = messageContainer.cloneNode(true);
 				pingElement.className = ""; //Every message is a ping, there is no reason to highlight them
 
@@ -2219,27 +2227,27 @@
 
 				const pingsArea = this.fcElement.querySelector(`.flatChatChannel[data-channel=channel_pings]`);
 				pingsArea.appendChild(pingElement);
-				if(this.config.maxMessages > 0) {
+				if (this.config.maxMessages > 0) {
 					console.log(this.config.maxMessages)
-					while(pingsArea.children.length > this.config.maxMessages) {
+					while (pingsArea.children.length > this.config.maxMessages) {
 						pingsArea.removeChild(pingsArea.firstElementChild);
 					}
 				}
 
 				//Update the unread messages number if needed
-				if(this.currentChannel !== "channel_pings") {
+				if (this.currentChannel !== "channel_pings") {
 					this.updateUnread("channel_pings");
 				}
 			}
 
 			//Trim old messages if over the limit
-			if(this.config.maxMessages > 0) {
-				while(messageArea.children.length > this.config.maxMessages) {
+			if (this.config.maxMessages > 0) {
+				while (messageArea.children.length > this.config.maxMessages) {
 					messageArea.removeChild(messageArea.firstElementChild);
 				}
 			}
 
-			if(data.channel !== this.currentChannel) {
+			if (data.channel !== this.currentChannel) {
 				//Update the unread messages number if needed
 				this.updateUnread(data.channel);
 			}
@@ -2253,10 +2261,10 @@
 		}
 
 		createLevelTooltip(element, skill, level, xp) {
-			const ixp = parseInt(xp.replaceAll(",",""));
+			const ixp = parseInt(xp.replaceAll(",", ""));
 			level = parseInt(level);
 			let nextLvl = "";
-			if(skill !== "Global" && level !== 100) {
+			if (skill !== "Global" && level !== 100) {
 				const value = format_number(FlatMMOPlus.level[level + 1] - ixp);
 				nextLvl = `<div>XP to Level Up: ${value}</div>`
 			}
@@ -2273,7 +2281,7 @@
 		updateNotification(message, blocked) {
 			switch (blocked) {
 				case "nessieTime": {
-					textToNotification[blocked].text = message.slice(0,-1);
+					textToNotification[blocked].text = message.slice(0, -1);
 				} break;
 				case "fireFish": {
 					const match = message.match(/\((.*)\)/);
@@ -2319,7 +2327,7 @@
 		sendMessage() {
 			const input = this.fcElement.querySelector("#flatChatInput");
 			let message = input.value.trim();
-			if (!message) {return};
+			if (!message) { return };
 
 			//[here] can't be modified, it will always use the current_map id
 			message = message.replace("[here]", current_map);
@@ -2329,13 +2337,13 @@
 			input.value = "";
 			this.channels[this.currentChannel].inputText = "";
 
-			if(message !== this.chatHistory[0]) {
+			if (message !== this.chatHistory[0]) {
 				this.chatHistory.unshift(message);
 			}
 			this.historyPosition = -1;
 
 
-			if(message.startsWith("/")) {
+			if (message.startsWith("/")) {
 				const space = message.indexOf(" ");
 				let command;
 				let data;
@@ -2355,15 +2363,15 @@
 				}
 			}
 
-			const maxlength = this.currentChannel.startsWith("channel") ? 95 : 85;
+			const maxlength = this.currentChannel.startsWith("channel") ? LOCAL_CHAT_MAX_LENGTH - 7 : LOCAL_CHAT_MAX_LENGTH - 17;
 			const messageArray = this.divideStringByLength(message, maxlength);
 			const isPM = message.startsWith("/pm");
 			for (let i = 0; i < messageArray.length; i++) {
-				if(this.currentChannel === "channel_whisper" || (isPM && i > 0)) {
+				if (this.currentChannel === "channel_whisper" || (isPM && i > 0)) {
 					FlatMMOPlus.customChatCommands.r("r", messageArray[i])
-				} else if(this.currentChannel === "channel_local") {
+				} else if (this.currentChannel === "channel_local") {
 					Globals.websocket.send('CHAT=' + messageArray[i]);
-				} else if(this.currentChannel === "channel_global") {
+				} else if (this.currentChannel === "channel_global") {
 					Globals.websocket.send('CHAT=/yell ' + messageArray[i]);
 				} else if (this.currentChannel.startsWith("private_")) {
 					const username = this.currentChannel.slice(8);
@@ -2404,14 +2412,14 @@
 			return result.charAt(0).toUpperCase() + result.slice(1)
 		}
 
-		divideStringByLength(str, l, delimiterChat = " "){
+		divideStringByLength(str, l, delimiterChat = " ") {
 			const strs = [];
-			while(str.length > l){
+			while (str.length > l) {
 				let pos = str.substring(0, l).lastIndexOf(delimiterChat);
 				pos = pos <= 0 ? l : pos;
 				strs.push(str.substring(0, pos));
-				let i = str.indexOf(delimiterChat, pos)+1;
-				if(i < pos || i > pos+l)
+				let i = str.indexOf(delimiterChat, pos) + 1;
+				if (i < pos || i > pos + l)
 					i = pos;
 				str = str.substring(i);
 			}
